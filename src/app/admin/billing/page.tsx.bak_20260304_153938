@@ -28,6 +28,7 @@ export default function BillingPage() {
   const [tenant, setTenant] = useState<Tenant | null>(null);
 
   const [portalBusy, setPortalBusy] = useState(false);
+const [accessToken, setAccessToken] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -38,7 +39,6 @@ export default function BillingPage() {
     }
   }, []);
 
-  // billing-state は server API 経由（Supabase REST直叩き回避）
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -48,11 +48,13 @@ export default function BillingPage() {
       try {
         const sessionRes = await supabase.auth.getSession();
         const access_token = sessionRes.data?.session?.access_token;
+setAccessToken(access_token ?? null);
         if (!access_token) {
           window.location.href = "/login";
           return;
         }
 
+        // ✅ Supabase REST直叩きはやめて、同一オリジンAPIへ
         const res = await fetch("/api/admin/billing-state", {
           method: "POST",
           headers: { "content-type": "application/json; charset=utf-8" },
@@ -74,35 +76,23 @@ export default function BillingPage() {
     })();
   }, [supabase]);
 
-  // ✅ ここが修正点：ボタン押下時に token を取り直して POSTのみ
   async function openPortal() {
     setPortalBusy(true);
-    setErr(null);
-
     try {
-      const sessionRes = await supabase.auth.getSession();
-      const access_token = sessionRes.data?.session?.access_token;
-      if (!access_token) {
-        window.location.href = "/login";
-        return;
-      }
-
       const res = await fetch("/api/stripe/portal", {
         method: "POST",
         headers: { "content-type": "application/json; charset=utf-8" },
-        body: JSON.stringify({ return_url: window.location.href, access_token }),
-        cache: "no-store",
+        body: JSON.stringify({ return_url: window.location.href, access_token: accessToken }),
       });
 
-      const j = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(j?.error ? `${j.error}${j.detail ? " / " + j.detail : ""}` : `HTTP ${res.status}`);
+      if (res.ok) {
+        const j = await res.json().catch(() => null);
+        if (j?.url) {
+          window.location.href = j.url;
+          return;
+        }
       }
-      if (!j?.url) throw new Error("portal url missing");
-
-      window.location.href = j.url;
-    } catch (e: any) {
-      setErr(e?.message ?? String(e));
+      window.location.href = "/api/stripe/portal";
     } finally {
       setPortalBusy(false);
     }
@@ -161,3 +151,4 @@ export default function BillingPage() {
     </main>
   );
 }
+
