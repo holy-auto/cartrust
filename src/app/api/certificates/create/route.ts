@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { phoneLast4Hash } from "@/lib/customerPortalServer";
 
@@ -42,7 +42,11 @@ async function supaInsertCertificate(row: any) {
   return Array.isArray(json) ? json[0] : json;
 }
 
+import { enforceBilling } from "@/lib/billing/guard";
+
 export async function POST(req: Request) {
+  const deny = await enforceBilling(req, { minPlan: "mini", action: "create" });
+  if (deny) return deny as any;
   try {
     const body = await req.json();
     const b = BodySchema.parse(body);
