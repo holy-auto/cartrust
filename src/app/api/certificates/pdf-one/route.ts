@@ -87,13 +87,8 @@ export async function POST(req: NextRequest) {
 }
 
 // ブラウザで開いた時（GET）用の案内
+
 export async function GET() {
   return NextResponse.json({ error: "Method Not Allowed" }, { status: 405 });
 }
-, { status: 405 });
-}
-,
-  });
-}
-
 
