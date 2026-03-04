@@ -55,6 +55,7 @@ export default function BillingPage() {
 
   const [portalBusy, setPortalBusy] = useState(false);
   const [resumeBusy, setResumeBusy] = useState(false);
+  const [refreshBusy, setRefreshBusy] = useState(false);
   const busyRef = useRef(false);
 
   useEffect(() => {
@@ -71,7 +72,7 @@ export default function BillingPage() {
   async function fetchBillingState() {
     if (busyRef.current) return;
     busyRef.current = true;
-
+    setRefreshBusy(true);
     setErr(null);
 
     try {
@@ -97,8 +98,9 @@ export default function BillingPage() {
       setTenant(j.tenant as Tenant);
       setSub((j.subscription ?? null) as SubInfo);
     } finally {
-      busyRef.current = false;
-    }
+    setRefreshBusy(false);
+    busyRef.current = false;
+  }
   }
 
   useEffect(() => {
@@ -321,7 +323,7 @@ const activeLabel =
             <button
               className="rounded border px-3 py-2"
               onClick={() => fetchBillingState().catch((e: any) => setErr(e?.message ?? String(e)))}
-              disabled={busyRef.current}
+              disabled={refreshBusy}
             >
               更新
             </button>
@@ -339,6 +341,7 @@ const activeLabel =
     </main>
   );
 }
+
 
 
 
