@@ -11,6 +11,41 @@ function json(status: number, body: any) {
   });
 }
 
+function isNavigation(req: Request) {
+  const accept = req.headers.get("accept") ?? "";
+  const mode = req.headers.get("sec-fetch-mode") ?? "";
+  const dest = req.headers.get("sec-fetch-dest") ?? "";
+  return accept.includes("text/html") || mode === "navigate" || dest === "document";
+}
+
+function redirectToBilling(req: Request, reason: "inactive" | "plan") {
+  const origin = new URL(req.url).origin;
+  const billing = new URL("/admin/billing", origin);
+
+  // referer があれば return に入れる（なければ /admin）
+  const ref = req.headers.get("referer");
+  try {
+    if (ref) {
+      const r = new URL(ref);
+      billing.searchParams.set("return", r.pathname + r.search);
+    } else {
+      billing.searchParams.set("return", "/admin");
+    }
+  } catch {
+    billing.searchParams.set("return", "/admin");
+  }
+
+  billing.searchParams.set("reason", reason);
+
+  return new Response(null, {
+    status: 303,
+    headers: { Location: billing.toString() },
+  });
+}
+,
+  });
+}
+
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -90,23 +125,32 @@ export async function enforceBilling(
   const active = !!data.is_active;
 
   if (!active) {
-    return json(402, {
+  if (isNavigation(req)) return redirectToBilling(req, "inactive");
+  return new Response(
+    JSON.stringify({
       error: "Billing inactive",
       message: "支払いが停止しています。請求・プラン画面から支払いを再開してください。",
       billing_url: "/admin/billing",
       action: opts.action ?? null,
-    });
-  }
+    }),
+    { status: 402, headers: { "content-type": "application/json; charset=utf-8", "x-billing-url": "/admin/billing" } }
+  );
+}
 
   if (RANK[plan] < RANK[opts.minPlan]) {
-    return json(403, {
+  if (isNavigation(req)) return redirectToBilling(req, "plan");
+  return new Response(
+    JSON.stringify({
       error: "Plan restricted",
       message: `この機能は ${opts.minPlan} 以上で利用できます。`,
       billing_url: "/admin/billing",
       action: opts.action ?? null,
       current_plan: plan,
-    });
-  }
+    }),
+    { status: 403, headers: { "content-type": "application/json; charset=utf-8", "x-billing-url": "/admin/billing" } }
+  );
+}
 
   return null;
 }
+
