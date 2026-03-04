@@ -41,11 +41,8 @@ function fmtUnix(unix?: number | null) {
 function daysLeft(unix?: number | null) {
   if (!unix) return null;
   const ms = unix * 1000 - Date.now();
-  const d = Math.ceil(ms / (1000 * 60 * 60 * 24));
-  return d;
+  return Math.ceil(ms / (1000 * 60 * 60 * 24));
 }
-}
-
 export default function BillingPage() {
   const supabase = useMemo(() => createClient(), []);
   const [status, setStatus] = useState<string | null>(null);
@@ -342,6 +339,7 @@ const activeLabel =
     </main>
   );
 }
+
 
 
 
