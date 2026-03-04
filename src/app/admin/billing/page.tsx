@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type Tenant = {
@@ -14,67 +14,145 @@ type Tenant = {
   stripe_subscription_id: string | null;
 };
 
+type SubInfo =
+  | {
+      id: string;
+      status: string;
+      current_period_start: number | null;
+      current_period_end: number | null;
+      cancel_at_period_end: boolean | null;
+      cancel_at: number | null;
+      trial_end: number | null;
+    }
+  | { error: string }
+  | null;
+
 function short(id?: string | null) {
   if (!id) return "-";
   return id.length <= 16 ? id : `${id.slice(0, 8)}…${id.slice(-6)}`;
 }
 
+function fmtUnix(unix?: number | null) {
+  if (!unix) return "-";
+  const d = new Date(unix * 1000);
+  return d.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
+}
+
 export default function BillingPage() {
   const supabase = useMemo(() => createClient(), []);
   const [status, setStatus] = useState<string | null>(null);
+  const [fromPortal, setFromPortal] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [sub, setSub] = useState<SubInfo>(null);
 
   const [portalBusy, setPortalBusy] = useState(false);
+  const busyRef = useRef(false);
 
   useEffect(() => {
     try {
-      const s = new URLSearchParams(window.location.search).get("status");
-      setStatus(s);
+      const qs = new URLSearchParams(window.location.search);
+      setStatus(qs.get("status"));
+      setFromPortal(qs.get("from") === "portal");
     } catch {
       setStatus(null);
+      setFromPortal(false);
     }
   }, []);
 
-  // billing-state は server API 経由（Supabase REST直叩き回避）
+  async function fetchBillingState() {
+    if (busyRef.current) return;
+    busyRef.current = true;
+
+    setErr(null);
+
+    try {
+      const sessionRes = await supabase.auth.getSession();
+      const access_token = sessionRes.data?.session?.access_token;
+      if (!access_token) {
+        window.location.href = "/login";
+        return;
+      }
+
+      const res = await fetch("/api/admin/billing-state", {
+        method: "POST",
+        headers: { "content-type": "application/json; charset=utf-8" },
+        body: JSON.stringify({ access_token }),
+        cache: "no-store",
+      });
+
+      const j = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(j?.error ? `${j.error}${j.detail ? " / " + j.detail : ""}` : `HTTP ${res.status}`);
+      }
+
+      setTenant(j.tenant as Tenant);
+      setSub((j.subscription ?? null) as SubInfo);
+    } finally {
+      busyRef.current = false;
+    }
+  }
+
   useEffect(() => {
     (async () => {
       setLoading(true);
-      setErr(null);
       setTenant(null);
+      setSub(null);
 
       try {
-        const sessionRes = await supabase.auth.getSession();
-        const access_token = sessionRes.data?.session?.access_token;
-        if (!access_token) {
-          window.location.href = "/login";
-          return;
-        }
-
-        const res = await fetch("/api/admin/billing-state", {
-          method: "POST",
-          headers: { "content-type": "application/json; charset=utf-8" },
-          body: JSON.stringify({ access_token }),
-          cache: "no-store",
-        });
-
-        const j = await res.json().catch(() => null);
-        if (!res.ok) {
-          throw new Error(j?.error ? `${j.error}${j.detail ? " / " + j.detail : ""}` : `HTTP ${res.status}`);
-        }
-
-        setTenant(j.tenant as Tenant);
+        await fetchBillingState();
       } catch (e: any) {
         setErr(e?.message ?? String(e));
       } finally {
         setLoading(false);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase]);
 
-  // ✅ ここが修正点：ボタン押下時に token を取り直して POSTのみ
+  // ✅ A: ポータルから戻った後に“勝手に更新”
+  useEffect(() => {
+    if (!fromPortal) return;
+
+    const timers: any[] = [];
+    const delays = [0, 1000, 3000, 7000]; // webhook反映の遅延吸収
+    for (const d of delays) {
+      timers.push(
+        setTimeout(() => {
+          fetchBillingState().catch((e: any) => setErr(e?.message ?? String(e)));
+        }, d)
+      );
+    }
+
+    // URLを綺麗に（from=portal を消す）※表示は維持
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("from");
+      url.searchParams.delete("r");
+      window.history.replaceState({}, "", url.toString());
+    } catch {}
+
+    return () => timers.forEach((t) => clearTimeout(t));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromPortal]);
+
+  // ✅ タブ復帰/フォーカス復帰でも更新
+  useEffect(() => {
+    const onFocus = () => fetchBillingState().catch((e: any) => setErr(e?.message ?? String(e)));
+    const onVis = () => {
+      if (document.visibilityState === "visible") onFocus();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function openPortal() {
     setPortalBusy(true);
     setErr(null);
@@ -87,10 +165,15 @@ export default function BillingPage() {
         return;
       }
 
+      // return_url に from=portal&r= を付与（戻った時に自動更新トリガ）
+      const u = new URL(window.location.href);
+      u.searchParams.set("from", "portal");
+      u.searchParams.set("r", String(Date.now()));
+
       const res = await fetch("/api/stripe/portal", {
         method: "POST",
         headers: { "content-type": "application/json; charset=utf-8" },
-        body: JSON.stringify({ return_url: window.location.href, access_token }),
+        body: JSON.stringify({ return_url: u.toString(), access_token }),
         cache: "no-store",
       });
 
@@ -111,6 +194,9 @@ export default function BillingPage() {
   const activeLabel =
     tenant?.is_active === true ? "ACTIVE" : tenant?.is_active === false ? "INACTIVE" : "-";
 
+  const subErr = sub && "error" in sub ? sub.error : null;
+  const subOk = sub && !("error" in sub) ? sub : null;
+
   return (
     <main className="p-6 space-y-4">
       <h1 className="text-xl font-semibold">Billing</h1>
@@ -130,7 +216,7 @@ export default function BillingPage() {
         </div>
       )}
 
-      {!loading && !err && tenant && (
+      {!loading && tenant && (
         <div className="rounded border p-4 space-y-2 text-sm">
           <div>
             店舗: <b>{tenant.name ?? tenant.slug ?? tenant.id}</b>
@@ -148,13 +234,55 @@ export default function BillingPage() {
             Stripe subscription: <span className="font-mono">{short(tenant.stripe_subscription_id)}</span>
           </div>
 
+          <div className="pt-2">
+            <div className="font-semibold">期限/更新</div>
+            {subErr && <div className="opacity-80">Stripe期限の取得に失敗: {subErr}</div>}
+            {subOk && (
+              <div className="space-y-1">
+                <div>
+                  サブスク状態: <b>{subOk.status}</b>
+                </div>
+                <div>
+                  期間開始: <b>{fmtUnix(subOk.current_period_start)}</b>
+                </div>
+                <div>
+                  次回更新（期間終了）: <b>{fmtUnix(subOk.current_period_end)}</b>
+                </div>
+                {subOk.cancel_at_period_end && (
+                  <div>
+                    解約予約: <b>ON</b>（終了日: <b>{fmtUnix(subOk.current_period_end)}</b>）
+                  </div>
+                )}
+                {subOk.trial_end && (
+                  <div>
+                    トライアル終了: <b>{fmtUnix(subOk.trial_end)}</b>
+                  </div>
+                )}
+              </div>
+            )}
+            {!sub && <div className="opacity-70">subscription が無い（未課金/未紐づけ）</div>}
+          </div>
+
           <div className="pt-3 flex gap-2">
             <button className="rounded border px-3 py-2" onClick={openPortal} disabled={portalBusy}>
               {portalBusy ? "Opening…" : "Stripe請求ポータルを開く"}
             </button>
+
+            <button
+              className="rounded border px-3 py-2"
+              onClick={() => fetchBillingState().catch((e: any) => setErr(e?.message ?? String(e)))}
+              disabled={busyRef.current}
+            >
+              更新
+            </button>
+
             <Link className="rounded border px-3 py-2" href="/admin">
               管理画面に戻る
             </Link>
+          </div>
+
+          <div className="pt-2 text-xs opacity-70">
+            ※ ポータル復帰時は自動で数回リトライして最新状態に同期します。
           </div>
         </div>
       )}
