@@ -211,7 +211,7 @@ export default function AdminFeatureGuard({ feature, children }: { feature: Feat
       <div className="rounded border bg-yellow-50 p-3 text-sm">
         <div className="font-semibold">{title}</div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <Link className="rounded border bg-white px-3 py-2" href={\`/admin/billing?next=\${encodeURIComponent(nextUrl)}\`}>
+          <Link className="rounded border bg-white px-3 py-2" href={\`/admin/billing?next=\``${encodeURIComponent(nextUrl)}\`}>
             {cta}（/admin/billing）
           </Link>
           <span className="text-xs opacity-70">plan: {planTier} / active: {String(isActive)}</span>
@@ -261,3 +261,5 @@ if ($cc -match 'const\s+canPdfOne\s*=' -and $cc -notmatch '"pdf_one"') {
 WriteUtf8 $ccPath $cc
 
 "OK: patched. backup=" + $backupDir
+
+

@@ -1,4 +1,5 @@
 import BillingGate from "./BillingGate";
+import AdminRouteGuard from "./AdminRouteGuard";
 import BillingFetchGuard from "./BillingFetchGuard";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -6,7 +7,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <>
       <BillingFetchGuard />
       <BillingGate />
-      {children}
+      <AdminRouteGuard>{children}</AdminRouteGuard>
     </>
   );
 }

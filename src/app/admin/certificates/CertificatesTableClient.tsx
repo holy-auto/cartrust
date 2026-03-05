@@ -52,7 +52,7 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
 
   const canCsvSearch = isActive && canUseFeature(planTier, "export_search_csv");
   const canCsvSelected = isActive && canUseFeature(planTier, "export_selected_csv");
-  const canPdfZip = isActive && canUseFeature(planTier, "pdf_zip_selected");
+  const canPdfZip = isActive && canUseFeature(planTier, "pdf_zip");
   const canCsvOne = isActive && canUseFeature(planTier, "export_one_csv");
   const canPdfOne = isActive && canUseFeature(planTier, "pdf_one");
 
