@@ -96,7 +96,7 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
 
           <Link
             className={btnCls(selectedIds.length > 0 && canPdfZip)}
-            href={hrefOrBill(selectedIds.length > 0 && canPdfZip, pdfZipUrl, "pdf_zip_selected")}
+            href={hrefOrBill(selectedIds.length > 0 && canPdfZip, pdfZipUrl, "pdf_zip")}
             aria-disabled={!(selectedIds.length > 0 && canPdfZip)}
             title={!(selectedIds.length > 0 && canPdfZip) ? "利用不可 → 課金ページへ" : ""}
           >
