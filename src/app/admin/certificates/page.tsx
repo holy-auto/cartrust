@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import CertificatesTableClient from "./CertificatesTableClient";
 import { canUseFeature } from "@/lib/billing/planFeatures";
+import { buildBillingDenyUrl } from "@/lib/billing/billingRedirect";
 
 type SearchParams = { q?: string };
 
@@ -23,6 +24,7 @@ async function getMyTenantId(supabase: any) {
 export default async function Page({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
+  const returnTo = `/admin/certificates${q ? `?q=${encodeURIComponent(q)}` : ""}`;
 
   const supabase = await createSupabaseServerClient();
   const { data: userRes } = await supabase.auth.getUser();
@@ -45,6 +47,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
   const isActive = !!t?.is_active;
   const canIssue = isActive && canUseFeature(planTier, "issue_certificate");
 
+  const denyReason = !isActive ? "inactive" : "plan";
+  const issueHref = canIssue
+    ? "/admin/certificates/new"
+    : buildBillingDenyUrl({ reason: denyReason, action: "issue_certificate", returnTo });
+
   let query = supabase
     .from("certificates")
     .select("public_id,status,customer_name,created_at")
@@ -64,7 +71,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
     redirect("/login");
   }
 
-  const linkCls = (enabled: boolean) => "text-sm underline " + (enabled ? "" : "pointer-events-none opacity-40");
+  const linkCls = (enabled: boolean) => "text-sm underline " + (enabled ? "" : "opacity-50");
 
   return (
     <main className="p-6 space-y-4">
@@ -96,9 +103,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
 
           <Link
             className={linkCls(canIssue)}
-            href="/admin/certificates/new"
+            href={issueHref}
             aria-disabled={!canIssue}
-            title={!canIssue ? "課金状態/プランにより利用不可" : ""}
+            title={!canIssue ? "課金状態/プランにより利用不可 → 課金ページへ" : ""}
           >
             新規発行
           </Link>

@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Local backup files created by patch scripts
 *.bak_*
+
+_backup/
+

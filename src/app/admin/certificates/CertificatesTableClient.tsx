@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useAdminBillingStatus } from "@/lib/billing/useAdminBillingStatus";
 import { canUseFeature } from "@/lib/billing/planFeatures";
+import { buildBillingDenyUrl } from "@/lib/billing/billingRedirect";
 
 type Row = {
   public_id: string;
@@ -18,6 +19,10 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
   const bs = useAdminBillingStatus();
   const isActive = bs.data?.is_active ?? true; // 取得失敗時は従来どおり（APIが最後に止める）
   const planTier = bs.data?.plan_tier ?? "pro";
+  const denyReason = !isActive ? "inactive" : "plan";
+
+  const returnTo = useMemo(() => `/admin/certificates${q ? `?q=${encodeURIComponent(q)}` : ""}`, [q]);
+  const bill = (action: string) => buildBillingDenyUrl({ reason: denyReason, action, returnTo });
 
   const allIds = useMemo(() => rows.map((r) => r.public_id), [rows]);
   const selectedIds = useMemo(() => allIds.filter((id) => selected[id]), [allIds, selected]);
@@ -51,8 +56,10 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
   const canCsvOne = isActive && canUseFeature(planTier, "export_one_csv");
   const canPdfOne = isActive && canUseFeature(planTier, "pdf_one");
 
-  const btnCls = (enabled: boolean) => "border rounded px-3 py-2 text-sm " + (enabled ? "" : "pointer-events-none opacity-40");
-  const linkCls = (enabled: boolean) => "underline " + (enabled ? "" : "pointer-events-none opacity-40");
+  const btnCls = (enabled: boolean) => "border rounded px-3 py-2 text-sm " + (enabled ? "" : "opacity-50");
+  const linkCls = (enabled: boolean) => "underline " + (enabled ? "" : "opacity-50");
+
+  const hrefOrBill = (enabled: boolean, href: string, action: string) => (enabled ? href : bill(action));
 
   return (
     <div className="space-y-3">
@@ -78,15 +85,30 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
             全解除
           </button>
 
-          <Link className={btnCls(selectedIds.length > 0 && canCsvSelected)} href={exportUrl} aria-disabled={!(selectedIds.length > 0 && canCsvSelected)}>
+          <Link
+            className={btnCls(selectedIds.length > 0 && canCsvSelected)}
+            href={hrefOrBill(selectedIds.length > 0 && canCsvSelected, exportUrl, "export_selected_csv")}
+            aria-disabled={!(selectedIds.length > 0 && canCsvSelected)}
+            title={!(selectedIds.length > 0 && canCsvSelected) ? "利用不可 → 課金ページへ" : ""}
+          >
             選択CSV
           </Link>
 
-          <Link className={btnCls(selectedIds.length > 0 && canPdfZip)} href={pdfZipUrl} aria-disabled={!(selectedIds.length > 0 && canPdfZip)}>
+          <Link
+            className={btnCls(selectedIds.length > 0 && canPdfZip)}
+            href={hrefOrBill(selectedIds.length > 0 && canPdfZip, pdfZipUrl, "pdf_zip_selected")}
+            aria-disabled={!(selectedIds.length > 0 && canPdfZip)}
+            title={!(selectedIds.length > 0 && canPdfZip) ? "利用不可 → 課金ページへ" : ""}
+          >
             選択PDF（ZIP）
           </Link>
 
-          <Link className={linkCls(canCsvSearch)} href={`/admin/certificates/export?q=${encodeURIComponent(q)}`} aria-disabled={!canCsvSearch}>
+          <Link
+            className={linkCls(canCsvSearch)}
+            href={hrefOrBill(canCsvSearch, `/admin/certificates/export?q=${encodeURIComponent(q)}`, "export_search_csv")}
+            aria-disabled={!canCsvSearch}
+            title={!canCsvSearch ? "利用不可 → 課金ページへ" : ""}
+          >
             CSV（検索結果）
           </Link>
         </div>
@@ -136,10 +158,20 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
                       <Link className="underline" href={url} target="_blank">
                         公開ページ
                       </Link>
-                      <Link className={linkCls(canCsvOne)} href={`/admin/certificates/export-one?pid=${encodeURIComponent(r.public_id)}`} aria-disabled={!canCsvOne}>
+                      <Link
+                        className={linkCls(canCsvOne)}
+                        href={hrefOrBill(canCsvOne, `/admin/certificates/export-one?pid=${encodeURIComponent(r.public_id)}`, "export_one_csv")}
+                        aria-disabled={!canCsvOne}
+                        title={!canCsvOne ? "利用不可 → 課金ページへ" : ""}
+                      >
                         CSV(1件)
                       </Link>
-                      <Link className={linkCls(canPdfOne)} href={`/admin/certificates/pdf-one?pid=${encodeURIComponent(r.public_id)}`} aria-disabled={!canPdfOne}>
+                      <Link
+                        className={linkCls(canPdfOne)}
+                        href={hrefOrBill(canPdfOne, `/admin/certificates/pdf-one?pid=${encodeURIComponent(r.public_id)}`, "pdf_one")}
+                        aria-disabled={!canPdfOne}
+                        title={!canPdfOne ? "利用不可 → 課金ページへ" : ""}
+                      >
                         PDF(1件)
                       </Link>
                     </div>

@@ -1,7 +1,8 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { makePublicId } from "@/lib/publicId";
+import { checkAdminFeature } from "@/lib/billing/adminFeatureGate";
 
 type FieldType = "text" | "textarea" | "number" | "date" | "select" | "multiselect" | "checkbox";
 
@@ -299,3 +300,4 @@ export default async function Page({
     </main>
   );
 }
+

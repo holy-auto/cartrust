@@ -1,8 +1,11 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { renderCertificatePdf } from "@/lib/pdfCertificate";
 
 export async function GET(req: Request) {
+  // @holy-guard:pdf_one
+  const __gate = await checkAdminFeature("pdf_one" as any, "/admin/certificates");
+  if (!__gate.ok) return billingDenyResponse(__gate as any, "pdf_one" as any, "/admin/certificates");
   const supabase = await createSupabaseServerClient();
 
   const { data: userRes } = await supabase.auth.getUser();

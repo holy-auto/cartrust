@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 
 function csvEscape(v: any) {
@@ -9,6 +9,9 @@ function csvEscape(v: any) {
 }
 
 export async function GET(req: Request) {
+  // @holy-guard:export_search_csv
+  const __gate = await checkAdminFeature("export_search_csv" as any, "/admin/certificates");
+  if (!__gate.ok) return billingDenyResponse(__gate as any, "export_search_csv" as any, "/admin/certificates");
   const supabase = await createSupabaseServerClient();
 
   const { data: userRes } = await supabase.auth.getUser();
