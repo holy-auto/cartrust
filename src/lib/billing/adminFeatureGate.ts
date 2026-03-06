@@ -119,3 +119,4 @@ export function billingDenyResponse(g: Gate, feature: FeatureKey, returnTo: stri
     { status: g.status ?? 402, headers: { "Cache-Control": "no-store" } }
   );
 }
+
