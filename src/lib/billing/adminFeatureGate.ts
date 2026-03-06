@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
-import { canUseFeature, FeatureKey, normalizePlanTier } from "@/lib/billing/planFeatures";
+import { canUseFeature, normalizePlanTier } from "@/lib/billing/planFeatures";
 import { buildBillingDenyUrl, BillingReason } from "@/lib/billing/billingRedirect";
+import type { FeatureKey } from "@/lib/billing/planFeatures";
 
 export type GateOk = {
   ok: true;
