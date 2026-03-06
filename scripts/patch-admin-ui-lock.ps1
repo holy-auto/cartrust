@@ -66,7 +66,7 @@ function WrapDefaultPageReturn([string]$content, [string]$featureKey) {
       continue
     }
 
-    if ($ch -eq [char]39) { $inS = $true; continue }
+     if ($ch -eq [char]39) { $inS = $true; continue }
     if ($ch -eq [char]34) { $inD = $true; continue }
     if ($ch -eq [char]96) { $inT = $true; continue }
 
