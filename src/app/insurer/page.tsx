@@ -38,6 +38,9 @@ export default function InsurerHomePage() {
   const supabase = useMemo(() => createClient(), []);
   const [ready, setReady] = useState(false);
   const [q, setQ] = useState("");
+  const [status, setStatus] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -58,7 +61,12 @@ export default function InsurerHomePage() {
     setBusy(true);
     setErr(null);
     try {
-      const res = await fetch(`/api/insurer/search?q=${encodeURIComponent(q)}&limit=50&offset=0`, { cache: "no-store" });
+      const qs = new URLSearchParams({ limit: "50", offset: "0" });
+      if (q) qs.set("q", q);
+      if (status) qs.set("status", status);
+      if (dateFrom) qs.set("date_from", dateFrom);
+      if (dateTo) qs.set("date_to", dateTo);
+      const res = await fetch(`/api/insurer/search?${qs.toString()}`, { cache: "no-store" });
       const j = await res.json();
       if (!res.ok) throw new Error(j?.error ?? "search_failed");
       setRows(j?.rows ?? []);
@@ -82,7 +90,12 @@ export default function InsurerHomePage() {
 
   if (!ready) return null;
 
-  const exportUrl = `/api/insurer/export?q=${encodeURIComponent(q)}`;
+  const exportQs = new URLSearchParams();
+  if (q) exportQs.set("q", q);
+  if (status) exportQs.set("status", status);
+  if (dateFrom) exportQs.set("date_from", dateFrom);
+  if (dateTo) exportQs.set("date_to", dateTo);
+  const exportUrl = `/api/insurer/export${exportQs.toString() ? `?${exportQs.toString()}` : ""}`;
 
   return (
     <main className="min-h-screen bg-neutral-50 p-6">
@@ -127,27 +140,63 @@ export default function InsurerHomePage() {
             <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">SEARCH</div>
             <div className="mt-1 text-base font-semibold text-neutral-900">証明書を検索</div>
           </div>
-          <div className="flex gap-3">
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && runSearch()}
-              placeholder="public_id / 顧客名 / 車両型式 / ナンバー"
-              className="flex-1 rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-neutral-400"
-            />
-            <button
-              onClick={runSearch}
-              disabled={busy}
-              className="rounded-xl border border-neutral-900 bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
-            >
-              {busy ? "検索中..." : "検索"}
-            </button>
-            <a
-              href={exportUrl}
-              className="rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
-            >
-              CSV
-            </a>
+          <div className="space-y-3">
+            {/* キーワード行 */}
+            <div className="flex gap-3">
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && runSearch()}
+                placeholder="public_id / 顧客名 / 車両型式 / ナンバー"
+                className="flex-1 rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-neutral-400"
+              />
+              <button
+                onClick={runSearch}
+                disabled={busy}
+                className="rounded-xl border border-neutral-900 bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
+              >
+                {busy ? "検索中..." : "検索"}
+              </button>
+              <a
+                href={exportUrl}
+                className="rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+              >
+                CSV
+              </a>
+            </div>
+
+            {/* フィルタ行 */}
+            <div className="grid gap-3 sm:grid-cols-3">
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+              >
+                <option value="">全ステータス</option>
+                <option value="active">有効 (active)</option>
+                <option value="void">無効 (void)</option>
+              </select>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-neutral-500 whitespace-nowrap">FROM</span>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="flex-1 rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-neutral-500 whitespace-nowrap">TO</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="flex-1 rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+                />
+              </div>
+            </div>
           </div>
 
           {err && (
