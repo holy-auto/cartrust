@@ -7,6 +7,8 @@ export const dynamic = "force-dynamic";
 const BodySchema = z.object({
   tenant_id: z.string().uuid(),
   status: z.string().optional().default("active"),
+  vehicle_id: z.string().uuid().optional().nullable(),
+  issue_nfc: z.boolean().optional().default(false),
   customer_name: z.string().min(1),
   customer_phone_last4: z.string().regex(/^\d{4}$/).optional(),
   vehicle_info_json: z.any().optional(),
@@ -58,6 +60,7 @@ export async function POST(req: Request) {
     const insertRow = {
       tenant_id: b.tenant_id,
       status: b.status ?? "active",
+      vehicle_id: b.vehicle_id ?? null,
       customer_name: b.customer_name,
 
       // 新規からはここを正しく保存

@@ -38,6 +38,7 @@ export async function GET(req: Request) {
     .from("certificates")
     .select("public_id,status,customer_name,vehicle_info_json,content_free_text,expiry_type,expiry_value,created_at,updated_at")
     .eq("tenant_id", tenantId)
+    .neq("status", "void")
     .order("created_at", { ascending: false })
     .limit(5000);
 

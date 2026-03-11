@@ -31,11 +31,13 @@ export async function GET(req: Request) {
 
   const { data: rows, error } = await supabase
     .from("certificates")
-    .select("public_id,customer_name,vehicle_info_json,content_free_text,content_preset_json,expiry_type,expiry_value,logo_asset_path,created_at")
+    .select("public_id,status,customer_name,vehicle_info_json,content_free_text,content_preset_json,expiry_type,expiry_value,logo_asset_path,created_at")
     .eq("tenant_id", tenantId)
+    .neq("status", "void")
     .in("public_id", ids);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if ((rows?.length ?? 0) === 0) return NextResponse.json({ error: "no_exportable_certificates" }, { status: 410 });
 
   const host = req.headers.get("host") ?? "localhost:3000";
   const proto = req.headers.get("x-forwarded-proto") ?? "http";

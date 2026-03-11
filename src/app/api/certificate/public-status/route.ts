@@ -1,98 +1,192 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import Stripe from "stripe";
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-const DEFAULT_GRACE_DAYS = 14;
-
-function graceDays(): number {
-  const raw = process.env.BILLING_GRACE_DAYS ?? String(DEFAULT_GRACE_DAYS);
-  const n = Math.max(0, Math.min(365, parseInt(raw, 10) || DEFAULT_GRACE_DAYS));
-  return n;
-}
-
-function getSupabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
-  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-}
-
-function getStripe() {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) throw new Error("Missing STRIPE_SECRET_KEY");
-  return new Stripe(key, { apiVersion: "2025-02-24.acacia" as any });
-}
-
-async function graceUntilIso(stripe_subscription_id: string | null) {
-  if (!stripe_subscription_id) return null;
-  try {
-    const stripe = getStripe();
-    const res: any = await stripe.subscriptions.retrieve(stripe_subscription_id);
-    const sub: any = res?.data ?? res;
-    const end = sub?.current_period_end ? Number(sub.current_period_end) : null;
-    if (!end) return null;
-    return new Date((end + graceDays() * 86400) * 1000).toISOString();
-  } catch {
-    return null;
-  }
-}
+import { createSupabaseAdminClient } from "@/lib/supabaseAdmin";
+import { CERTIFICATE_IMAGE_BUCKET } from "@/lib/certificateImages";
 
 export async function GET(req: NextRequest) {
   try {
-    const pid = req.nextUrl.searchParams.get("pid") ?? req.nextUrl.searchParams.get("public_id");
-    if (!pid) return NextResponse.json({ error: "Missing pid" }, { status: 400 });
+    const pid =
+      req.nextUrl.searchParams.get("pid") ??
+      req.nextUrl.searchParams.get("public_id");
 
-    const supabase = getSupabaseAdmin();
+    if (!pid) {
+      return NextResponse.json({ error: "Missing pid" }, { status: 400 });
+    }
 
-    const c = await supabase
+    const supabase = createSupabaseAdminClient();
+
+    const cert = await supabase
       .from("certificates")
-      .select("tenant_id, status")
+      .select(`
+        id,
+        tenant_id,
+        public_id,
+        vehicle_id,
+        status,
+        customer_name,
+        vehicle_info_json,
+        content_free_text,
+        content_preset_json,
+        expiry_type,
+        expiry_value,
+        logo_asset_path,
+        footer_variant,
+        current_version,
+        created_at,
+        updated_at
+      `)
       .eq("public_id", pid)
       .limit(1)
       .maybeSingle();
 
-    if (c.error) return NextResponse.json({ error: "Failed to read certificate", detail: c.error.message }, { status: 500 });
-    if (!c.data?.tenant_id) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (cert.error) {
+      return NextResponse.json(
+        { error: "Failed to read certificates", detail: cert.error.message },
+        { status: 500 }
+      );
+    }
 
-    const t = await supabase
-      .from("tenants")
-      .select("name, slug, is_active, stripe_subscription_id")
-      .eq("id", c.data.tenant_id)
-      .limit(1)
-      .maybeSingle();
+    if (!cert.data?.public_id) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
 
-    if (t.error) return NextResponse.json({ error: "Failed to read tenant", detail: t.error.message }, { status: 500 });
+    const tenant = cert.data.tenant_id
+      ? await supabase
+          .from("tenants")
+          .select("name,slug,custom_domain")
+          .eq("id", cert.data.tenant_id)
+          .limit(1)
+          .maybeSingle()
+      : { data: null, error: null as any };
 
-    const billing_active = !!t.data?.is_active;
+    if (tenant.error) {
+      return NextResponse.json(
+        { error: "Failed to read tenant", detail: tenant.error.message },
+        { status: 500 }
+      );
+    }
 
-    let grace_until: string | null = null;
-    let pdf_allowed = billing_active;
+    let vehicle: any = null;
+    let histories: any[] = [];
+    let nfc: any = null;
+    let images: any[] = [];
 
-    if (!billing_active) {
-      grace_until = await graceUntilIso((t.data as any)?.stripe_subscription_id ?? null);
-      if (grace_until) {
-        pdf_allowed = Date.now() < Date.parse(grace_until);
+    if (cert.data.vehicle_id) {
+      const v = await supabase
+        .from("vehicles")
+        .select("id,maker,model,year,plate_display,customer_name,customer_email,notes,created_at,updated_at")
+        .eq("id", cert.data.vehicle_id)
+        .limit(1)
+        .maybeSingle();
+
+      if (!v.error && v.data) {
+        vehicle = v.data;
+      }
+
+      const h = await supabase
+        .from("vehicle_histories")
+        .select("id,type,title,description,performed_at,certificate_id,created_at")
+        .eq("vehicle_id", cert.data.vehicle_id)
+        .order("performed_at", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (!h.error && Array.isArray(h.data)) {
+        histories = h.data;
+      }
+
+      const n1 = cert.data.id
+        ? await supabase
+            .from("nfc_tags")
+            .select("id,tag_code,status,written_at,attached_at,vehicle_id,certificate_id,created_at")
+            .eq("certificate_id", cert.data.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle()
+        : { data: null, error: null as any };
+
+      if (!n1.error && n1.data) {
+        nfc = n1.data;
       } else {
-        pdf_allowed = false;
+        const n2 = await supabase
+          .from("nfc_tags")
+          .select("id,tag_code,status,written_at,attached_at,vehicle_id,certificate_id,created_at")
+          .eq("vehicle_id", cert.data.vehicle_id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!n2.error && n2.data) {
+          nfc = n2.data;
+        }
       }
     }
 
-    return NextResponse.json(
-      {
-        billing_active,
-        tenant_name: t.data?.name ?? t.data?.slug ?? null,
-        certificate_status: c.data.status ?? null,
-        grace_until,
-        pdf_allowed,
-        grace_days: graceDays(),
+    if (cert.data.id) {
+      const img = await supabase
+        .from("certificate_images")
+        .select("id,file_name,content_type,file_size,sort_order,storage_path,created_at")
+        .eq("certificate_id", cert.data.id)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true });
+
+      if (!img.error && Array.isArray(img.data)) {
+        images = await Promise.all(
+          img.data.map(async (row: any) => {
+            let url: string | null = null;
+            try {
+              const signed = await supabase.storage
+                .from(CERTIFICATE_IMAGE_BUCKET)
+                .createSignedUrl(row.storage_path, 3600);
+              url = signed.data?.signedUrl ?? null;
+            } catch {
+              url = null;
+            }
+
+            return {
+              id: row.id ?? null,
+              file_name: row.file_name ?? null,
+              content_type: row.content_type ?? null,
+              file_size: row.file_size ?? null,
+              sort_order: row.sort_order ?? null,
+              created_at: row.created_at ?? null,
+              url,
+            };
+          })
+        );
+      }
+    }
+
+    return NextResponse.json({
+      ok: true,
+      certificate: {
+        id: cert.data.id ?? null,
+        tenant_id: cert.data.tenant_id ?? null,
+        public_id: cert.data.public_id ?? null,
+        vehicle_id: cert.data.vehicle_id ?? null,
+        status: cert.data.status ?? null,
+        customer_name: cert.data.customer_name ?? null,
+        created_at: cert.data.created_at ?? null,
+        updated_at: cert.data.updated_at ?? null,
+        vehicle_info_json: cert.data.vehicle_info_json ?? null,
+        content_free_text: cert.data.content_free_text ?? null,
+        content_preset_json: cert.data.content_preset_json ?? null,
+        expiry_type: cert.data.expiry_type ?? null,
+        expiry_value: cert.data.expiry_value ?? null,
+        logo_asset_path: cert.data.logo_asset_path ?? null,
+        footer_variant: cert.data.footer_variant ?? null,
+        current_version: cert.data.current_version ?? null,
       },
-      { status: 200, headers: { "cache-control": "no-store" } }
-    );
+      vehicle,
+      nfc,
+      histories,
+      images,
+      shop: {
+        name: tenant.data?.name ?? null,
+        slug: tenant.data?.slug ?? null,
+        custom_domain: tenant.data?.custom_domain ?? null,
+      },
+    });
   } catch (e: any) {
-    console.error("public-status failed", e);
     return NextResponse.json({ error: e?.message ?? String(e) }, { status: 500 });
   }
 }

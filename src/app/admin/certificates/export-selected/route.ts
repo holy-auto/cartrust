@@ -46,10 +46,12 @@ export async function GET(req: Request) {
     .from("certificates")
     .select("public_id,status,customer_name,vehicle_info_json,content_free_text,expiry_type,expiry_value,created_at,updated_at")
     .eq("tenant_id", tenantId)
+    .neq("status", "void")
     .in("public_id", ids)
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if ((rows?.length ?? 0) === 0) return NextResponse.json({ error: "no_exportable_certificates" }, { status: 410 });
 
   const header = [
     "public_id",

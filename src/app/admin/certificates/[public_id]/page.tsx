@@ -77,6 +77,8 @@ export default async function Page({ params }: PageProps) {
   const publicUrl = `/c/${row.public_id}`;
   const csvUrl = `/admin/certificates/export-one?pid=${encodeURIComponent(row.public_id)}`;
   const pdfUrl = `/admin/certificates/pdf-one?pid=${encodeURIComponent(row.public_id)}`;
+  const vehicleDetailUrl = row.vehicle_id ? `/admin/vehicles/${row.vehicle_id}` : null;
+  const vehicleDetailUrl = row.vehicle_id ? `/admin/vehicles/${row.vehicle_id}` : null;
 
   const { data: imageRowsRaw } = await admin
     .from("certificate_images")
@@ -135,6 +137,24 @@ export default async function Page({ params }: PageProps) {
             >
               一覧へ
             </Link>
+
+            {vehicleDetailUrl ? (
+              <Link
+                href={vehicleDetailUrl}
+                className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+              >
+                車両詳細（削除はこちら）
+              </Link>
+            ) : null}
+
+            {vehicleDetailUrl ? (
+              <Link
+                href={vehicleDetailUrl}
+                className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+              >
+                車両詳細（削除はこちら）
+              </Link>
+            ) : null}
 
             <Link
               href={publicUrl}
@@ -342,3 +362,4 @@ export default async function Page({ params }: PageProps) {
     </main>
   );
 }
+

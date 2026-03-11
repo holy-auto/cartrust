@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
@@ -18,7 +18,6 @@ type Section = {
 };
 
 function pickValues(obj: any): Record<string, any> {
-  // 既存実装との差異に強くする（どのキーに値が入っていても拾う）
   return (
     obj?.values ??
     obj?.data ??
@@ -32,16 +31,13 @@ function pickValues(obj: any): Record<string, any> {
 function renderValue(field: Field, raw: any) {
   if (raw === null || raw === undefined) return "";
 
-  // checkbox
   if (field.type === "checkbox") return raw ? "はい" : "いいえ";
 
-  // multiselect
   if (field.type === "multiselect") {
     if (Array.isArray(raw)) return raw.filter(Boolean).join(", ");
     return String(raw);
   }
 
-  // date
   if (field.type === "date") {
     try {
       const d = new Date(raw);
@@ -50,13 +46,11 @@ function renderValue(field: Field, raw: any) {
     return String(raw);
   }
 
-  // number
   if (field.type === "number") {
     if (typeof raw === "number") return raw.toLocaleString("ja-JP");
     return String(raw);
   }
 
-  // default
   return String(raw);
 }
 
@@ -88,7 +82,9 @@ export default function InsurerCertificatePage() {
       setErr(null);
       setCert(null);
       try {
-        const res = await fetch(`/api/insurer/certificate?pid=${encodeURIComponent(publicId)}`, { cache: "no-store" });
+        const res = await fetch(`/api/insurer/certificate/${encodeURIComponent(publicId)}`, {
+          cache: "no-store",
+        });
         const j = await res.json();
         if (!res.ok) throw new Error(j?.error ?? "load_failed");
         setCert(j?.certificate ?? null);
@@ -102,6 +98,8 @@ export default function InsurerCertificatePage() {
 
   const csvOneUrl = publicId ? `/api/insurer/export-one?pid=${encodeURIComponent(publicId)}` : "#";
   const pdfOneUrl = publicId ? `/api/insurer/pdf-one?pid=${encodeURIComponent(publicId)}` : "#";
+  const publicUrl = publicId ? `/c/${encodeURIComponent(publicId)}` : "#";
+  const backToSearchUrl = "/insurer/search";
 
   const vehicleModel = cert?.vehicle_info_json?.model ?? "";
   const vehiclePlate = cert?.vehicle_info_json?.plate ?? "";
@@ -110,22 +108,46 @@ export default function InsurerCertificatePage() {
   const sections: Section[] = Array.isArray(snapshot?.sections) ? snapshot.sections : [];
   const values = pickValues(cert?.content_preset_json);
 
+  const statusText = String(cert?.status ?? "").toLowerCase();
+  const statusStyle =
+    statusText === "void"
+      ? { color: "#b91c1c", fontWeight: 800 as const }
+      : { color: "#047857", fontWeight: 800 as const };
+
   return (
     <main style={{ maxWidth: 1100, margin: "28px auto", padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <div>
           <div style={{ fontSize: 18, fontWeight: 800 }}>証明書閲覧（保険会社）</div>
-          <div style={{ opacity: 0.75, marginTop: 4 }}>public_id: <span style={{ fontWeight: 700 }}>{publicId}</span></div>
+          <div style={{ opacity: 0.75, marginTop: 4 }}>
+            public_id: <span style={{ fontWeight: 700 }}>{publicId}</span>
+          </div>
         </div>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <a href={pdfOneUrl} style={{ padding: "10px 14px", fontWeight: 700, display: "inline-block", border: "1px solid #ddd" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <a
+            href={pdfOneUrl}
+            style={{ padding: "10px 14px", fontWeight: 700, display: "inline-block", border: "1px solid #ddd" }}
+          >
             1件PDF
           </a>
-          <a href={csvOneUrl} style={{ padding: "10px 14px", fontWeight: 700, display: "inline-block", border: "1px solid #ddd" }}>
+          <a
+            href={csvOneUrl}
+            style={{ padding: "10px 14px", fontWeight: 700, display: "inline-block", border: "1px solid #ddd" }}
+          >
             1件CSV
           </a>
-          <a href="/insurer" style={{ padding: 10 }}>← 検索へ</a>
+          <a
+            href={publicUrl}
+            target="_blank"
+            rel="noreferrer"
+            style={{ padding: "10px 14px", fontWeight: 700, display: "inline-block", border: "1px solid #ddd" }}
+          >
+            公開ページ
+          </a>
+          <a href={backToSearchUrl} style={{ padding: 10 }}>
+            ← 検索へ
+          </a>
         </div>
       </div>
 
@@ -134,11 +156,10 @@ export default function InsurerCertificatePage() {
 
       {cert && (
         <>
-          {/* サマリー */}
           <div style={{ marginTop: 16, border: "1px solid #eee", padding: 14, background: "#fafafa" }}>
             <div style={{ display: "grid", gridTemplateColumns: "160px 1fr", gap: 10, rowGap: 8 }}>
               <div style={{ opacity: 0.7 }}>ステータス</div>
-              <div style={{ fontWeight: 800 }}>{cert.status}</div>
+              <div style={statusStyle}>{cert.status}</div>
 
               <div style={{ opacity: 0.7 }}>顧客名</div>
               <div style={{ fontWeight: 700 }}>{cert.customer_name ?? ""}</div>
@@ -158,7 +179,6 @@ export default function InsurerCertificatePage() {
             </div>
           </div>
 
-          {/* テンプレ項目（schema_snapshotで安全表示） */}
           <div style={{ marginTop: 18 }}>
             <div style={{ fontSize: 14, fontWeight: 800 }}>施工内容（テンプレ）</div>
             {sections.length === 0 && (
@@ -179,7 +199,6 @@ export default function InsurerCertificatePage() {
                     const raw = values?.[f.key];
                     const val = renderValue(f, raw);
 
-                    // 空は表示しない（見やすさ優先。必要なら後でトグル化）
                     if (val === "") return null;
 
                     return (
@@ -197,7 +216,6 @@ export default function InsurerCertificatePage() {
             ))}
           </div>
 
-          {/* 自由記述 */}
           <div style={{ marginTop: 18, border: "1px solid #eee", padding: 14 }}>
             <div style={{ fontSize: 14, fontWeight: 800 }}>施工内容（自由記述）</div>
             <div style={{ marginTop: 10, whiteSpace: "pre-wrap" }}>
@@ -209,6 +227,3 @@ export default function InsurerCertificatePage() {
     </main>
   );
 }
-
-// PDF link
-// <a href={/api/certificate/pdf?pid=PUBLIC_ID} target="_blank" rel="noreferrer">PDFを表示</a>

@@ -27,12 +27,16 @@ export async function GET(req: Request) {
 
   const { data: row, error } = await supabase
     .from("certificates")
-    .select("public_id,customer_name,vehicle_info_json,content_free_text,content_preset_json,expiry_type,expiry_value,logo_asset_path,created_at")
+    .select("public_id,status,customer_name,vehicle_info_json,content_free_text,content_preset_json,expiry_type,expiry_value,logo_asset_path,created_at")
     .eq("tenant_id", tenantId)
     .eq("public_id", pid)
     .single();
 
   if (error || !row) return NextResponse.json({ error: "not_found" }, { status: 404 });
+
+  if (String(row.status ?? "").toLowerCase() === "void") {
+    return NextResponse.json({ error: "void_certificate" }, { status: 410 });
+  }
 
   // baseUrl（APP_URL依存なし）
   const host = req.headers.get("host") ?? "localhost:3000";

@@ -68,12 +68,48 @@ type PublicStatusResponse = {
   } | null;
 };
 
+type ThicknessMeasurement = {
+  unit?: string | null;
+  bonnet?: string | null;
+  roof?: string | null;
+  left_front_fender?: string | null;
+  right_front_fender?: string | null;
+  left_front_door?: string | null;
+  right_front_door?: string | null;
+  left_rear_door?: string | null;
+  right_rear_door?: string | null;
+  left_rear_fender?: string | null;
+  right_rear_fender?: string | null;
+  notes?: string | null;
+};
+
 function asText(v: unknown) {
   return typeof v === "string" ? v : "";
 }
 
 function asObj(v: unknown): Record<string, any> {
   return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, any>) : {};
+}
+
+function asThickness(v: unknown): ThicknessMeasurement {
+  return v && typeof v === "object" && !Array.isArray(v)
+    ? (v as ThicknessMeasurement)
+    : {};
+}
+
+function getThicknessRows(m: ThicknessMeasurement) {
+  return [
+    { label: "ボンネット", value: m.bonnet },
+    { label: "ルーフ", value: m.roof },
+    { label: "左前フェンダー", value: m.left_front_fender },
+    { label: "右前フェンダー", value: m.right_front_fender },
+    { label: "左前ドア", value: m.left_front_door },
+    { label: "右前ドア", value: m.right_front_door },
+    { label: "左後ドア", value: m.left_rear_door },
+    { label: "右後ドア", value: m.right_rear_door },
+    { label: "左後フェンダー", value: m.left_rear_fender },
+    { label: "右後フェンダー", value: m.right_rear_fender },
+  ].filter((x) => String(x.value ?? "").trim() !== "");
 }
 
 function pickVehicleField(vehicle: any, info: any, keys: string[]) {
@@ -159,6 +195,10 @@ export default async function CertificatePublicPage({ params, searchParams }: Pa
   const isVoidCertificate = certStatus === "void";
 
   const info = asObj(data.certificate.vehicle_info_json);
+  const preset = asObj(data.certificate.content_preset_json);
+  const thickness = asThickness(preset.thickness_measurement);
+  const thicknessRows = getThicknessRows(thickness);
+
   const publicUrl = `${origin}/c/${data.certificate.public_id}`;
   const pdfHref = `/api/certificate/pdf?pid=${encodeURIComponent(data.certificate.public_id)}`;
   const returnTo = typeof sp?.returnTo === "string" ? sp.returnTo : undefined;
@@ -289,6 +329,24 @@ export default async function CertificatePublicPage({ params, searchParams }: Pa
             </div>
           ) : null}
         </section>
+
+        {thicknessRows.length > 0 || thickness.notes ? (
+          <section style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>
+            <div style={{ fontWeight: 700, marginBottom: 12 }}>膜厚測定</div>
+            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+              {thicknessRows.map((row) => (
+                <div key={row.label}>
+                  {row.label}: {row.value} {thickness.unit || "µm"}
+                </div>
+              ))}
+            </div>
+            {thickness.notes ? (
+              <div style={{ marginTop: 12, whiteSpace: "pre-wrap", lineHeight: 1.7 }}>
+                {thickness.notes}
+              </div>
+            ) : null}
+          </section>
+        ) : null}
 
         {images.length > 0 ? (
           <section style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>

@@ -39,6 +39,10 @@ export async function GET(req: Request) {
 
   if (error || !r) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
+  if (String(r.status ?? "").toLowerCase() === "void") {
+    return NextResponse.json({ error: "void_certificate" }, { status: 410 });
+  }
+
   const v: any = r.vehicle_info_json ?? {};
   const model = (v.model ?? "").toString();
   const plate = (v.plate ?? "").toString();
