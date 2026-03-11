@@ -73,6 +73,7 @@ export default function CertNewFormWrapper({
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [submitStatus, setSubmitStatus] = useState<"active" | "draft">("active");
   const [error, setError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const photoRef = useRef<PhotoUploadHandle>(null);
@@ -90,6 +91,9 @@ export default function CertNewFormWrapper({
     const formData = new FormData(form);
 
     // Client-side validation: vehicle required
+    // Inject current submit status
+    formData.set("status", submitStatus);
+
     const vehicleId = String(formData.get("vehicle_id") ?? "").trim();
     if (!vehicleId) {
       setError("車両を選択してください。証明書には車両の紐づけが必要です。");
@@ -340,13 +344,22 @@ export default function CertNewFormWrapper({
         )}
 
         {/* Actions */}
-        <div className="border-t border-neutral-100 pt-6 flex gap-3 items-center">
+        <div className="border-t border-neutral-100 pt-6 flex flex-wrap gap-3 items-center">
           <button
             type="submit"
             disabled={isPending}
+            onClick={() => setSubmitStatus("active")}
             className="rounded-xl border border-neutral-900 bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
           >
-            {isPending ? "処理中…" : "証明書を発行する"}
+            {isPending && submitStatus === "active" ? "処理中…" : "証明書を発行する"}
+          </button>
+          <button
+            type="submit"
+            disabled={isPending}
+            onClick={() => setSubmitStatus("draft")}
+            className="rounded-xl border border-neutral-300 bg-white px-5 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 disabled:opacity-50"
+          >
+            {isPending && submitStatus === "draft" ? "保存中…" : "下書き保存"}
           </button>
           <Link
             href="/admin/certificates"

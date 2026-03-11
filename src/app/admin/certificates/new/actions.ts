@@ -78,10 +78,14 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
 
   const public_id = makePublicId();
 
+  // Draft or active status
+  const statusParam = String(formData.get("status") || "active").trim();
+  const certStatus = statusParam === "draft" ? "draft" : "active";
+
   const { error } = await supabase.from("certificates").insert({
     tenant_id: tenantId,
     public_id,
-    status: "active",
+    status: certStatus,
     customer_name,
     vehicle_id: vehicle_id ?? undefined,
     vehicle_info_json: { model, plate },
