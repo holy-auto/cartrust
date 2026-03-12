@@ -17,7 +17,7 @@ export function Section({
         : "bg-white";
 
   return (
-    <section className={`py-24 md:py-32 ${bgClass} ${className}`}>
+    <section className={`relative py-24 md:py-32 ${bgClass} ${className}`}>
       <Container>{children}</Container>
     </section>
   );
