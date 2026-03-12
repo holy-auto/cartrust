@@ -7,6 +7,9 @@ export default function AdminHome() {
         <a href="/admin/billing" style={{ padding: "10px 14px", border: "1px solid #ddd", borderRadius: 10, textDecoration: "none" }}>
           請求情報（Billing）
         </a>
+        <a href="/admin/members" style={{ padding: "10px 14px", border: "1px solid #ddd", borderRadius: 10, textDecoration: "none" }}>
+          メンバー管理
+        </a>
         <a href="/customer/holy-auto" style={{ padding: "10px 14px", border: "1px solid #ddd", borderRadius: 10, textDecoration: "none" }}>
           Customer（holy-auto）
         </a>
