@@ -1,313 +1,148 @@
-import type { Metadata } from "next";
-import type { ReactNode } from "react";
-import Link from "next/link";
-import { siteConfig } from "@/lib/marketing/config";
+import { PageHero } from "@/components/marketing/PageHero";
+import { Section } from "@/components/marketing/Section";
+import { SectionHeading } from "@/components/marketing/SectionHeading";
+import { FeatureGrid } from "@/components/marketing/FeatureGrid";
+import { FeatureCard } from "@/components/marketing/FeatureCard";
+import { ScrollReveal } from "@/components/marketing/ScrollReveal";
+import { CTABanner } from "@/components/marketing/CTABanner";
 
-// ─── ユーティリティ ───────────────────────────────────────────────────────
-
-function Section({
-  children,
-  className = "",
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <section className={`px-6 py-24 ${className}`}>
-      <div className="mx-auto max-w-6xl">{children}</div>
-    </section>
-  );
-}
-
-function SectionHeading({
-  eyebrow,
-  title,
-  body,
-}: {
-  eyebrow?: string;
-  title: string;
-  body?: string;
-}) {
-  return (
-    <div className="mb-14 text-center">
-      {eyebrow && (
-        <span className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
-          {eyebrow}
-        </span>
-      )}
-      <h2 className="mt-2 text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
-        {title}
-      </h2>
-      {body && (
-        <p className="mx-auto mt-4 max-w-xl text-zinc-500">{body}</p>
-      )}
-    </div>
-  );
-}
-
-// ─── Hero ────────────────────────────────────────────────────────────────
-
-function HeroSection() {
-  return (
-    <Section className="bg-white pb-20 pt-28 text-center">
-      <div className="mx-auto max-w-3xl">
-        <span className="inline-block rounded-full border border-zinc-200 bg-zinc-50 px-4 py-1.5 text-xs font-medium tracking-wide text-zinc-500">
-          保険会社の方へ
-        </span>
-
-        <h1 className="mt-6 text-4xl font-bold leading-snug tracking-tight text-zinc-900 sm:text-5xl sm:leading-tight">
-          施工証明の確認業務、
-          <br />
-          もっとスムーズに。
-        </h1>
-
-        <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-zinc-500">
-          施工店への確認連絡・書類の真正性チェック・保管管理——
-          CARTRUSTは保険査定に必要な証明業務をリアルタイムに、確実に。
-        </p>
-
-        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link
-            href="/contact"
-            className="rounded-full bg-zinc-900 px-7 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-700"
-          >
-            導入相談・資料請求
-          </Link>
-          <Link
-            href="/pricing"
-            className="rounded-full border border-zinc-200 bg-white px-7 py-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
-          >
-            料金を見る
-          </Link>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-// ─── 課題 → 解決 ──────────────────────────────────────────────────────────
-
-const painPoints = [
-  {
-    before: "施工証明書の真正性を確認するために施工店に連絡している",
-    after: "QRコードで即時検証——改ざん不可の電子証明を直接確認",
-  },
-  {
-    before: "施工店から送られる書類の形式がバラバラで管理が煩雑",
-    after: "統一フォーマットの電子証明書をWeb上で一覧管理",
-  },
-  {
-    before: "紙の証明書の保管・検索に時間とコストがかかる",
-    after: "クラウド保管でペーパーレス、車両番号・日付で瞬時に検索",
-  },
-  {
-    before: "証明書の偽造リスクへの対応が難しい",
-    after: "発行後の変更を検知する改ざん防止機能で不正を防止",
-  },
-];
-
-function PainPointSection() {
-  return (
-    <Section className="bg-zinc-50">
-      <SectionHeading
-        eyebrow="Before / After"
-        title="保険査定の現場が変わります"
-        body="CARTRUST導入前後の変化です。"
-      />
-
-      <div className="flex flex-col gap-4">
-        {painPoints.map((item, i) => (
-          <div
-            key={i}
-            className="grid gap-0 overflow-hidden rounded-2xl border border-zinc-200 bg-white sm:grid-cols-2"
-          >
-            <div className="flex items-start gap-3 border-b border-zinc-100 p-6 sm:border-b-0 sm:border-r">
-              <span className="mt-0.5 flex-shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-400">
-                Before
-              </span>
-              <p className="text-sm text-zinc-600">{item.before}</p>
-            </div>
-            <div className="flex items-start gap-3 bg-zinc-50 p-6">
-              <span className="mt-0.5 flex-shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-500">
-                After
-              </span>
-              <p className="text-sm font-medium text-zinc-800">{item.after}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </Section>
-  );
-}
-
-// ─── 機能 ─────────────────────────────────────────────────────────────────
-
-const features = [
-  {
-    icon: "🔍",
-    title: "QRコードで即時真正性確認",
-    body: "施工店が発行したQRコードを読み取るだけ。証明書の内容と発行元を数秒で確認できます。",
-  },
-  {
-    icon: "🛡",
-    title: "改ざん検知・発行元の検証",
-    body: "証明書は発行後に変更不可。改ざんされた証明書は自動で検知し、不正を未然に防ぎます。",
-  },
-  {
-    icon: "📋",
-    title: "証明書の一括ダッシュボード",
-    body: "提携施工店からの証明書を一覧表示。車両番号・施工日・種別でフィルタリングできます。",
-  },
-  {
-    icon: "🔌",
-    title: "既存システムとのAPI連携",
-    body: "保険基幹システムやDWHへのデータ連携をAPIで実現。証明書データを自動取り込みできます。",
-  },
-  {
-    icon: "📁",
-    title: "ペーパーレス・長期保管",
-    body: "紙の証明書は不要。クラウドで安全に長期保管し、監査対応もスムーズに行えます。",
-  },
-  {
-    icon: "📨",
-    title: "リアルタイム通知",
-    body: "提携施工店が証明書を発行した瞬間に通知。査定担当者がタイムリーに確認できます。",
-  },
-];
-
-function FeatureSection() {
-  return (
-    <Section className="bg-white">
-      <SectionHeading
-        eyebrow="Features"
-        title="保険査定に必要な機能を、すべて。"
-        body="既存の業務フローを壊さず、デジタル化を実現します。"
-      />
-
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {features.map((item) => (
-          <div
-            key={item.title}
-            className="rounded-2xl border border-zinc-100 bg-zinc-50 p-7"
-          >
-            <span className="text-2xl" aria-hidden="true">{item.icon}</span>
-            <h3 className="mt-4 text-base font-semibold text-zinc-900">
-              {item.title}
-            </h3>
-            <p className="mt-2 text-sm leading-relaxed text-zinc-500">
-              {item.body}
-            </p>
-          </div>
-        ))}
-      </div>
-    </Section>
-  );
-}
-
-// ─── 連携フロー ───────────────────────────────────────────────────────────
-
-const flowSteps = [
-  {
-    step: "01",
-    title: "提携施工店のオンボーディング",
-    body: "CARTRUSTを利用している施工店と提携設定するだけ。複雑な初期設定は不要です。",
-  },
-  {
-    step: "02",
-    title: "施工完了後に証明書が自動連携",
-    body: "施工店が証明書を発行すると、保険会社のダッシュボードにリアルタイムで届きます。",
-  },
-  {
-    step: "03",
-    title: "Web上で確認・査定に活用",
-    body: "証明書の内容をブラウザで確認。そのまま査定フローに組み込めます。",
-  },
-];
-
-function FlowSection() {
-  return (
-    <Section className="bg-zinc-50">
-      <SectionHeading
-        eyebrow="Integration flow"
-        title="導入から利用まで3ステップ"
-      />
-
-      <div className="grid gap-6 sm:grid-cols-3">
-        {flowSteps.map((item) => (
-          <div key={item.step} className="rounded-2xl bg-white p-8 shadow-sm">
-            <span className="text-4xl font-bold text-zinc-100">{item.step}</span>
-            <h3 className="mt-4 text-base font-semibold text-zinc-900">
-              {item.title}
-            </h3>
-            <p className="mt-3 text-sm leading-relaxed text-zinc-500">
-              {item.body}
-            </p>
-          </div>
-        ))}
-      </div>
-    </Section>
-  );
-}
-
-// ─── 最終CTA ──────────────────────────────────────────────────────────────
-
-function CtaSection() {
-  return (
-    <Section className="bg-zinc-900">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
-          まずはお気軽にご相談ください
-        </h2>
-        <p className="mx-auto mt-4 max-w-lg text-zinc-400">
-          導入の流れ・API仕様・セキュリティ要件など、詳しい資料をお送りします。
-          担当者によるオンライン説明会も承っています。
-        </p>
-        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link
-            href="/contact"
-            className="rounded-full bg-white px-7 py-3 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-100"
-          >
-            資料請求・導入相談
-          </Link>
-          <Link
-            href={`mailto:${siteConfig.contactEmail}`}
-            className="rounded-full border border-zinc-700 px-7 py-3 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
-          >
-            {siteConfig.contactEmail}
-          </Link>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-// ─── ページ本体 ───────────────────────────────────────────────────────────
+export const metadata = {
+  title: "保険会社の方へ",
+  description: "CARTRUSTで施工証明書の確認・査定業務を効率化。データの信頼性向上と業務コスト削減を実現します。",
+};
 
 export default function ForInsurersPage() {
   return (
     <>
-      <HeroSection />
-      <PainPointSection />
-      <FeatureSection />
-      <FlowSection />
-      <CtaSection />
+      <PageHero
+        badge="FOR INSURERS"
+        title="査定業務の精度と速度を、同時に向上"
+        subtitle="施工証明書のデジタル化により、確認作業の効率化とデータの信頼性向上を実現します。"
+      />
+
+      {/* 主要メリット */}
+      <Section>
+        <SectionHeading
+          title="CARTRUSTが保険会社にもたらす価値"
+          subtitle="施工証明書の確認から査定まで、業務全体を効率化します"
+        />
+        <FeatureGrid>
+          <FeatureCard
+            delay={0}
+            icon={
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
+                <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            }
+            title="施工内容の即時確認"
+            description="URLひとつで施工証明書にアクセス。電話やFAXを待つことなく、必要な情報をすぐに確認できます。"
+          />
+          <FeatureCard
+            delay={100}
+            icon={
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            }
+            title="データの信頼性を担保"
+            description="改ざん防止の仕組みにより、施工データの正確性を担保。査定判断の精度向上に貢献します。"
+          />
+          <FeatureCard
+            delay={200}
+            icon={
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
+                <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            }
+            title="査定業務の効率化"
+            description="施工情報の確認にかかる時間を短縮し、査定プロセス全体のスピードアップを実現します。"
+          />
+        </FeatureGrid>
+      </Section>
+
+      {/* 導入効果 */}
+      <Section bg="alt">
+        <SectionHeading
+          title="導入による効果"
+          subtitle="数字で見るCARTRUSTの導入効果"
+        />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+          {[
+            { value: "70%", label: "確認作業時間の削減", description: "電話・FAXでの確認作業が不要に" },
+            { value: "99.9%", label: "データの正確性", description: "改ざん防止によるデータ信頼性" },
+            { value: "50%", label: "査定コストの削減", description: "業務プロセス全体の効率化" },
+          ].map((item, i) => (
+            <ScrollReveal key={item.label} variant="scale-up" delay={i * 120}>
+              <div className="text-center p-8 rounded-xl bg-white border border-border">
+                <div className="text-3xl md:text-4xl font-bold text-primary">{item.value}</div>
+                <div className="mt-2 text-sm font-medium text-heading">{item.label}</div>
+                <div className="mt-1 text-xs text-muted">{item.description}</div>
+              </div>
+            </ScrollReveal>
+          ))}
+        </div>
+      </Section>
+
+      {/* 機能詳細 */}
+      <Section>
+        <SectionHeading
+          title="保険会社向け機能"
+          subtitle="査定業務に必要な機能を網羅しています"
+        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
+          <FeatureCard
+            variant="bordered"
+            delay={0}
+            icon={
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
+                <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            }
+            title="一括エクスポート"
+            description="複数の証明書データをCSV形式で一括エクスポート。既存の社内システムとの連携もスムーズです。"
+          />
+          <FeatureCard
+            variant="bordered"
+            delay={100}
+            icon={
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
+                <path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+            }
+            title="高度な検索・フィルタ"
+            description="車両情報、施工日、施工店名など、多様な条件で証明書を検索。必要な情報に素早くアクセスできます。"
+          />
+          <FeatureCard
+            variant="bordered"
+            delay={200}
+            icon={
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
+                <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            }
+            title="セキュリティ・コンプライアンス"
+            description="SSL暗号化、アクセスログ管理、IP制限など、企業レベルのセキュリティ要件に対応しています。"
+          />
+          <FeatureCard
+            variant="bordered"
+            delay={300}
+            icon={
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
+                <path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+              </svg>
+            }
+            title="API連携"
+            description="エンタープライズプランでは、RESTful APIによる社内システムとの連携が可能。既存ワークフローに組み込めます。"
+          />
+        </div>
+      </Section>
+
+      <CTABanner
+        title="査定業務の効率化を始めましょう"
+        subtitle="まずはデモをご覧ください。導入のご相談も承ります。"
+        primaryLabel="デモを依頼"
+        secondaryLabel="お問い合わせ"
+      />
     </>
   );
 }
-
-export const metadata: Metadata = {
-  title: `保険会社の方へ | ${siteConfig.siteName}`,
-  description:
-    "施工証明書の真正性確認・保管管理・API連携をデジタル化。保険査定の効率化と不正防止を同時に実現するSaaSプラットフォームです。",
-  openGraph: {
-    title: `保険会社の方へ | ${siteConfig.siteName}`,
-    description:
-      "施工証明書の真正性確認・保管管理・API連携をデジタル化。保険査定の効率化と不正防止を同時に実現するSaaSプラットフォームです。",
-    url: `${siteConfig.siteUrl}/for-insurers`,
-  },
-  twitter: {
-    title: `保険会社の方へ | ${siteConfig.siteName}`,
-    description:
-      "施工証明書の真正性確認・保管管理・API連携をデジタル化。保険査定の効率化と不正防止を同時に実現するSaaSプラットフォームです。",
-  },
-};
