@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import PageHeader from "@/components/ui/PageHeader";
 
 type Tenant = {
   id: string;
@@ -265,19 +265,19 @@ export default function BillingPage() {
   const subOk = sub && !("error" in sub) ? sub : null;
 
   return (
-    <main className="p-6 space-y-4">
-      <h1 className="text-xl font-semibold">請求・プラン</h1>
+    <main className="space-y-6">
+      <PageHeader tag="BILLING" title="請求・プラン" />
 
       {status && (
-        <div className="rounded border p-3 text-sm">
+        <div className={`glass-card p-4 text-sm ${status === "success" ? "text-cyan-400 glow-cyan" : "text-amber-400 glow-amber"}`}>
           決済結果: <b>{status === "success" ? "成功" : status === "cancel" ? "キャンセル" : status}</b>
         </div>
       )}
 
       {(reason || action) && (
-        <div className="rounded border p-3 text-sm">
-          <div className="font-semibold">アクセスが制限されました</div>
-          <div className="mt-1 opacity-80">
+        <div className="glass-card p-4 text-sm">
+          <div className="font-semibold text-primary">アクセスが制限されました</div>
+          <div className="mt-1 text-muted">
             {reason === "inactive"
               ? "支払いが停止しているため、この操作は実行できません。下の「支払いを再開」から再開してください。"
               : reason === "plan"
@@ -285,14 +285,14 @@ export default function BillingPage() {
               : "この操作は制限されています。"}
           </div>
           {action && (
-            <div className="mt-2 opacity-80">
-              対象機能: <span className="font-mono">{action}</span>
+            <div className="mt-2 text-muted">
+              対象機能: <span className="text-cyan-400 font-mono">{action}</span>
             </div>
           )}
           {ret && (
-            <div className="mt-2 opacity-80">
+            <div className="mt-2 text-muted">
               元の画面:{" "}
-              <a className="underline" href={ret}>
+              <a className="underline text-cyan-400" href={ret}>
                 戻る
               </a>
             </div>
@@ -300,101 +300,97 @@ export default function BillingPage() {
         </div>
       )}
 
-      {loading && <div className="text-sm opacity-70">Loading…</div>}
+      {loading && <div className="text-sm text-muted">Loading…</div>}
 
       {err && (
-        <div className="rounded border p-3 text-sm">
-          <div className="font-semibold">Error</div>
-          <div className="mt-1 whitespace-pre-wrap">{err}</div>
+        <div className="glass-card p-4 text-sm">
+          <div className="font-semibold text-red-400">Error</div>
+          <div className="mt-1 whitespace-pre-wrap text-red-400">{err}</div>
         </div>
       )}
 
       {!loading && tenant && (
-        <div className="rounded border p-4 space-y-2 text-sm">
-          <div>
-            店舗: <b>{tenant.name ?? tenant.slug ?? tenant.id}</b>
+        <div className="glass-card p-5 space-y-3 text-sm">
+          <div className="text-secondary">
+            店舗: <b className="text-primary">{tenant.name ?? tenant.slug ?? tenant.id}</b>
           </div>
-          <div>
-            利用状態: <b>{activeLabel}</b>
+          <div className="text-secondary">
+            利用状態: <b className="text-primary">{activeLabel}</b>
           </div>
-          <div>
-            プラン: <b>{planLabel(tenant.plan_tier)}</b>
+          <div className="text-secondary">
+            プラン: <b className="text-primary">{planLabel(tenant.plan_tier)}</b>
           </div>
-          <div>
-            決済: <b>{tenant.stripe_subscription_id ? "連携済み" : "未連携"}</b>
+          <div className="text-secondary">
+            決済: <b className="text-primary">{tenant.stripe_subscription_id ? "連携済み" : "未連携"}</b>
           </div>
 
           {tenant.stripe_subscription_id && (
             <details className="pt-2">
-              <summary className="cursor-pointer opacity-80">サポート用ID（必要なときだけ）</summary>
-              <div className="mt-2 space-y-1">
+              <summary className="cursor-pointer text-muted hover:text-secondary">サポート用ID（必要なときだけ）</summary>
+              <div className="mt-2 space-y-1 text-secondary">
                 <div>
-                  顧客ID: <span className="font-mono">{short(tenant.stripe_customer_id)}</span>
+                  顧客ID: <span className="text-cyan-400 font-mono">{short(tenant.stripe_customer_id)}</span>
                 </div>
                 <div>
-                  契約ID: <span className="font-mono">{short(tenant.stripe_subscription_id)}</span>
+                  契約ID: <span className="text-cyan-400 font-mono">{short(tenant.stripe_subscription_id)}</span>
                 </div>
               </div>
             </details>
           )}
 
           <div className="pt-2">
-            <div className="font-semibold">有効期限・次回請求</div>
-            {subErr && <div className="opacity-80">Stripe期限の取得に失敗: {subErr}</div>}
+            <div className="font-semibold text-primary">有効期限・次回請求</div>
+            {subErr && <div className="text-muted">Stripe期限の取得に失敗: {subErr}</div>}
             {subOk && (
-              <div className="space-y-1">
+              <div className="space-y-1 text-secondary">
                 <div>
-                  契約状態: <b>{subStatusLabel(subOk.status)}</b>
+                  契約状態: <b className="text-primary">{subStatusLabel(subOk.status)}</b>
                 </div>
                 <div>
-                  期間開始: <b>{fmtUnix(subOk.current_period_start)}</b>
+                  期間開始: <b className="text-primary">{fmtUnix(subOk.current_period_start)}</b>
                 </div>
                 <div>
-                  次回請求日（有効期限）: <b>{fmtUnix(subOk.current_period_end)}</b>
+                  次回請求日（有効期限）: <b className="text-primary">{fmtUnix(subOk.current_period_end)}</b>
                   {(() => {
                     const d = daysLeft(subOk.current_period_end);
-                    return d !== null ? <span className="ml-2 opacity-80">（あと{d}日）</span> : null;
+                    return d !== null ? <span className="ml-2 text-muted">（あと{d}日）</span> : null;
                   })()}
                 </div>
                 {subOk.cancel_at_period_end && (
                   <div>
-                    解約予約: <b>あり</b>（終了日: <b>{fmtUnix(subOk.current_period_end)}</b>）
+                    解約予約: <b className="text-primary">あり</b>（終了日: <b className="text-primary">{fmtUnix(subOk.current_period_end)}</b>）
                   </div>
                 )}
                 {subOk.trial_end && (
                   <div>
-                    トライアル終了: <b>{fmtUnix(subOk.trial_end)}</b>
+                    トライアル終了: <b className="text-primary">{fmtUnix(subOk.trial_end)}</b>
                   </div>
                 )}
               </div>
             )}
-            {!sub && <div className="opacity-70">subscription が無い（未課金/未紐づけ）</div>}
+            {!sub && <div className="text-muted">subscription が無い（未課金/未紐づけ）</div>}
           </div>
 
           {tenant.is_active === false && (
-            <div className="rounded border p-3 text-sm">
-              <div className="font-semibold">支払いが停止しています</div>
-              <div className="mt-1 opacity-80">この状態では機能が制限されます。下の「支払いを再開」で再決済してください。</div>
+            <div className="glass-card p-4 text-sm">
+              <div className="font-semibold text-amber-400">支払いが停止しています</div>
+              <div className="mt-1 text-muted">この状態では機能が制限されます。下の「支払いを再開」で再決済してください。</div>
             </div>
           )}
 
-          <div className="pt-3 flex gap-2 flex-wrap">
-            <button className="rounded border px-3 py-2" onClick={openPortal} disabled={portalBusy}>
+          <div className="pt-3 flex gap-3 flex-wrap">
+            <button className="btn-secondary" onClick={openPortal} disabled={portalBusy}>
               {portalBusy ? "Opening…" : "請求ポータル（プラン変更）"}
             </button>
 
             {tenant.is_active === false && (
-              <button className="rounded border px-3 py-2" onClick={resumeCheckout} disabled={resumeBusy}>
+              <button className="btn-primary" onClick={resumeCheckout} disabled={resumeBusy}>
                 {resumeBusy ? "Redirecting…" : "支払いを再開"}
               </button>
             )}
-
-            <Link className="rounded border px-3 py-2" href="/admin">
-              管理画面に戻る
-            </Link>
           </div>
 
-          <div className="pt-2 text-xs opacity-70">※ ポータル復帰時は自動で数回リトライして最新状態に同期します。</div>
+          <div className="pt-2 text-xs text-muted">※ ポータル復帰時は自動で数回リトライして最新状態に同期します。</div>
         </div>
       )}
     </main>

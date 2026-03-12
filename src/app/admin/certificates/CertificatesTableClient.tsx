@@ -78,32 +78,32 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
   const canCsvOne = isActive && canUseFeature(planTier, "export_one_csv");
   const canPdfOne = isActive && canUseFeature(planTier, "pdf_one");
 
-  const btnCls = (enabled: boolean) => "border rounded px-3 py-2 text-sm " + (enabled ? "" : "opacity-50");
-  const linkCls = (enabled: boolean) => "underline " + (enabled ? "" : "opacity-50");
+  const btnCls = (enabled: boolean) => "btn-secondary " + (enabled ? "" : "opacity-50");
+  const linkCls = (enabled: boolean) => "underline text-cyan-400 hover:text-cyan-300 " + (enabled ? "" : "opacity-50");
 
   const hrefOrBill = (enabled: boolean, href: string, action: string) => (enabled ? href : bill(action));
 
   return (
     <div className="space-y-3">
       {bs.data && !bs.data.is_active ? (
-        <div className="border rounded p-3 text-sm bg-amber-50 text-amber-900">
+        <div className="rounded-xl border border-amber-500/30 p-3 text-sm bg-[rgba(245,158,11,0.1)] text-amber-400">
           お支払い停止中のため、出力（CSV/PDF）はご利用いただけません。{" "}
-          <Link className="underline" href="/admin/billing">
+          <Link className="underline text-amber-300 hover:text-amber-200" href="/admin/billing">
             課金ページへ
           </Link>
         </div>
       ) : null}
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-muted">
           選択: <span className="font-mono">{selectedIds.length}</span> 件
         </div>
 
         <div className="flex gap-3 items-center flex-wrap">
-          <button type="button" className="border rounded px-3 py-2 text-sm" onClick={() => toggleAll(true)} disabled={allIds.length === 0}>
+          <button type="button" className="btn-secondary" onClick={() => toggleAll(true)} disabled={allIds.length === 0}>
             全選択
           </button>
-          <button type="button" className="border rounded px-3 py-2 text-sm" onClick={() => toggleAll(false)} disabled={allIds.length === 0}>
+          <button type="button" className="btn-secondary" onClick={() => toggleAll(false)} disabled={allIds.length === 0}>
             全解除
           </button>
 
@@ -136,13 +136,14 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
         </div>
       </div>
 
-      <div className="overflow-x-auto border rounded">
+      <div className="overflow-x-auto border border-border-default rounded-xl">
         <table className="min-w-full text-sm">
-          <thead className="bg-gray-50">
+          <thead className="bg-base">
             <tr>
               <th className="p-3 text-left w-10">
                 <input
                   type="checkbox"
+                  className="accent-cyan-500"
                   checked={allChecked}
                   ref={(el) => {
                     if (el) el.indeterminate = someChecked;
@@ -150,11 +151,11 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
                   onChange={(e) => toggleAll(e.target.checked)}
                 />
               </th>
-              <th className="text-left p-3">作成日時</th>
-              <th className="text-left p-3">public_id</th>
-              <th className="text-left p-3">お客様名</th>
-              <th className="text-left p-3">status</th>
-              <th className="text-left p-3">操作</th>
+              <th className="text-left p-3 text-secondary">作成日時</th>
+              <th className="text-left p-3 text-secondary">public_id</th>
+              <th className="text-left p-3 text-secondary">お客様名</th>
+              <th className="text-left p-3 text-secondary">status</th>
+              <th className="text-left p-3 text-secondary">操作</th>
             </tr>
           </thead>
 
@@ -165,19 +166,19 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
               const checked = !!selected[r.public_id];
 
               return (
-                <tr key={r.public_id} className="border-t">
+                <tr key={r.public_id} className="border-t border-border-default hover:bg-surface-hover transition-colors">
                   <td className="p-3">
-                    <input type="checkbox" checked={checked} onChange={(e) => toggleOne(r.public_id, e.target.checked)} />
+                    <input type="checkbox" className="accent-cyan-500" checked={checked} onChange={(e) => toggleOne(r.public_id, e.target.checked)} />
                   </td>
-                  <td className="p-3 whitespace-nowrap">{new Date(r.created_at).toLocaleString("ja-JP")}</td>
-                  <td className="p-3 font-mono">{r.public_id}</td>
-                  <td className="p-3">{r.customer_name}</td>
+                  <td className="p-3 whitespace-nowrap text-primary">{new Date(r.created_at).toLocaleString("ja-JP")}</td>
+                  <td className="p-3 font-mono text-primary">{r.public_id}</td>
+                  <td className="p-3 text-primary">{r.customer_name}</td>
                   <td className="p-3">
-                    <span className={isVoid ? "text-gray-400" : ""}>{r.status}</span>
+                    <span className={isVoid ? "text-muted" : "text-primary"}>{r.status}</span>
                   </td>
                   <td className="p-3">
                     <div className="flex gap-3 items-center flex-wrap">
-                      <Link className="underline" href={url} target="_blank">
+                      <Link className="underline text-cyan-400 hover:text-cyan-300" href={url} target="_blank">
                         公開ページ
                       </Link>
                       <Link
@@ -199,7 +200,7 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
                       {!isVoid && (
                         <button
                           type="button"
-                          className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                          className="text-red-400 hover:text-red-300 disabled:opacity-50"
                           disabled={voidingId === r.public_id}
                           onClick={() => handleVoid(r.public_id)}
                         >
@@ -214,7 +215,7 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
 
             {rows.length === 0 && (
               <tr>
-                <td className="p-6 text-gray-500" colSpan={6}>
+                <td className="p-6 text-muted" colSpan={6}>
                   該当なし
                 </td>
               </tr>
@@ -223,8 +224,8 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
         </table>
       </div>
 
-      <p className="text-xs text-gray-500">※ 選択PDFはZIPでまとめて落ちます（上限50件）。</p>
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-muted">※ 選択PDFはZIPでまとめて落ちます（上限50件）。</p>
+      <p className="text-xs text-muted">
         ※ プラン制限の調整は <span className="font-mono">src/lib/billing/planFeatures.ts</span> で行います。
       </p>
     </div>

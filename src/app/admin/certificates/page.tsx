@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import CertificatesTableClient from "./CertificatesTableClient";
 import { canUseFeature } from "@/lib/billing/planFeatures";
 import { buildBillingDenyUrl } from "@/lib/billing/billingRedirect";
+import PageHeader from "@/components/ui/PageHeader";
 
 type SearchParams = { q?: string };
 
@@ -33,11 +34,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
   const tenantId = await getMyTenantId(supabase);
   if (!tenantId) {
     return (
-      <main className="p-6">
-        <h1 className="text-2xl font-bold">管理：証明書一覧</h1>
-        <p className="text-sm text-red-600 mt-2">
+      <main className="space-y-6">
+        <PageHeader tag="CERTIFICATES" title="管理：証明書一覧" />
+        <div className="glass-card p-4 text-sm text-red-400">
           tenant_memberships が見つかりません。あなたのユーザーを tenant に紐付けてください。
-        </p>
+        </div>
       </main>
     );
   }
@@ -62,59 +63,46 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
   if (q) query = query.or(`public_id.ilike.%${q}%,customer_name.ilike.%${q}%`);
 
   const { data: rows, error } = await query;
-  if (error) return <main className="p-6">読み込みエラー: {error.message}</main>;
+  if (error) return <main className="space-y-6"><div className="text-red-400">読み込みエラー: {error.message}</div></main>;
 
-  async function signOut() {
-    "use server";
-    const supabase = await createSupabaseServerClient();
-    await supabase.auth.signOut();
-    redirect("/login");
-  }
-
-  const linkCls = (enabled: boolean) => "text-sm underline " + (enabled ? "" : "opacity-50");
+  const linkCls = (enabled: boolean) => "text-sm underline " + (enabled ? "text-cyan-400" : "opacity-50 text-muted");
 
   return (
-    <main className="p-6 space-y-4">
+    <main className="space-y-6">
       {!isActive ? (
-        <div className="border rounded p-3 text-sm bg-amber-50 text-amber-900">
+        <div className="glass-card p-4 text-sm text-amber-400">
           お支払い停止中のため、一部機能（発行/出力）が制限されています。{" "}
-          <Link className="underline" href="/admin/billing">
+          <Link className="underline font-medium" href="/admin/billing">
             課金ページへ
           </Link>
         </div>
       ) : null}
 
-      <header className="flex items-end justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold">管理：証明書一覧</h1>
-          <p className="text-sm text-gray-500">
-            tenant: <span className="font-mono">{tenantId}</span> / 最新50件
-          </p>
-        </div>
+      <PageHeader
+        tag="CERTIFICATES"
+        title="管理：証明書一覧"
+        description={`tenant: ${tenantId} / 最新50件`}
+        actions={
+          <div className="flex gap-3 items-center flex-wrap">
+            <form className="flex gap-2" action="/admin/certificates" method="get">
+              <input name="q" defaultValue={q} placeholder="検索（ID / 名前）" className="input-field w-64" />
+              <button className="btn-secondary">検索</button>
+              <Link className="text-sm underline self-center text-muted hover:text-primary" href="/admin/certificates">
+                クリア
+              </Link>
+            </form>
 
-        <div className="flex gap-3 items-center flex-wrap">
-          <form className="flex gap-2" action="/admin/certificates" method="get">
-            <input name="q" defaultValue={q} placeholder="検索（ID / 名前）" className="border rounded px-3 py-2 text-sm w-64" />
-            <button className="border rounded px-3 py-2 text-sm">検索</button>
-            <Link className="text-sm underline self-center" href="/admin/certificates">
-              クリア
+            <Link
+              className={linkCls(canIssue)}
+              href={issueHref}
+              aria-disabled={!canIssue}
+              title={!canIssue ? "課金状態/プランにより利用不可 → 課金ページへ" : ""}
+            >
+              新規発行
             </Link>
-          </form>
-
-          <Link
-            className={linkCls(canIssue)}
-            href={issueHref}
-            aria-disabled={!canIssue}
-            title={!canIssue ? "課金状態/プランにより利用不可 → 課金ページへ" : ""}
-          >
-            新規発行
-          </Link>
-
-          <form action={signOut}>
-            <button className="border rounded px-3 py-2 text-sm">ログアウト</button>
-          </form>
-        </div>
-      </header>
+          </div>
+        }
+      />
 
       <CertificatesTableClient rows={(rows ?? []) as any} q={q} />
     </main>

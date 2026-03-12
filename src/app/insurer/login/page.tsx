@@ -25,26 +25,47 @@ export default function InsurerLoginPage() {
   };
 
   return (
-    <main style={{ maxWidth: 520, margin: "40px auto", padding: 16 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700 }}>保険会社ポータル ログイン</h1>
-      <p style={{ opacity: 0.8 }}>認証は Supabase Auth（Email/Password）です。</p>
+    <main className="min-h-screen flex items-center justify-center bg-base p-6">
+      <div className="glass-card w-full max-w-md space-y-6 p-8">
+        {/* Branding */}
+        <div className="flex items-center justify-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-cyan-500 flex items-center justify-center text-white font-bold text-lg">
+            C
+          </div>
+          <span className="text-xl font-bold text-primary tracking-wide">CARTRUST</span>
+        </div>
 
-      <div style={{ display: "grid", gap: 10, marginTop: 18 }}>
-        <label>
-          <div style={{ fontSize: 12, opacity: 0.8 }}>Email</div>
-          <input value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: "100%", padding: 10 }} />
-        </label>
+        <div className="text-center">
+          <h1 className="text-xl font-bold text-primary">保険会社ポータル ログイン</h1>
+          <p className="text-sm text-muted mt-1">認証は Supabase Auth（Email/Password）です。</p>
+        </div>
 
-        <label>
-          <div style={{ fontSize: 12, opacity: 0.8 }}>Password</div>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: "100%", padding: 10 }} />
-        </label>
+        <div className="grid gap-4">
+          <label>
+            <div className="text-sm text-secondary mb-1">Email</div>
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="input-field w-full"
+            />
+          </label>
 
-        {err && <div style={{ color: "crimson" }}>{err}</div>}
+          <label>
+            <div className="text-sm text-secondary mb-1">Password</div>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="input-field w-full"
+            />
+          </label>
 
-        <button onClick={onLogin} disabled={busy} style={{ padding: 12, fontWeight: 700 }}>
-          {busy ? "..." : "ログイン"}
-        </button>
+          {err && <div className="text-sm text-red-400">{err}</div>}
+
+          <button onClick={onLogin} disabled={busy} className="btn-primary w-full">
+            {busy ? "..." : "ログイン"}
+          </button>
+        </div>
       </div>
     </main>
   );

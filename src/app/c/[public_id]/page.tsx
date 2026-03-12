@@ -194,149 +194,105 @@ export default async function CertificatePublicPage({ params, searchParams }: Pa
     notice === "pdf_blocked_plan";
 
   return (
-    <main style={{ maxWidth: 980, margin: "0 auto", padding: 16 }}>
-      <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 20, marginBottom: 16 }}>
-        <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: 0.4 }}>CARTRUST CERT</div>
-        <div style={{ fontSize: 14, opacity: 0.75, marginTop: 4 }}>施工証明書</div>
-        <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+    <main className="mx-auto max-w-[980px] p-4">
+      <div className="glass-card mb-4 p-5">
+        <div className="text-[28px] font-extrabold tracking-wide text-primary">CARTRUST CERT</div>
+        <div className="mt-1 text-sm text-muted">施工証明書</div>
+        <div className="mt-3 flex flex-wrap gap-2">
           <span
-            style={{
-              display: "inline-block",
-              padding: "6px 10px",
-              borderRadius: 999,
-              background: certStatus === "active" ? "#ecfdf5" : certStatus === "void" ? "#fef2f2" : "#fff7ed",
-              color: certStatus === "active" ? "#166534" : certStatus === "void" ? "#991b1b" : "#9a3412",
-              fontWeight: 700,
-              fontSize: 12,
-              border: "1px solid #e5e7eb",
-            }}
+            className={`inline-block rounded-full border px-2.5 py-1.5 text-xs font-bold ${
+              certStatus === "active"
+                ? "border-emerald-500/30 bg-[rgba(16,185,129,0.1)] text-emerald-400"
+                : certStatus === "void"
+                  ? "border-red-500/30 bg-[rgba(239,68,68,0.1)] text-red-400"
+                  : "border-amber-500/30 bg-[rgba(245,158,11,0.1)] text-amber-400"
+            }`}
           >
             認証状態: {getStatusLabel(data.certificate.status)}
           </span>
-          <span style={{ fontSize: 12, opacity: 0.8, alignSelf: "center" }}>
+          <span className="self-center text-xs text-secondary">
             Public ID: {data.certificate.public_id}
           </span>
         </div>
       </div>
 
       {certStatus !== "active" ? (
-        <div
-          style={{
-            marginBottom: 16,
-            border: "1px solid #fdba74",
-            background: "#fff7ed",
-            color: "#9a3412",
-            borderRadius: 12,
-            padding: 16,
-          }}
-        >
+        <div className="mb-4 rounded-xl border border-amber-500/30 bg-[rgba(245,158,11,0.1)] p-4 text-amber-400">
           この証明書は現在「{getStatusLabel(data.certificate.status)}」状態です。存在は確認できますが、一部機能や扱いが通常と異なる場合があります。
         </div>
       ) : null}
 
       {isVoidCertificate ? (
-        <div
-          style={{
-            marginBottom: 16,
-            border: "1px solid #fca5a5",
-            background: "#fef2f2",
-            color: "#991b1b",
-            borderRadius: 12,
-            padding: 16,
-          }}
-        >
-          <div style={{ fontWeight: 800, marginBottom: 6 }}>この証明書は無効化されています</div>
-          <div style={{ fontSize: 14, lineHeight: 1.7 }}>
+        <div className="mb-4 rounded-xl border border-red-500/30 bg-[rgba(239,68,68,0.1)] p-4 text-red-400">
+          <div className="mb-1.5 font-extrabold">この証明書は無効化されています</div>
+          <div className="text-sm leading-relaxed">
             この公開ページでは記録の存在確認のみ可能です。PDF出力と添付画像の公開表示は停止しています。詳細確認は発行店舗へお問い合わせください。
           </div>
         </div>
       ) : null}
 
       {isPdfBlocked ? (
-        <div
-          style={{
-            marginBottom: 16,
-            border: "1px solid #fcd34d",
-            background: "#fffbeb",
-            color: "#92400e",
-            borderRadius: 12,
-            padding: 16,
-          }}
-        >
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>現在、この証明書のPDFご案内を一時停止しています</div>
-          <div style={{ fontSize: 14, lineHeight: 1.7 }}>
+        <div className="mb-4 rounded-xl border border-amber-500/30 bg-[rgba(245,158,11,0.1)] p-4 text-amber-400">
+          <div className="mb-1.5 font-bold">現在、この証明書のPDFご案内を一時停止しています</div>
+          <div className="text-sm leading-relaxed">
             このページの公開閲覧は引き続きご利用いただけますが、PDFのご案内は現在一時的に停止しています。
           </div>
         </div>
       ) : null}
 
-      <div style={{ display: "grid", gap: 16 }}>
-        <section style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>
-          <div style={{ fontWeight: 700, marginBottom: 12 }}>車両情報</div>
-          <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
-            <div>メーカー: {maker || "-"}</div>
-            <div>車種: {model || "-"}</div>
-            <div>年式: {year || "-"}</div>
-            <div>ナンバー: {plate || "-"}</div>
-            <div>顧客名: {customerName || "-"}</div>
-            <div>記録作成日: {formatDate(data.certificate.created_at)}</div>
+      <div className="grid gap-4">
+        <section className="glass-card p-4">
+          <div className="mb-3 font-bold text-primary">車両情報</div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-lg bg-base px-3 py-2 text-secondary">メーカー: <span className="text-primary">{maker || "-"}</span></div>
+            <div className="rounded-lg bg-base px-3 py-2 text-secondary">車種: <span className="text-primary">{model || "-"}</span></div>
+            <div className="rounded-lg bg-base px-3 py-2 text-secondary">年式: <span className="text-primary">{year || "-"}</span></div>
+            <div className="rounded-lg bg-base px-3 py-2 text-secondary">ナンバー: <span className="text-primary">{plate || "-"}</span></div>
+            <div className="rounded-lg bg-base px-3 py-2 text-secondary">顧客名: <span className="text-primary">{customerName || "-"}</span></div>
+            <div className="rounded-lg bg-base px-3 py-2 text-secondary">記録作成日: <span className="text-primary">{formatDate(data.certificate.created_at)}</span></div>
           </div>
         </section>
 
-        <section style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>
-          <div style={{ fontWeight: 700, marginBottom: 12 }}>証明書情報</div>
-          <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
-            <div>施工店: {data.shop?.name || "-"}</div>
-            <div>ステータス: {getStatusLabel(data.certificate.status)}</div>
-            <div>有効期限タイプ: {asText(data.certificate.expiry_type) || "-"}</div>
-            <div>有効期限値: {data.certificate.expiry_value != null ? String(data.certificate.expiry_value) : "-"}</div>
-            <div>バージョン: {data.certificate.current_version != null ? String(data.certificate.current_version) : "-"}</div>
-            <div>
+        <section className="glass-card p-4">
+          <div className="mb-3 font-bold text-primary">証明書情報</div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-lg bg-base px-3 py-2 text-secondary">施工店: <span className="text-primary">{data.shop?.name || "-"}</span></div>
+            <div className="rounded-lg bg-base px-3 py-2 text-secondary">ステータス: <span className="text-primary">{getStatusLabel(data.certificate.status)}</span></div>
+            <div className="rounded-lg bg-base px-3 py-2 text-secondary">有効期限タイプ: <span className="text-primary">{asText(data.certificate.expiry_type) || "-"}</span></div>
+            <div className="rounded-lg bg-base px-3 py-2 text-secondary">有効期限値: <span className="text-primary">{data.certificate.expiry_value != null ? String(data.certificate.expiry_value) : "-"}</span></div>
+            <div className="rounded-lg bg-base px-3 py-2 text-secondary">バージョン: <span className="text-primary">{data.certificate.current_version != null ? String(data.certificate.current_version) : "-"}</span></div>
+            <div className="rounded-lg bg-base px-3 py-2 text-secondary">
               公開URL:{" "}
-              <a href={publicUrl} target="_blank" rel="noreferrer">
+              <a href={publicUrl} target="_blank" rel="noreferrer" className="text-cyan-500 hover:underline">
                 {publicUrl}
               </a>
             </div>
           </div>
           {freeText ? (
-            <div style={{ marginTop: 12, whiteSpace: "pre-wrap", lineHeight: 1.7 }}>
+            <div className="mt-3 whitespace-pre-wrap leading-relaxed text-secondary">
               {freeText}
             </div>
           ) : null}
         </section>
 
         {images.length > 0 ? (
-          <section style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>
-            <div style={{ fontWeight: 700, marginBottom: 12 }}>添付画像</div>
-            <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+          <section className="glass-card p-4">
+            <div className="mb-3 font-bold text-primary">添付画像</div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {images.map((img) => (
                 <a
                   key={String(img.id ?? img.sort_order ?? Math.random())}
                   href={String(img.url)}
                   target="_blank"
                   rel="noreferrer"
-                  style={{
-                    display: "block",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 12,
-                    padding: 10,
-                    textDecoration: "none",
-                    color: "#111827",
-                  }}
+                  className="block rounded-xl border border-border-default p-2.5 no-underline transition-colors hover:border-cyan-500/50 hover:bg-surface-hover"
                 >
                   <img
                     src={String(img.url)}
                     alt={img.file_name || `image_${img.sort_order ?? ""}`}
-                    style={{
-                      width: "100%",
-                      height: 180,
-                      objectFit: "cover",
-                      borderRadius: 8,
-                      border: "1px solid #e5e7eb",
-                      background: "#fff",
-                    }}
+                    className="h-[180px] w-full rounded-lg border border-border-default bg-base object-cover"
                   />
-                  <div style={{ fontSize: 12, marginTop: 8, opacity: 0.75 }}>
+                  <div className="mt-2 text-xs text-muted">
                     {img.file_name || `image_${img.sort_order ?? "-"}`}
                   </div>
                 </a>
@@ -345,29 +301,29 @@ export default async function CertificatePublicPage({ params, searchParams }: Pa
           </section>
         ) : null}
 
-        <section style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>
-          <div style={{ fontWeight: 700, marginBottom: 12 }}>NFC情報</div>
-          <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
-            <div>状態: {getNfcStatusLabel(data.nfc?.status)}</div>
-            <div>タグコード: {data.nfc?.tag_code || "-"}</div>
-            <div>書込日時: {formatDateTime(data.nfc?.written_at)}</div>
-            <div>貼付日時: {formatDateTime(data.nfc?.attached_at)}</div>
+        <section className="glass-card p-4">
+          <div className="mb-3 font-bold text-primary">NFC情報</div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-lg bg-base px-3 py-2 text-secondary">状態: <span className="text-primary">{getNfcStatusLabel(data.nfc?.status)}</span></div>
+            <div className="rounded-lg bg-base px-3 py-2 text-secondary">タグコード: <span className="text-primary">{data.nfc?.tag_code || "-"}</span></div>
+            <div className="rounded-lg bg-base px-3 py-2 text-secondary">書込日時: <span className="text-primary">{formatDateTime(data.nfc?.written_at)}</span></div>
+            <div className="rounded-lg bg-base px-3 py-2 text-secondary">貼付日時: <span className="text-primary">{formatDateTime(data.nfc?.attached_at)}</span></div>
           </div>
         </section>
 
-        <section style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>
-          <div style={{ fontWeight: 700, marginBottom: 12 }}>履歴</div>
+        <section className="glass-card p-4">
+          <div className="mb-3 font-bold text-primary">履歴</div>
 
           {(data.histories?.length ?? 0) > 0 ? (
-            <div style={{ display: "grid", gap: 12 }}>
+            <div className="grid gap-3">
               {data.histories?.map((row) => (
-                <div key={row.id} style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 12 }}>
-                  <div style={{ fontWeight: 700 }}>{row.title}</div>
-                  <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>
+                <div key={row.id} className="rounded-xl border border-border-default bg-base p-3">
+                  <div className="font-bold text-primary">{row.title}</div>
+                  <div className="mt-1 text-xs text-muted">
                     {formatDateTime(row.performed_at ?? row.created_at ?? null)} / {row.type}
                   </div>
                   {row.description ? (
-                    <div style={{ marginTop: 8, whiteSpace: "pre-wrap", lineHeight: 1.7 }}>
+                    <div className="mt-2 whitespace-pre-wrap leading-relaxed text-secondary">
                       {row.description}
                     </div>
                   ) : null}
@@ -375,13 +331,13 @@ export default async function CertificatePublicPage({ params, searchParams }: Pa
               ))}
             </div>
           ) : (
-            <div style={{ fontSize: 14, opacity: 0.75 }}>履歴はありません。</div>
+            <div className="text-sm text-muted">履歴はありません。</div>
           )}
         </section>
       </div>
 
       {!isVoidCertificate ? (
-        <div style={{ marginTop: 16 }}>
+        <div className="mt-4">
           <CustomerActions
             pdfHref={pdfHref}
             returnTo={returnTo ?? undefined}
@@ -390,7 +346,7 @@ export default async function CertificatePublicPage({ params, searchParams }: Pa
         </div>
       ) : null}
 
-      <footer style={{ marginTop: 20, fontSize: 12, opacity: 0.75 }}>
+      <footer className="mt-5 text-xs text-muted">
         この証明書は certificate.info により記録・管理されています
       </footer>
     </main>

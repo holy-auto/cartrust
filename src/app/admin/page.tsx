@@ -1,18 +1,50 @@
+import Link from "next/link";
+import PageHeader from "@/components/ui/PageHeader";
+
 export default function AdminHome() {
   return (
-    <main style={{ padding: 24, maxWidth: 720 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700 }}>Admin</h1>
-      <p style={{ marginTop: 12 }}>管理メニュー（暫定）</p>
-      <div style={{ marginTop: 16, display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <a href="/admin/billing" style={{ padding: "10px 14px", border: "1px solid #ddd", borderRadius: 10, textDecoration: "none" }}>
-          請求情報（Billing）
-        </a>
-        <a href="/admin/members" style={{ padding: "10px 14px", border: "1px solid #ddd", borderRadius: 10, textDecoration: "none" }}>
-          メンバー管理
-        </a>
-        <a href="/customer/holy-auto" style={{ padding: "10px 14px", border: "1px solid #ddd", borderRadius: 10, textDecoration: "none" }}>
-          Customer（holy-auto）
-        </a>
+    <main className="space-y-6">
+      <PageHeader tag="DASHBOARD" title="ダッシュボード" />
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Link
+          href="/admin/certificates"
+          className="glass-card p-5 flex items-center gap-4 hover:bg-surface-hover transition-colors"
+        >
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent-dim text-cyan-400 text-lg">
+            📄
+          </span>
+          <div>
+            <div className="text-sm font-semibold text-primary">証明書一覧</div>
+            <div className="text-xs text-muted">Certificates</div>
+          </div>
+        </Link>
+
+        <Link
+          href="/admin/billing"
+          className="glass-card p-5 flex items-center gap-4 hover:bg-surface-hover transition-colors"
+        >
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-success-dim text-emerald-400 text-lg">
+            💳
+          </span>
+          <div>
+            <div className="text-sm font-semibold text-primary">請求情報</div>
+            <div className="text-xs text-muted">Billing</div>
+          </div>
+        </Link>
+
+        <Link
+          href="/admin/members"
+          className="glass-card p-5 flex items-center gap-4 hover:bg-surface-hover transition-colors"
+        >
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning-dim text-amber-400 text-lg">
+            👥
+          </span>
+          <div>
+            <div className="text-sm font-semibold text-primary">メンバー管理</div>
+            <div className="text-xs text-muted">Members</div>
+          </div>
+        </Link>
       </div>
     </main>
   );

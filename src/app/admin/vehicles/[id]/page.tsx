@@ -25,7 +25,7 @@ export default async function AdminVehicleDetailPage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return <div className="p-6">ログインしてください。</div>;
+    return <div className="p-6 text-primary">ログインしてください。</div>;
   }
 
   const { data: membership } = await supabase
@@ -36,7 +36,7 @@ export default async function AdminVehicleDetailPage({
     .single();
 
   if (!membership?.tenant_id) {
-    return <div className="p-6">tenant が見つかりません。</div>;
+    return <div className="p-6 text-primary">tenant が見つかりません。</div>;
   }
 
   async function voidCertificate(formData: FormData) {
@@ -122,7 +122,7 @@ export default async function AdminVehicleDetailPage({
     .single();
 
   if (vehicleError || !vehicle) {
-    return <div className="p-6">車両が見つかりません。</div>;
+    return <div className="p-6 text-primary">車両が見つかりません。</div>;
   }
 
   const { data: certs } = await supabase
@@ -150,10 +150,10 @@ export default async function AdminVehicleDetailPage({
     <div className="p-6 space-y-8">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-2xl font-bold text-primary">
             {[vehicle.maker, vehicle.model].filter(Boolean).join(" ")}
           </h1>
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-muted">
             {vehicle.year ?? "-"} / {vehicle.plate_display ?? "-"}
           </p>
         </div>
@@ -161,40 +161,40 @@ export default async function AdminVehicleDetailPage({
         <div className="flex gap-2">
           <Link
             href={`/admin/vehicles/${vehicle.id}/edit`}
-            className="rounded-md border px-4 py-2 text-sm font-medium"
+            className="btn-secondary"
           >
             編集
           </Link>
           <Link
             href={`/admin/certificates/new?vehicle_id=${vehicle.id}`}
-            className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white"
+            className="btn-primary"
           >
-            ＋ 証明書を作成
+            + 証明書を作成
           </Link>
         </div>
       </div>
 
       {savedFlag ? (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+        <div className="rounded-xl border border-emerald-500/30 bg-[rgba(16,185,129,0.1)] p-3 text-sm text-emerald-400">
           車両情報を保存しました。
         </div>
       ) : null}
 
       {voidedFlag ? (
-        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+        <div className="rounded-xl border border-amber-500/30 bg-[rgba(245,158,11,0.1)] p-3 text-sm text-amber-400">
           証明書を削除しました。内部的には履歴保全のため「void（無効化）」として処理しています。
         </div>
       ) : null}
 
       {errFlag ? (
-        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <div className="rounded-xl border border-red-500/30 bg-[rgba(239,68,68,0.1)] p-3 text-sm text-red-400">
           処理に失敗しました。
         </div>
       ) : null}
 
-      <section className="rounded-xl border p-6 space-y-3">
-        <h2 className="text-lg font-semibold">車両情報</h2>
-        <div className="grid gap-3 md:grid-cols-2 text-sm">
+      <section className="glass-card p-6 space-y-3">
+        <h2 className="text-lg font-semibold text-primary">車両情報</h2>
+        <div className="grid gap-3 md:grid-cols-2 text-sm text-secondary">
           <div>メーカー: {vehicle.maker ?? "-"}</div>
           <div>車種: {vehicle.model ?? "-"}</div>
           <div>年式: {vehicle.year ?? "-"}</div>
@@ -203,22 +203,22 @@ export default async function AdminVehicleDetailPage({
           <div>顧客メール: {vehicle.customer_email ?? "-"}</div>
           <div>顧客電話: {vehicle.customer_phone_masked ?? "-"}</div>
         </div>
-        {vehicle.notes ? <div className="text-sm">メモ: {vehicle.notes}</div> : null}
+        {vehicle.notes ? <div className="text-sm text-secondary">メモ: {vehicle.notes}</div> : null}
       </section>
 
-      <section className="rounded-xl border p-6 space-y-4">
-        <h2 className="text-lg font-semibold">証明書</h2>
+      <section className="glass-card p-6 space-y-4">
+        <h2 className="text-lg font-semibold text-primary">証明書</h2>
         {certs && certs.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="bg-neutral-50">
+              <thead className="bg-base">
                 <tr>
-                  <th className="px-4 py-3 text-left">証明番号</th>
-                  <th className="px-4 py-3 text-left">施工内容</th>
-                  <th className="px-4 py-3 text-left">作成日</th>
-                  <th className="px-4 py-3 text-left">状態</th>
-                  <th className="px-4 py-3 text-left">公開</th>
-                  <th className="px-4 py-3 text-left">削除</th>
+                  <th className="px-4 py-3 text-left text-secondary">証明番号</th>
+                  <th className="px-4 py-3 text-left text-secondary">施工内容</th>
+                  <th className="px-4 py-3 text-left text-secondary">作成日</th>
+                  <th className="px-4 py-3 text-left text-secondary">状態</th>
+                  <th className="px-4 py-3 text-left text-secondary">公開</th>
+                  <th className="px-4 py-3 text-left text-secondary">削除</th>
                 </tr>
               </thead>
               <tbody>
@@ -226,20 +226,20 @@ export default async function AdminVehicleDetailPage({
                   const isVoid = String(row.status ?? "").toLowerCase() === "void";
 
                   return (
-                    <tr key={row.id} className="border-t">
-                      <td className="px-4 py-3">{row.certificate_no ?? "-"}</td>
-                      <td className="px-4 py-3">{row.service_type ?? "-"}</td>
-                      <td className="px-4 py-3">
+                    <tr key={row.id} className="border-t border-border-default hover:bg-surface-hover transition-colors">
+                      <td className="px-4 py-3 text-primary">{row.certificate_no ?? "-"}</td>
+                      <td className="px-4 py-3 text-primary">{row.service_type ?? "-"}</td>
+                      <td className="px-4 py-3 text-primary">
                         {row.created_at ? new Date(row.created_at).toLocaleDateString("ja-JP") : "-"}
                       </td>
-                      <td className="px-4 py-3">{row.status ?? "-"}</td>
+                      <td className="px-4 py-3 text-primary">{row.status ?? "-"}</td>
                       <td className="px-4 py-3">
                         {row.public_id ? (
                           <a
                             href={`/c/${row.public_id}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="underline"
+                            className="underline text-cyan-400 hover:text-cyan-300"
                           >
                             表示
                           </a>
@@ -249,13 +249,13 @@ export default async function AdminVehicleDetailPage({
                       </td>
                       <td className="px-4 py-3">
                         {isVoid ? (
-                          <span className="text-xs text-neutral-500">削除済み</span>
+                          <span className="text-xs text-muted">削除済み</span>
                         ) : (
                           <form action={voidCertificate}>
                             <input type="hidden" name="certificate_id" value={row.id} />
                             <button
                               type="submit"
-                              className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
+                              className="btn-danger text-xs"
                             >
                               削除
                             </button>
@@ -269,51 +269,51 @@ export default async function AdminVehicleDetailPage({
             </table>
           </div>
         ) : (
-          <div className="text-sm text-neutral-500">証明書はまだありません。</div>
+          <div className="text-sm text-muted">証明書はまだありません。</div>
         )}
       </section>
 
-      <section className="rounded-xl border p-6 space-y-4">
-        <h2 className="text-lg font-semibold">履歴タイムライン</h2>
+      <section className="glass-card p-6 space-y-4">
+        <h2 className="text-lg font-semibold text-primary">履歴タイムライン</h2>
         {histories && histories.length > 0 ? (
           <div className="space-y-3">
             {histories.map((row) => (
-              <div key={row.id} className="rounded-lg border p-4">
-                <div className="text-sm font-medium">{row.title}</div>
-                <div className="text-xs text-neutral-500">
+              <div key={row.id} className="rounded-xl border border-border-default bg-base p-4">
+                <div className="text-sm font-medium text-primary">{row.title}</div>
+                <div className="text-xs text-muted">
                   {row.performed_at ? new Date(row.performed_at).toLocaleString("ja-JP") : "-"} / {row.type}
                 </div>
-                {row.description ? <div className="mt-2 text-sm">{row.description}</div> : null}
+                {row.description ? <div className="mt-2 text-sm text-secondary">{row.description}</div> : null}
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-sm text-neutral-500">履歴はまだありません。</div>
+          <div className="text-sm text-muted">履歴はまだありません。</div>
         )}
       </section>
 
-      <section className="rounded-xl border p-6 space-y-4">
-        <h2 className="text-lg font-semibold">NFCタグ</h2>
+      <section className="glass-card p-6 space-y-4">
+        <h2 className="text-lg font-semibold text-primary">NFCタグ</h2>
         {tags && tags.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="bg-neutral-50">
+              <thead className="bg-base">
                 <tr>
-                  <th className="px-4 py-3 text-left">タグコード</th>
-                  <th className="px-4 py-3 text-left">状態</th>
-                  <th className="px-4 py-3 text-left">書込日時</th>
-                  <th className="px-4 py-3 text-left">貼付日時</th>
+                  <th className="px-4 py-3 text-left text-secondary">タグコード</th>
+                  <th className="px-4 py-3 text-left text-secondary">状態</th>
+                  <th className="px-4 py-3 text-left text-secondary">書込日時</th>
+                  <th className="px-4 py-3 text-left text-secondary">貼付日時</th>
                 </tr>
               </thead>
               <tbody>
                 {tags.map((row) => (
-                  <tr key={row.id} className="border-t">
-                    <td className="px-4 py-3">{row.tag_code}</td>
-                    <td className="px-4 py-3">{row.status}</td>
-                    <td className="px-4 py-3">
+                  <tr key={row.id} className="border-t border-border-default hover:bg-surface-hover transition-colors">
+                    <td className="px-4 py-3 text-primary">{row.tag_code}</td>
+                    <td className="px-4 py-3 text-primary">{row.status}</td>
+                    <td className="px-4 py-3 text-primary">
                       {row.written_at ? new Date(row.written_at).toLocaleString("ja-JP") : "-"}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-primary">
                       {row.attached_at ? new Date(row.attached_at).toLocaleString("ja-JP") : "-"}
                     </td>
                   </tr>
@@ -322,7 +322,7 @@ export default async function AdminVehicleDetailPage({
             </table>
           </div>
         ) : (
-          <div className="text-sm text-neutral-500">NFCタグはまだありません。</div>
+          <div className="text-sm text-muted">NFCタグはまだありません。</div>
         )}
       </section>
     </div>
