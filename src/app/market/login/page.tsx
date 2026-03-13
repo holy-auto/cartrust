@@ -86,7 +86,12 @@ export default function MarketLoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 pt-5 border-t border-gray-100 text-center">
+          <div className="mt-6 pt-5 border-t border-gray-100 space-y-3 text-center">
+            <p className="text-sm text-gray-500">
+              <Link href="/market/forgot-password" className="text-blue-600 hover:underline">
+                パスワードをお忘れの方
+              </Link>
+            </p>
             <p className="text-sm text-gray-500">
               招待コードをお持ちの方は
               <Link href="/market/register" className="text-blue-600 hover:underline ml-1">
