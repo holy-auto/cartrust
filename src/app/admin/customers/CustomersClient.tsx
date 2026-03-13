@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import PageHeader from "@/components/ui/PageHeader";
 import Badge from "@/components/ui/Badge";
+import { formatDate } from "@/lib/format";
 
 type Customer = {
   id: string;
@@ -464,7 +465,7 @@ export default function CustomersClient() {
                         </Badge>
                       </td>
                       <td className="px-5 py-3.5 whitespace-nowrap text-secondary">
-                        {new Date(c.created_at).toLocaleDateString("ja-JP")}
+                        {formatDate(c.created_at)}
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex gap-2">

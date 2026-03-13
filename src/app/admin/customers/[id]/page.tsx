@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import PageHeader from "@/components/ui/PageHeader";
 import Badge from "@/components/ui/Badge";
 import CustomerDetailClient from "./CustomerDetailClient";
+import { formatDate, formatJpy } from "@/lib/format";
 
 async function getMyTenantId(supabase: any) {
   const { data: userRes } = await supabase.auth.getUser();
@@ -145,11 +146,11 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                   </td>
                   <td className="px-5 py-3.5 text-secondary">
                     {cert.service_price != null
-                      ? `${cert.service_price.toLocaleString("ja-JP")}円`
+                      ? formatJpy(cert.service_price)
                       : "-"}
                   </td>
                   <td className="px-5 py-3.5 whitespace-nowrap text-secondary">
-                    {new Date(cert.created_at).toLocaleDateString("ja-JP")}
+                    {formatDate(cert.created_at)}
                   </td>
                 </tr>
               ))}
@@ -199,13 +200,13 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                     </Badge>
                   </td>
                   <td className="px-5 py-3.5 font-medium text-primary">
-                    {inv.total != null ? `${inv.total.toLocaleString("ja-JP")}円` : "-"}
+                    {inv.total != null ? formatJpy(inv.total) : "-"}
                   </td>
                   <td className="px-5 py-3.5 whitespace-nowrap text-secondary">
-                    {inv.issued_at ? new Date(inv.issued_at).toLocaleDateString("ja-JP") : "-"}
+                    {formatDate(inv.issued_at)}
                   </td>
                   <td className="px-5 py-3.5 whitespace-nowrap text-secondary">
-                    {inv.due_date ? new Date(inv.due_date).toLocaleDateString("ja-JP") : "-"}
+                    {formatDate(inv.due_date)}
                   </td>
                 </tr>
               ))}

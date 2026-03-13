@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import Badge from "@/components/ui/Badge";
+import { formatDate, formatDateTime, formatJpy } from "@/lib/format";
 
 type InvoiceItem = {
   description: string;
@@ -141,8 +142,8 @@ export default function InvoiceDetailClient({
               </div>
             </div>
             <div className="text-right text-sm text-secondary print:text-gray-700 space-y-1">
-              <div>発行日: {invoice.issued_at ? new Date(invoice.issued_at).toLocaleDateString("ja-JP") : "-"}</div>
-              <div>支払期限: {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString("ja-JP") : "-"}</div>
+              <div>発行日: {formatDate(invoice.issued_at)}</div>
+              <div>支払期限: {formatDate(invoice.due_date)}</div>
             </div>
           </div>
 
@@ -180,10 +181,10 @@ export default function InvoiceDetailClient({
                     </td>
                     <td className="py-3 px-3 text-right text-secondary print:text-gray-700">{item.quantity}</td>
                     <td className="py-3 px-3 text-right text-secondary print:text-gray-700">
-                      {item.unit_price.toLocaleString("ja-JP")}円
+                      {formatJpy(item.unit_price)}
                     </td>
                     <td className="py-3 px-3 text-right font-medium text-primary print:text-black">
-                      {item.amount.toLocaleString("ja-JP")}円
+                      {formatJpy(item.amount)}
                     </td>
                   </tr>
                 ))}
@@ -201,15 +202,15 @@ export default function InvoiceDetailClient({
             <div className="w-64 space-y-2">
               <div className="flex justify-between text-sm border-b border-border-subtle pb-2 print:border-gray-200">
                 <span className="text-muted print:text-gray-500">小計</span>
-                <span className="text-primary print:text-black">{invoice.subtotal.toLocaleString("ja-JP")}円</span>
+                <span className="text-primary print:text-black">{formatJpy(invoice.subtotal)}</span>
               </div>
               <div className="flex justify-between text-sm border-b border-border-subtle pb-2 print:border-gray-200">
                 <span className="text-muted print:text-gray-500">消費税（10%）</span>
-                <span className="text-primary print:text-black">{invoice.tax.toLocaleString("ja-JP")}円</span>
+                <span className="text-primary print:text-black">{formatJpy(invoice.tax)}</span>
               </div>
               <div className="flex justify-between text-lg font-bold pt-1">
                 <span className="text-primary print:text-black">合計</span>
-                <span className="text-primary print:text-black">{invoice.total.toLocaleString("ja-JP")}円</span>
+                <span className="text-primary print:text-black">{formatJpy(invoice.total)}</span>
               </div>
             </div>
           </div>
@@ -229,9 +230,9 @@ export default function InvoiceDetailClient({
       {/* Meta */}
       <section className="glass-card p-5 text-xs text-muted space-y-1 print:hidden">
         <div>ID: <span className="font-mono">{invoice.id}</span></div>
-        <div>作成日: {new Date(invoice.created_at).toLocaleString("ja-JP")}</div>
+        <div>作成日: {formatDateTime(invoice.created_at)}</div>
         {invoice.updated_at && (
-          <div>更新日: {new Date(invoice.updated_at).toLocaleString("ja-JP")}</div>
+          <div>更新日: {formatDateTime(invoice.updated_at)}</div>
         )}
       </section>
     </div>

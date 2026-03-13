@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import CustomerActions from "./CustomerActions";
 import { logCertificateAction } from "@/lib/audit/certificateLog";
+import { formatDate, formatDateTime } from "@/lib/format";
 
 type PageProps = {
   params: Promise<{ public_id: string }>;
@@ -88,19 +89,6 @@ function pickVehicleField(vehicle: any, info: any, keys: string[]) {
   return "";
 }
 
-function formatDateTime(v?: string | null) {
-  if (!v) return "-";
-  const d = new Date(v);
-  if (Number.isNaN(d.getTime())) return String(v);
-  return d.toLocaleString("ja-JP");
-}
-
-function formatDate(v?: string | null) {
-  if (!v) return "-";
-  const d = new Date(v);
-  if (Number.isNaN(d.getTime())) return String(v);
-  return d.toLocaleDateString("ja-JP");
-}
 
 function getStatusLabel(status?: string | null) {
   const s = String(status ?? "").toLowerCase();

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import SettingsForm from "./SettingsForm";
+import { formatDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -192,7 +193,7 @@ export default async function AdminSettingsPage() {
             {createdAt && (
               <div className="flex items-center gap-2">
                 <span className="text-neutral-400">テナント作成日:</span>
-                <span>{new Date(createdAt).toLocaleDateString("ja-JP")}</span>
+                <span>{formatDate(createdAt)}</span>
               </div>
             )}
           </div>

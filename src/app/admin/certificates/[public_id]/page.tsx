@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import {
   CERTIFICATE_IMAGE_BUCKET,
@@ -8,6 +8,7 @@ import {
 } from "@/lib/certificateImages";
 import { logCertificateAction } from "@/lib/audit/certificateLog";
 import PageHeader from "@/components/ui/PageHeader";
+import { formatDateTime } from "@/lib/format";
 
 type PageProps = {
   params: Promise<{ public_id: string }>;
@@ -21,13 +22,6 @@ function asObj(v: unknown): Record<string, any> {
 function asText(v: unknown) {
   if (v == null) return "";
   return String(v);
-}
-
-function fmt(v?: string | null) {
-  if (!v) return "-";
-  const d = new Date(v);
-  if (Number.isNaN(d.getTime())) return String(v);
-  return d.toLocaleString("ja-JP");
 }
 
 async function getMyTenantId(supabase: any) {
@@ -191,12 +185,12 @@ export default async function Page({ params }: PageProps) {
               <div className="grid gap-4 md:grid-cols-2 text-sm">
                 <div className="rounded-xl bg-base p-4">
                   <div className="text-xs text-muted">作成日時</div>
-                  <div className="mt-1 text-primary">{fmt(row.created_at)}</div>
+                  <div className="mt-1 text-primary">{formatDateTime(row.created_at)}</div>
                 </div>
 
                 <div className="rounded-xl bg-base p-4">
                   <div className="text-xs text-muted">更新日時</div>
-                  <div className="mt-1 text-primary">{fmt(row.updated_at)}</div>
+                  <div className="mt-1 text-primary">{formatDateTime(row.updated_at)}</div>
                 </div>
 
                 <div className="rounded-xl bg-base p-4">
@@ -271,7 +265,7 @@ export default async function Page({ params }: PageProps) {
                         <div>順序: {img.sort_order}</div>
                         <div className="break-all">ファイル名: {img.file_name || "-"}</div>
                         <div>サイズ: {formatCertificateImageBytes(img.file_size)}</div>
-                        <div>保存日時: {fmt(img.created_at)}</div>
+                        <div>保存日時: {formatDateTime(img.created_at)}</div>
                       </div>
                     </div>
                   ))}

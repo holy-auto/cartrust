@@ -1,16 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import PageHeader from "@/components/ui/PageHeader";
+import { formatDateTime } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
-
-function fmt(v?: string | null) {
-  if (!v) return "-";
-  const d = new Date(v);
-  if (Number.isNaN(d.getTime())) return String(v);
-  return d.toLocaleString("ja-JP");
-}
 
 const TYPE_LABELS: Record<string, { label: string; color: string }> = {
   certificate_issued: { label: "証明書発行", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/30" },
@@ -155,7 +149,7 @@ export default async function AdminAuditPage() {
                       {h.description && (
                         <p className="mt-1 text-xs text-muted break-all">{h.description}</p>
                       )}
-                      <p className="mt-1 text-[11px] text-muted">{fmt(h.performed_at ?? h.created_at)}</p>
+                      <p className="mt-1 text-[11px] text-muted">{formatDateTime(h.performed_at ?? h.created_at)}</p>
                     </div>
                   </div>
                 </div>

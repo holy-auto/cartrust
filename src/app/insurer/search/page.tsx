@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { headers } from "next/headers";
+import { formatDateTime } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -19,13 +20,6 @@ function asNumber(v: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function fmt(v: unknown): string {
-  const s = asText(v);
-  if (!s) return "-";
-  const d = new Date(s);
-  if (Number.isNaN(d.getTime())) return s;
-  return d.toLocaleString("ja-JP");
-}
 
 async function getRequestInfo() {
   const h = await headers();
@@ -307,7 +301,7 @@ export default async function Page({
 
                   return (
                     <tr key={`${publicId || vehiclePublicId || "row"}_${idx}`} className="border-t align-top">
-                      <td className="p-3 whitespace-nowrap">{fmt(getRowCreatedAt(row))}</td>
+                      <td className="p-3 whitespace-nowrap">{formatDateTime(getRowCreatedAt(row))}</td>
                       <td className="p-3 font-mono">
                         {publicId || <span className="text-xs text-neutral-400">証明書未発行</span>}
                       </td>

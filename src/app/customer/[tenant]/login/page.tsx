@@ -13,8 +13,8 @@ export default function CustomerLoginPage() {
   const [code, setCode] = useState("");
   const [phase, setPhase] = useState<"request" | "verify">("request");
   const [msg, setMsg] = useState<string | null>(null);
-  const [msgType, setMsgType] = useState<"error" | "success">("error");
   const [busy, setBusy] = useState(false);
+
 
   const sp = useSearchParams();
 
@@ -28,8 +28,7 @@ export default function CustomerLoginPage() {
     if (qc) setCode(qc);
     if (qp === "verify" || qc) setPhase("verify");
   }, [sp]);
-
-  async function requestCode() {
+async function requestCode() {
     setBusy(true);
     setMsg(null);
     try {
@@ -41,10 +40,8 @@ export default function CustomerLoginPage() {
       const j = await res.json();
       if (!res.ok) throw new Error(j?.error ?? "request failed");
       setPhase("verify");
-      setMsgType("success");
       setMsg("メールに6桁コードを送信しました。");
     } catch (e: any) {
-      setMsgType("error");
       setMsg(e?.message ?? "error");
     } finally {
       setBusy(false);
@@ -64,82 +61,46 @@ export default function CustomerLoginPage() {
       if (!res.ok) throw new Error(j?.error ?? "verify failed");
       router.push(`/customer/${tenant}`);
     } catch (e: any) {
-      setMsgType("error");
       setMsg(e?.message ?? "error");
     } finally {
       setBusy(false);
     }
   }
 
+  const inputCls = "w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400";
+  const btnCls = "rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm cursor-pointer hover:bg-neutral-50 disabled:opacity-60 disabled:cursor-default";
+
   return (
-    <main className="min-h-screen flex items-center justify-center bg-base p-6">
-      <div className="glass-card w-full max-w-md space-y-6 p-8">
-        {/* Branding */}
-        <div className="flex items-center justify-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-cyan-500 flex items-center justify-center text-white font-bold text-lg">
-            C
-          </div>
-          <span className="text-xl font-bold text-primary tracking-wide">CARTRUST</span>
-        </div>
+    <main className="mx-auto max-w-lg p-6 font-sans">
+      <h1 className="text-xl font-bold">お客様ログイン</h1>
+      <div className="mt-1 text-sm text-neutral-500">店舗: {tenant}</div>
 
-        <div className="text-center">
-          <h1 className="text-xl font-bold text-primary">お客様ログイン</h1>
-          <div className="text-sm text-muted mt-1">店舗: {tenant}</div>
-        </div>
+      <label className="mt-4 block text-sm font-medium text-neutral-700">メール</label>
+      <input value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} />
 
-        <div className="grid gap-4">
-          <label>
-            <div className="text-sm text-secondary mb-1">メール</div>
-            <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="input-field w-full"
-            />
-          </label>
+      <label className="mt-3 block text-sm font-medium text-neutral-700">電話番号 下4桁</label>
+      <input value={last4} onChange={(e) => setLast4(e.target.value)} inputMode="numeric" className={inputCls} />
 
-          <label>
-            <div className="text-sm text-secondary mb-1">電話番号 下4桁</div>
-            <input
-              value={last4}
-              onChange={(e) => setLast4(e.target.value)}
-              inputMode="numeric"
-              className="input-field w-full"
-            />
-          </label>
+      {phase === "verify" ? (
+        <>
+          <label className="mt-3 block text-sm font-medium text-neutral-700">メールに届いた6桁コード</label>
+          <input value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" className={inputCls} />
+        </>
+      ) : null}
 
-          {phase === "verify" && (
-            <label>
-              <div className="text-sm text-secondary mb-1">メールに届いた6桁コード</div>
-              <input
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                inputMode="numeric"
-                className="input-field w-full"
-              />
-            </label>
-          )}
-
-          {phase === "request" ? (
-            <button disabled={busy} onClick={requestCode} className="btn-primary w-full">
-              {busy ? "..." : "コード送信"}
-            </button>
-          ) : (
-            <button disabled={busy} onClick={verifyCode} className="btn-primary w-full">
-              {busy ? "..." : "ログイン"}
-            </button>
-          )}
-        </div>
-
-        {msg && (
-          <div
-            className={`text-sm text-center ${
-              msgType === "success" ? "text-emerald-400" : "text-red-400"
-            }`}
-          >
-            {msg}
-          </div>
+      <div className="mt-4 flex gap-2.5">
+        {phase === "request" ? (
+          <button disabled={busy} onClick={requestCode} className={btnCls}>
+            コード送信
+          </button>
+        ) : (
+          <button disabled={busy} onClick={verifyCode} className={btnCls}>
+            ログイン
+          </button>
         )}
       </div>
+
+      {msg ? <div className="mt-3 text-sm text-red-700">{msg}</div> : null}
     </main>
   );
 }

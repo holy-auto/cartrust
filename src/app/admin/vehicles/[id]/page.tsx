@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { formatDate, formatDateTime } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -230,7 +231,7 @@ export default async function AdminVehicleDetailPage({
                       <td className="px-4 py-3 text-primary">{row.certificate_no ?? "-"}</td>
                       <td className="px-4 py-3 text-primary">{row.service_type ?? "-"}</td>
                       <td className="px-4 py-3 text-primary">
-                        {row.created_at ? new Date(row.created_at).toLocaleDateString("ja-JP") : "-"}
+                        {formatDate(row.created_at)}
                       </td>
                       <td className="px-4 py-3 text-primary">{row.status ?? "-"}</td>
                       <td className="px-4 py-3">
@@ -281,7 +282,7 @@ export default async function AdminVehicleDetailPage({
               <div key={row.id} className="rounded-xl border border-border-default bg-base p-4">
                 <div className="text-sm font-medium text-primary">{row.title}</div>
                 <div className="text-xs text-muted">
-                  {row.performed_at ? new Date(row.performed_at).toLocaleString("ja-JP") : "-"} / {row.type}
+                  {formatDateTime(row.performed_at)} / {row.type}
                 </div>
                 {row.description ? <div className="mt-2 text-sm text-secondary">{row.description}</div> : null}
               </div>
@@ -311,10 +312,10 @@ export default async function AdminVehicleDetailPage({
                     <td className="px-4 py-3 text-primary">{row.tag_code}</td>
                     <td className="px-4 py-3 text-primary">{row.status}</td>
                     <td className="px-4 py-3 text-primary">
-                      {row.written_at ? new Date(row.written_at).toLocaleString("ja-JP") : "-"}
+                      {formatDateTime(row.written_at)}
                     </td>
                     <td className="px-4 py-3 text-primary">
-                      {row.attached_at ? new Date(row.attached_at).toLocaleString("ja-JP") : "-"}
+                      {formatDateTime(row.attached_at)}
                     </td>
                   </tr>
                 ))}

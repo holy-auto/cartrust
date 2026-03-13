@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAdminBillingStatus } from "@/lib/billing/useAdminBillingStatus";
 import { canUseFeature } from "@/lib/billing/planFeatures";
 import { buildBillingDenyUrl } from "@/lib/billing/billingRedirect";
+import { formatDateTime } from "@/lib/format";
 
 type Row = {
   public_id: string;
@@ -170,7 +171,7 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
                   <td className="p-3">
                     <input type="checkbox" className="accent-[#0a84ff]" checked={checked} onChange={(e) => toggleOne(r.public_id, e.target.checked)} />
                   </td>
-                  <td className="p-3 whitespace-nowrap text-primary">{new Date(r.created_at).toLocaleString("ja-JP")}</td>
+                  <td className="p-3 whitespace-nowrap text-primary">{formatDateTime(r.created_at)}</td>
                   <td className="p-3 font-mono text-primary">{r.public_id}</td>
                   <td className="p-3 text-primary">{r.customer_name}</td>
                   <td className="p-3">

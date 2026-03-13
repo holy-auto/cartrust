@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import PageHeader from "@/components/ui/PageHeader";
 import Badge from "@/components/ui/Badge";
+import { formatDate } from "@/lib/format";
 
 type Member = {
   user_id: string;
@@ -249,7 +250,7 @@ export default function MembersClient() {
                         <Badge>{m.role}</Badge>
                       </td>
                       <td className="px-5 py-3.5 whitespace-nowrap text-secondary">
-                        {m.created_at ? new Date(m.created_at).toLocaleDateString("ja-JP") : "-"}
+                        {formatDate(m.created_at)}
                       </td>
                       <td className="px-5 py-3.5">
                         {m.is_self ? (

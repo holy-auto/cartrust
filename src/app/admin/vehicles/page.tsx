@@ -1,15 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { formatDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
-
-function fmt(v?: string | null) {
-  if (!v) return "-";
-  const d = new Date(v);
-  if (Number.isNaN(d.getTime())) return String(v);
-  return d.toLocaleDateString("ja-JP");
-}
 
 export default async function AdminVehicleListPage() {
   const supabase = await createSupabaseServerClient();
@@ -135,7 +129,7 @@ export default async function AdminVehicleListPage() {
                   {rows.map((v) => (
                     <tr key={v.id} className="border-t hover:bg-neutral-50">
                       <td className="p-3 whitespace-nowrap text-neutral-600">
-                        {fmt(v.created_at)}
+                        {formatDate(v.created_at)}
                       </td>
                       <td className="p-3 font-medium text-neutral-900">
                         {v.maker || "-"}

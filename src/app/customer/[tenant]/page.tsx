@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { formatDateTime } from "@/lib/format";
 
 type Row = {
   public_id: string;
@@ -149,108 +150,102 @@ export default function CustomerListPage() {
   }, [tenant]);
 
   return (
-    <main className="min-h-screen bg-base p-6">
-      <div className="max-w-3xl mx-auto">
-        <header className="flex justify-between items-center gap-3 mb-6">
-          <div>
-            <h1 className="text-xl font-bold text-primary">お客様の証明書一覧</h1>
-            <div className="text-sm text-muted mt-1">店舗: {tenant || "..."}</div>
-          </div>
+    <main className="mx-auto max-w-[900px] p-6 font-sans">
+      <header className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold">お客様の証明書一覧</h1>
+          <div className="mt-1 text-sm text-neutral-500">店舗: {tenant || "..."}</div>
+        </div>
 
-          <div className="flex gap-2 items-center">
-            <button
-              onClick={load}
-              disabled={!tenant || loading}
-              className="btn-secondary disabled:opacity-50"
-            >
-              {loading ? "更新中…" : "更新"}
-            </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={load}
+            disabled={!tenant || loading}
+            className="rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm hover:bg-neutral-50 disabled:cursor-default disabled:opacity-60"
+          >
+            {loading ? "更新中…" : "更新"}
+          </button>
 
-            <button onClick={logout} className="btn-ghost">
-              ログアウト
-            </button>
-          </div>
-        </header>
+          <button
+            onClick={logout}
+            className="cursor-pointer rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm hover:bg-neutral-50"
+          >
+            ログアウト
+          </button>
+        </div>
+      </header>
 
-        {err && (
-          <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 text-sm mb-4">
-            {err}（ログインが必要） →{" "}
-            <a href={`/customer/${tenant}/login`} className="underline text-red-300 hover:text-red-200">
-              ログインへ
-            </a>
-          </div>
-        )}
+      {err ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm">
+          {err}（ログインが必要） → <a href={`/customer/${tenant}/login`} className="underline">ログインへ</a>
+        </div>
+      ) : null}
 
-        <div className="grid gap-3">
-          {rows.map((r) => {
-            const rt = encodeURIComponent(`/customer/${tenant}`);
-            const href = `/c/${r.public_id}?tenant=${encodeURIComponent(tenant)}&rt=${rt}&logout=1`;
+      <div className="mt-3 grid gap-2.5">
+        {rows.map((r) => {
+          const rt = encodeURIComponent(`/customer/${tenant}`);
+          const href = `/c/${r.public_id}?tenant=${encodeURIComponent(tenant)}&rt=${rt}&logout=1`;
 
-            const vi = normalizeVehicleInfo(r.vehicle_info_json);
-            const vs = buildVehicleSummary(vi);
+          const vi = normalizeVehicleInfo(r.vehicle_info_json);
+          const vs = buildVehicleSummary(vi);
 
-            const isVoid = (r.status ?? "").toLowerCase() === "void";
-            const statusLabel = isVoid ? "無効の施工証明書" : "有効な施工証明書";
+          const isVoid = (r.status ?? "").toLowerCase() === "void";
+          const statusLabel = isVoid ? "VOID（無効）" : (r.status ? String(r.status) : "active");
 
-            return (
-              <a key={r.public_id} href={href} className="no-underline text-inherit">
-                <div
-                  className={`glass-card p-4 grid gap-2 transition-colors hover:bg-surface-hover ${
-                    isVoid ? "opacity-75 border-red-500/40" : ""
-                  }`}
-                >
-                  <div className="flex justify-between gap-3 items-baseline">
-                    <div className="text-xs text-muted">
-                      {new Date(r.created_at).toLocaleString("ja-JP")}
-                    </div>
-                    <div
-                      className={`text-xs px-2 py-0.5 rounded-full border ${
-                        isVoid
-                          ? "border-red-500/40 bg-red-500/10 text-red-400"
-                          : "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
-                      }`}
-                    >
-                      {statusLabel}
-                    </div>
-                  </div>
-
-                  <div className="text-base font-semibold text-primary">{r.customer_name}</div>
-
-                  <div className="text-sm text-secondary">
-                    <div className="font-semibold mb-0.5">{vs.title}</div>
-                    {vs.lines.length ? (
-                      <ul className="m-0 pl-5 space-y-0.5">
-                        {vs.lines.map((x, i) => (
-                          <li key={i}>{x}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <div className="text-muted">詳細情報がありません。</div>
-                    )}
-                  </div>
-
-                  {vi && (
-                    <details className="text-xs text-muted">
-                      <summary className="cursor-pointer hover:text-secondary">車両情報（raw）</summary>
-                      <pre className="mt-2 mb-0 whitespace-pre-wrap bg-base rounded-lg p-3 border border-border-default text-xs text-secondary">
-                        {JSON.stringify(vi, null, 2)}
-                      </pre>
-                    </details>
-                  )}
-
-                  <div className="flex justify-between gap-3">
-                    <div className="text-xs text-muted">Public ID: {r.public_id}</div>
-                    <div className="text-xs text-secondary">証明書を開く →</div>
+          return (
+            <a key={r.public_id} href={href} className="no-underline text-inherit">
+              <div
+                className={`grid gap-2 rounded-xl border p-3.5 ${
+                  isVoid ? "border-red-200 opacity-80" : "border-neutral-200"
+                }`}
+              >
+                <div className="flex items-baseline justify-between gap-2.5">
+                  <div className="text-xs text-neutral-500">{formatDateTime(r.created_at)}</div>
+                  <div
+                    className={`rounded-full border px-2 py-0.5 text-xs ${
+                      isVoid
+                        ? "border-red-200 bg-red-50 text-red-700"
+                        : "border-neutral-200 bg-green-50 text-green-800"
+                    }`}
+                  >
+                    {statusLabel}
                   </div>
                 </div>
-              </a>
-            );
-          })}
 
-          {rows.length === 0 && !err && !loading && (
-            <div className="text-muted text-center py-8">対象の証明書がありません。</div>
-          )}
-        </div>
+                <div className="text-base font-semibold">{r.customer_name}</div>
+
+                <div className="text-[13px] text-neutral-700">
+                  <div className="mb-0.5 font-semibold">{vs.title}</div>
+                  {vs.lines.length ? (
+                    <ul className="m-0 pl-4">
+                      {vs.lines.map((x, i) => (
+                        <li key={i}>{x}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="text-neutral-400">詳細情報がありません。</div>
+                  )}
+                </div>
+
+                {vi ? (
+                  <details className="text-xs text-neutral-600">
+                    <summary className="cursor-pointer">車両情報（raw）</summary>
+                    <pre className="mt-2 whitespace-pre-wrap">
+                      {JSON.stringify(vi, null, 2)}
+                    </pre>
+                  </details>
+                ) : null}
+
+                <div className="flex justify-between gap-2.5">
+                  <div className="text-xs text-neutral-400">Public ID: {r.public_id}</div>
+                  <div className="text-xs text-neutral-600">証明書を開く →</div>
+                </div>
+              </div>
+            </a>
+          );
+        })}
+
+        {rows.length === 0 && !err && !loading ? <div className="text-sm text-neutral-500">対象の証明書がありません。</div> : null}
       </div>
     </main>
   );

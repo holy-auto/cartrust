@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import PageHeader from "@/components/ui/PageHeader";
 import Badge from "@/components/ui/Badge";
+import { formatDate, formatJpy } from "@/lib/format";
 
 type InvoiceItem = {
   description: string;
@@ -299,7 +300,7 @@ export default function InvoicesClient() {
             <div className="glass-card p-5">
               <div className="text-xs font-semibold tracking-[0.18em] text-muted">UNPAID</div>
               <div className="mt-2 text-2xl font-bold text-primary">
-                {data.stats.unpaid_amount.toLocaleString("ja-JP")}円
+                {formatJpy(data.stats.unpaid_amount)}
               </div>
               <div className="mt-1 text-xs text-muted">未入金額</div>
             </div>
@@ -396,7 +397,7 @@ export default function InvoicesClient() {
                           <option value="">紐付けなし</option>
                           {certificates.map((c) => (
                             <option key={c.id} value={c.id}>
-                              {c.public_id} — {c.service_price != null ? `¥${c.service_price.toLocaleString()}` : "料金未設定"} ({c.status === "active" ? "有効" : c.status})
+                              {c.public_id} — {c.service_price != null ? formatJpy(c.service_price) : "料金未設定"} ({c.status === "active" ? "有効" : c.status})
                             </option>
                           ))}
                         </select>
@@ -467,15 +468,15 @@ export default function InvoicesClient() {
               <div className="border-t border-border-subtle pt-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted">小計</span>
-                  <span className="text-primary">{subtotal.toLocaleString("ja-JP")}円</span>
+                  <span className="text-primary">{formatJpy(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted">消費税（10%）</span>
-                  <span className="text-primary">{tax.toLocaleString("ja-JP")}円</span>
+                  <span className="text-primary">{formatJpy(tax)}</span>
                 </div>
                 <div className="flex justify-between text-base font-bold">
                   <span className="text-primary">合計</span>
-                  <span className="text-primary">{total.toLocaleString("ja-JP")}円</span>
+                  <span className="text-primary">{formatJpy(total)}</span>
                 </div>
               </div>
 
@@ -541,13 +542,13 @@ export default function InvoicesClient() {
                       </td>
                       <td className="px-5 py-3.5 text-secondary">{inv.customer_name ?? "-"}</td>
                       <td className="px-5 py-3.5 whitespace-nowrap text-secondary">
-                        {inv.issued_at ? new Date(inv.issued_at).toLocaleDateString("ja-JP") : "-"}
+                        {formatDate(inv.issued_at)}
                       </td>
                       <td className="px-5 py-3.5 whitespace-nowrap text-secondary">
-                        {inv.due_date ? new Date(inv.due_date).toLocaleDateString("ja-JP") : "-"}
+                        {formatDate(inv.due_date)}
                       </td>
                       <td className="px-5 py-3.5 font-medium text-primary">
-                        {inv.total != null ? `${inv.total.toLocaleString("ja-JP")}円` : "-"}
+                        {inv.total != null ? formatJpy(inv.total) : "-"}
                       </td>
                       <td className="px-5 py-3.5">
                         <Badge variant={statusVariant(inv.status)}>

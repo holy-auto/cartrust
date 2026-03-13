@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 
+import { formatDateTime } from "@/lib/format";
 import AdminFeatureGuard from "@/app/admin/AdminFeatureGuard";
 const DEFAULT_SCHEMA = {
   version: 1,
@@ -151,7 +152,7 @@ export default async function Page({
               <tr key={t.id} className="border-t border-border-default hover:bg-surface-hover transition-colors">
                 <td className="p-3 text-primary">{t.name}</td>
                 <td className="p-3 text-primary">{t.layout_version}</td>
-                <td className="p-3 whitespace-nowrap text-primary">{new Date(t.created_at).toLocaleString("ja-JP")}</td>
+                <td className="p-3 whitespace-nowrap text-primary">{formatDateTime(t.created_at)}</td>
                 <td className="p-3">
                   <div className="flex gap-3 items-center flex-wrap">
                     <Link className="underline text-[#0a84ff] hover:text-[#3b9eff]" href={`/admin/templates/edit?tid=${encodeURIComponent(t.id)}`}>

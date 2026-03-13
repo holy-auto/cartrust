@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatDate } from "@/lib/format";
 
 type Customer = {
   id: string;
@@ -123,8 +124,8 @@ export default function CustomerDetailClient({ customer: initial }: { customer: 
       {infoRow("郵便番号", customer.postal_code)}
       {infoRow("住所", customer.address)}
       {infoRow("備考", customer.note)}
-      {infoRow("登録日", customer.created_at ? new Date(customer.created_at).toLocaleDateString("ja-JP") : null)}
-      {infoRow("更新日", customer.updated_at ? new Date(customer.updated_at).toLocaleDateString("ja-JP") : null)}
+      {infoRow("登録日", formatDate(customer.created_at))}
+      {infoRow("更新日", formatDate(customer.updated_at))}
     </section>
   );
 }
