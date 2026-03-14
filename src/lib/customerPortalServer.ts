@@ -161,30 +161,19 @@ export async function validateSession(tenantId: string, token: string) {
 }
 
 export async function listCertificatesForCustomer(tenantId: string, phoneHash: string, last4Plain: string) {
-  // 1) 新方式：hash一致
-  const q1 =
-    `certificates?select=public_id,customer_name,vehicle_info_json,created_at,status` +
-    `&tenant_id=eq.${tenantId}` +
-    `&customer_phone_last4_hash=eq.${phoneHash}` +
-    `&status=eq.active&order=created_at.desc`;
-  const r1 = await supaGet(q1);
-  if (Array.isArray(r1) && r1.length > 0) return r1;
+  // 新hash / 旧平文 / 旧バグ(hash列に平文) の3条件を1クエリで取得
+  const orFilter = [
+    `customer_phone_last4_hash.eq.${encodeURIComponent(phoneHash)}`,
+    `customer_phone_last4.eq.${encodeURIComponent(last4Plain)}`,
+    `customer_phone_last4_hash.eq.${encodeURIComponent(last4Plain)}`,
+  ].join(",");
 
-  // 2) 旧方式：customer_phone_last4 に平文が入っている
-  const q2 =
+  const q =
     `certificates?select=public_id,customer_name,vehicle_info_json,created_at,status` +
     `&tenant_id=eq.${tenantId}` +
-    `&customer_phone_last4=eq.${last4Plain}` +
-    `&status=eq.active&order=created_at.desc`;
-  const r2 = await supaGet(q2);
-  if (Array.isArray(r2) && r2.length > 0) return r2;
-
-  // 3) 旧バグ救済：hash列に平文(1234等)が入っていた
-  const q3 =
-    `certificates?select=public_id,customer_name,vehicle_info_json,created_at,status` +
-    `&tenant_id=eq.${tenantId}` +
-    `&customer_phone_last4_hash=eq.${last4Plain}` +
-    `&status=eq.active&order=created_at.desc`;
-  const r3 = await supaGet(q3);
-  return Array.isArray(r3) ? r3 : [];
+    `&status=eq.active` +
+    `&or=(${orFilter})` +
+    `&order=created_at.desc`;
+  const rows = await supaGet(q);
+  return Array.isArray(rows) ? rows : [];
 }

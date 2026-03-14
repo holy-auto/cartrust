@@ -33,7 +33,7 @@ function setCache(data: AdminBillingStatus) {
   } catch {}
 }
 
-export function useAdminBillingStatus() {
+export function useAdminBillingStatus({ redirectOnInactive = false }: { redirectOnInactive?: boolean } = {}) {
   const [data, setData] = useState<AdminBillingStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -44,6 +44,10 @@ export function useAdminBillingStatus() {
     if (cached) {
       setData(cached);
       setLoading(false);
+      // Redirect if inactive (replaces BillingGate)
+      if (redirectOnInactive && cached.is_active === false) {
+        redirectToBilling();
+      }
       return;
     }
 
@@ -55,6 +59,10 @@ export function useAdminBillingStatus() {
         if (alive) {
           setData(j);
           setCache(j);
+          // Redirect if inactive (replaces BillingGate)
+          if (redirectOnInactive && j.is_active === false) {
+            redirectToBilling();
+          }
         }
       } catch {
         // 失敗時は null のまま（UIは従来どおり表示、API側で止まる）
@@ -63,7 +71,17 @@ export function useAdminBillingStatus() {
       }
     })();
     return () => { alive = false; };
-  }, []);
+  }, [redirectOnInactive]);
 
   return { data, loading };
+}
+
+function redirectToBilling() {
+  if (typeof window === "undefined") return;
+  if (window.location.pathname.startsWith("/admin/billing")) return;
+  const ret = window.location.pathname + window.location.search;
+  const dest = new URL("/admin/billing", window.location.origin);
+  dest.searchParams.set("reason", "inactive");
+  dest.searchParams.set("return", ret);
+  window.location.replace(dest.toString());
 }
