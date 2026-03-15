@@ -527,6 +527,72 @@ BEGIN
     ) r
   );
 
+  -- 案件統計（insurance_cases テーブルが存在する場合のみ）
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'insurance_cases'
+  ) THEN
+    v_result := v_result || jsonb_build_object(
+      'case_stats',
+      (
+        SELECT jsonb_build_object(
+          'total', COUNT(*),
+          'active', COUNT(*) FILTER (WHERE ic.status IN ('submitted', 'under_review', 'info_requested')),
+          'pending_review', COUNT(*) FILTER (WHERE ic.status IN ('submitted', 'under_review')),
+          'info_requested', COUNT(*) FILTER (WHERE ic.status = 'info_requested'),
+          'resolved', COUNT(*) FILTER (WHERE ic.status IN ('approved', 'rejected', 'closed'))
+        )
+        FROM public.insurance_cases ic
+        WHERE ic.insurer_id = v_insurer_id
+          AND ic.status != 'draft'
+      )
+    );
+
+    -- 進行中の案件（active_cases）
+    v_result := v_result || jsonb_build_object(
+      'active_cases',
+      (
+        SELECT COALESCE(jsonb_agg(row_to_json(ac)), '[]'::jsonb)
+        FROM (
+          SELECT
+            ic.id,
+            ic.case_number,
+            ic.title,
+            ic.case_type,
+            ic.status,
+            t.name AS tenant_name,
+            COALESCE(
+              v.maker || ' ' || v.model ||
+              CASE WHEN v.plate_display IS NOT NULL THEN ' ' || v.plate_display ELSE '' END,
+              ''
+            ) AS vehicle_summary,
+            ic.submitted_at,
+            ic.updated_at,
+            (
+              SELECT MAX(m.created_at)
+              FROM public.insurance_case_messages m
+              WHERE m.case_id = ic.id AND m.visibility = 'shared'
+            ) AS last_message_at
+          FROM public.insurance_cases ic
+          LEFT JOIN public.tenants t ON t.id = ic.tenant_id
+          LEFT JOIN public.vehicles v ON v.id = ic.vehicle_id
+          WHERE ic.insurer_id = v_insurer_id
+            AND ic.status IN ('submitted', 'under_review', 'info_requested')
+          ORDER BY ic.updated_at DESC
+          LIMIT 20
+        ) ac
+      )
+    );
+  ELSE
+    v_result := v_result || jsonb_build_object(
+      'case_stats', jsonb_build_object(
+        'total', 0, 'active', 0, 'pending_review', 0,
+        'info_requested', 0, 'resolved', 0
+      ),
+      'active_cases', '[]'::jsonb
+    );
+  END IF;
+
   RETURN v_result;
 END;
 $$;

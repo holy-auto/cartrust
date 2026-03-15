@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { CertificateStatusBadge } from "@/components/StatusBadge";
+import { CertificateStatusBadge, CaseStatusBadge } from "@/components/StatusBadge";
 import { formatDateTime } from "@/lib/format";
 import InsurerDashboardCharts from "./InsurerDashboardCharts";
 import type { InsurerDashboardStats } from "@/types/insurer";
@@ -69,6 +69,12 @@ export default function InsurerDashboardPage() {
 
           <div className="flex gap-3 items-center">
             <Link
+              href="/insurer/cases"
+              className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+            >
+              案件管理
+            </Link>
+            <Link
               href="/insurer/search"
               className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
             >
@@ -119,6 +125,95 @@ export default function InsurerDashboardPage() {
               recentActivity={stats.recent_activity}
               actionBreakdown={stats.action_breakdown}
             />
+
+            {/* Case Overview KPIs */}
+            {stats.case_stats && (
+              <>
+                <div className="mt-2">
+                  <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500 mb-3">CASE OVERVIEW</div>
+                  <div className="grid gap-4 sm:grid-cols-4">
+                    <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+                      <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">ACTIVE</div>
+                      <div className="mt-2 text-3xl font-bold text-[#bf5af2]">{stats.case_stats.active}</div>
+                      <div className="mt-1 text-xs text-neutral-500">対応中</div>
+                    </div>
+                    <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+                      <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">PENDING</div>
+                      <div className="mt-2 text-3xl font-bold text-[#0071e3]">{stats.case_stats.pending_review}</div>
+                      <div className="mt-1 text-xs text-neutral-500">確認待ち</div>
+                    </div>
+                    <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+                      <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">INFO REQ</div>
+                      <div className="mt-2 text-3xl font-bold text-[#ff9f0a]">{stats.case_stats.info_requested}</div>
+                      <div className="mt-1 text-xs text-neutral-500">情報依頼</div>
+                    </div>
+                    <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+                      <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">RESOLVED</div>
+                      <div className="mt-2 text-3xl font-bold text-[#30d158]">{stats.case_stats.resolved}</div>
+                      <div className="mt-1 text-xs text-neutral-500">解決済み</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Active Cases Table */}
+                {stats.active_cases && stats.active_cases.length > 0 && (
+                  <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+                    <div className="mb-4 flex items-center justify-between">
+                      <div>
+                        <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">ACTIVE CASES</div>
+                        <div className="mt-1 text-base font-semibold text-neutral-900">進行中の案件</div>
+                      </div>
+                      <Link
+                        href="/insurer/cases"
+                        className="text-xs font-medium text-[#bf5af2] hover:underline"
+                      >
+                        すべて表示 →
+                      </Link>
+                    </div>
+
+                    <div className="overflow-x-auto rounded-xl border border-neutral-200">
+                      <table className="min-w-full text-sm">
+                        <thead className="bg-neutral-50">
+                          <tr>
+                            <th className="p-3 text-left font-semibold text-neutral-600">案件番号</th>
+                            <th className="p-3 text-left font-semibold text-neutral-600">タイトル</th>
+                            <th className="p-3 text-left font-semibold text-neutral-600">施工店</th>
+                            <th className="p-3 text-left font-semibold text-neutral-600">車両</th>
+                            <th className="p-3 text-left font-semibold text-neutral-600">ステータス</th>
+                            <th className="p-3 text-left font-semibold text-neutral-600">更新日</th>
+                            <th className="p-3 text-left font-semibold text-neutral-600">操作</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {stats.active_cases.map((c) => (
+                            <tr key={c.id} className="border-t hover:bg-neutral-50">
+                              <td className="p-3 font-mono text-xs text-neutral-700">{c.case_number}</td>
+                              <td className="p-3 font-medium text-neutral-900">{c.title}</td>
+                              <td className="p-3 text-neutral-600">{c.tenant_name}</td>
+                              <td className="p-3 text-neutral-600">{c.vehicle_summary || "-"}</td>
+                              <td className="p-3">
+                                <CaseStatusBadge status={c.status} />
+                              </td>
+                              <td className="p-3 whitespace-nowrap text-neutral-600">
+                                {formatDateTime(c.updated_at)}
+                              </td>
+                              <td className="p-3">
+                                <Link
+                                  href={`/insurer/cases/${c.id}`}
+                                  className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
+                                >
+                                  詳細
+                                </Link>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                )}
+              </>
+            )}
 
             {/* Recent Certs */}
             {stats.recent_certs.length > 0 && (
@@ -176,6 +271,20 @@ export default function InsurerDashboardPage() {
         <div>
           <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500 mb-3">QUICK ACTIONS</div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Link
+              href="/insurer/cases"
+              className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm flex items-center gap-4 hover:bg-neutral-50 transition-colors group"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-[#0071e3]">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                </svg>
+              </span>
+              <div>
+                <div className="text-sm font-semibold text-neutral-900 group-hover:text-[#0071e3] transition-colors">案件管理</div>
+                <div className="text-xs text-neutral-500">Insurance Cases</div>
+              </div>
+            </Link>
             <Link
               href="/insurer/search"
               className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm flex items-center gap-4 hover:bg-neutral-50 transition-colors group"
