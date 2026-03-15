@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { makePublicId } from "@/lib/publicId";
 import { checkAdminFeature } from "@/lib/billing/adminFeatureGate";
+import PageHeader from "@/components/ui/PageHeader";
 
 type FieldType = "text" | "textarea" | "number" | "date" | "select" | "multiselect" | "checkbox";
 
@@ -164,17 +165,17 @@ export default async function Page({
 
   return (
     <div className="space-y-4">
-      <header className="flex items-end justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold text-primary">新規発行（テンプレ）</h1>
-          <div className="text-sm text-muted">tenant: <span className="font-mono">{tenantId}</span></div>
-          <div className="text-xs text-muted">ロゴ: {tenantLogoPath ? tenantLogoPath : "未設定（/admin/logo）"}</div>
-        </div>
-        <div className="flex gap-3 items-center">
-          <Link className="underline text-sm text-[#0071e3] hover:text-[#0077ED]" href="/admin/certificates">一覧へ</Link>
-          <Link className="underline text-sm text-[#0071e3] hover:text-[#0077ED]" href="/admin/templates">テンプレ</Link>
-        </div>
-      </header>
+      <PageHeader
+        tag="証明書発行"
+        title="新規発行"
+        description={tenantLogoPath ? undefined : "ロゴ未設定（設定 → ロゴ管理）"}
+        actions={
+          <div className="flex gap-3 items-center">
+            <Link className="btn-ghost" href="/admin/certificates">一覧へ</Link>
+            <Link className="btn-secondary" href="/admin/templates">テンプレート</Link>
+          </div>
+        }
+      />
 
       <form action="/admin/certificates/new" method="get" className="glass-card p-4 space-y-2">
         <div className="text-xs text-muted">テンプレ</div>

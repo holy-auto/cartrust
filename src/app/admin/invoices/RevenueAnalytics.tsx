@@ -135,7 +135,7 @@ export default function RevenueAnalytics() {
       <div className="glass-card p-5 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-[10px] font-semibold tracking-[0.18em] text-muted uppercase">REVENUE CHART</div>
+            <div className="text-[10px] font-semibold tracking-[0.18em] text-muted">売上チャート</div>
             <div className="mt-0.5 text-[15px] font-semibold text-primary">売上推移</div>
           </div>
           <div className="flex gap-1 rounded-lg p-0.5" style={{ background: "rgba(0,0,0,0.04)" }}>

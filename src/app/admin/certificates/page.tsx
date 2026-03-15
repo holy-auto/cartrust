@@ -83,8 +83,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
       ) : null}
 
       <PageHeader
-        tag="CERTIFICATES"
-        title="管理：証明書一覧"
+        tag="証明書管理"
+        title="証明書一覧"
         description={`tenant: ${tenantId} / 最新50件`}
         actions={
           <div className="flex gap-3 items-center flex-wrap">

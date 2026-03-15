@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/format";
+import PageHeader from "@/components/ui/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -50,42 +51,22 @@ export default async function AdminVehicleListPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-3">
-          <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
-            VEHICLES
+      <PageHeader
+        tag="車両管理"
+        title="車両一覧"
+        description="登録済み車両の確認・詳細閲覧・証明書発行への導線。"
+        actions={
+          <div className="flex gap-3 items-center">
+            <Link href="/admin" className="btn-secondary">ダッシュボード</Link>
+            <Link href="/admin/vehicles/new" className="btn-primary">+ 車両を登録</Link>
           </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-primary">
-              車両一覧
-            </h1>
-            <p className="mt-2 text-sm text-secondary">
-              登録済み車両の確認・詳細閲覧・証明書発行への導線。
-            </p>
-          </div>
-        </div>
-
-        <div className="flex gap-3 items-center">
-          <Link
-            href="/admin"
-            className="btn-secondary"
-          >
-            ダッシュボード
-          </Link>
-          <Link
-            href="/admin/vehicles/new"
-            className="btn-primary"
-          >
-            + 車両を登録
-          </Link>
-        </div>
-      </header>
+        }
+      />
 
       {/* Stats */}
       <section className="grid gap-4 sm:grid-cols-3">
         <div className="glass-card p-5">
-          <div className="text-xs font-semibold tracking-[0.18em] text-muted">TOTAL</div>
+          <div className="text-xs font-semibold tracking-[0.18em] text-muted">合計</div>
           <div className="mt-2 text-2xl font-bold text-primary">{rows.length}</div>
           <div className="mt-1 text-xs text-muted">登録車両数</div>
         </div>
@@ -94,8 +75,7 @@ export default async function AdminVehicleListPage() {
       {/* Table */}
       <section className="glass-card overflow-hidden">
         <div className="p-5 border-b border-border-subtle">
-          <div className="text-xs font-semibold tracking-[0.18em] text-muted">VEHICLE LIST</div>
-          <div className="mt-1 text-lg font-semibold text-primary">車両リスト</div>
+          <div className="text-xs font-semibold tracking-[0.18em] text-muted">車両リスト</div>
         </div>
 
         {rows.length === 0 ? (

@@ -291,7 +291,7 @@ export default function InvoicesClient() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
-        tag="INVOICES"
+        tag="請求書"
         title="請求書管理"
         description="請求書の作成・管理を行います。"
         actions={
@@ -313,19 +313,19 @@ export default function InvoicesClient() {
           {/* Stats */}
           <section className="grid gap-4 sm:grid-cols-3">
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">TOTAL</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">合計</div>
               <div className="mt-2 text-2xl font-bold text-primary">{data.stats.total}</div>
               <div className="mt-1 text-xs text-muted">総請求書数</div>
             </div>
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">UNPAID</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">未入金</div>
               <div className="mt-2 text-2xl font-bold text-primary">
                 {formatJpy(data.stats.unpaid_amount)}
               </div>
               <div className="mt-1 text-xs text-muted">未入金額</div>
             </div>
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">THIS MONTH</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">今月</div>
               <div className="mt-2 text-2xl font-bold text-primary">{data.stats.this_month_issued}</div>
               <div className="mt-1 text-xs text-muted">今月発行</div>
             </div>
@@ -399,7 +399,7 @@ export default function InvoicesClient() {
           {showForm && (
             <section className="glass-card p-5 space-y-4">
               <div>
-                <div className="text-xs font-semibold tracking-[0.18em] text-muted">NEW INVOICE</div>
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">新規作成</div>
                 <div className="mt-1 text-base font-semibold text-primary">新規請求書</div>
               </div>
 
@@ -453,7 +453,7 @@ export default function InvoicesClient() {
 
               {/* Line Items */}
               <div className="space-y-2">
-                <div className="text-xs font-semibold text-muted tracking-[0.18em]">LINE ITEMS</div>
+                <div className="text-xs font-semibold text-muted tracking-[0.18em]">明細項目</div>
                 {formItems.map((item, idx) => (
                   <div key={idx} className="space-y-1">
                     {certificates.length > 0 && (
@@ -662,8 +662,7 @@ export default function InvoicesClient() {
           {/* Invoice List */}
           <section className="glass-card overflow-hidden">
             <div className="border-b border-border-subtle p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">INVOICE LIST</div>
-              <div className="mt-1 text-base font-semibold text-primary">請求書一覧</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">請求書一覧</div>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">

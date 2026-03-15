@@ -167,7 +167,7 @@ export default function CustomersClient() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
-        tag="CUSTOMERS"
+        tag="顧客管理"
         title="顧客管理"
         description="顧客情報の登録・編集・検索を行います。"
         actions={
@@ -189,17 +189,17 @@ export default function CustomersClient() {
           {/* Stats */}
           <section className="grid gap-4 sm:grid-cols-3">
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">TOTAL</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">合計</div>
               <div className="mt-2 text-2xl font-bold text-primary">{data.stats.total}</div>
               <div className="mt-1 text-xs text-muted">総顧客数</div>
             </div>
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">THIS MONTH</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">今月</div>
               <div className="mt-2 text-2xl font-bold text-primary">{data.stats.this_month_new}</div>
               <div className="mt-1 text-xs text-muted">今月の新規</div>
             </div>
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">CERTIFICATES</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">証明書</div>
               <div className="mt-2 text-2xl font-bold text-primary">{data.stats.linked_certificates}</div>
               <div className="mt-1 text-xs text-muted">紐付き証明書</div>
             </div>
@@ -240,7 +240,7 @@ export default function CustomersClient() {
           {showForm && (
             <section className="glass-card p-5 space-y-4">
               <div>
-                <div className="text-xs font-semibold tracking-[0.18em] text-muted">NEW CUSTOMER</div>
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">新規登録</div>
                 <div className="mt-1 text-base font-semibold text-primary">新規顧客登録</div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -338,7 +338,7 @@ export default function CustomersClient() {
           {editingId && (
             <section className="glass-card glow-cyan p-5 space-y-4">
               <div>
-                <div className="text-xs font-semibold tracking-[0.18em] text-muted">EDIT CUSTOMER</div>
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">編集</div>
                 <div className="mt-1 text-base font-semibold text-primary">顧客情報を編集</div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -429,8 +429,7 @@ export default function CustomersClient() {
           {/* Customer List */}
           <section className="glass-card overflow-hidden">
             <div className="border-b border-border-subtle p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">CUSTOMER LIST</div>
-              <div className="mt-1 text-base font-semibold text-primary">顧客一覧</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">顧客一覧</div>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">

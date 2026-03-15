@@ -344,7 +344,7 @@ export default function ReservationsClient() {
   return (
     <div className="space-y-6">
         <PageHeader
-          tag="RESERVATIONS"
+          tag="予約"
           title="予約管理"
           description="予約の登録・管理を行います。"
           actions={
@@ -361,17 +361,17 @@ export default function ReservationsClient() {
         {/* Stats */}
         <section className="grid gap-4 sm:grid-cols-3">
           <div className="glass-card p-5">
-            <div className="text-xs font-semibold tracking-[0.18em] text-muted">TODAY</div>
+            <div className="text-xs font-semibold tracking-[0.18em] text-muted">本日</div>
             <div className="mt-2 text-2xl font-bold text-primary">{stats?.today_count ?? 0}</div>
             <div className="mt-1 text-xs text-muted">本日の予約</div>
           </div>
           <div className="glass-card p-5">
-            <div className="text-xs font-semibold tracking-[0.18em] text-muted">ACTIVE</div>
+            <div className="text-xs font-semibold tracking-[0.18em] text-muted">進行中</div>
             <div className="mt-2 text-2xl font-bold text-primary">{stats?.active_count ?? 0}</div>
             <div className="mt-1 text-xs text-muted">進行中の予約</div>
           </div>
           <div className="glass-card p-5">
-            <div className="text-xs font-semibold tracking-[0.18em] text-muted">TOTAL</div>
+            <div className="text-xs font-semibold tracking-[0.18em] text-muted">合計</div>
             <div className="mt-2 text-2xl font-bold text-primary">{stats?.total ?? 0}</div>
             <div className="mt-1 text-xs text-muted">全予約件数</div>
           </div>
@@ -436,9 +436,8 @@ export default function ReservationsClient() {
         {viewMode === "list" && (
           <section className="glass-card">
             <div className="p-5 border-b border-border-subtle">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">LIST</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">予約一覧</div>
               <div className="mt-1 text-base font-semibold text-primary">
-                予約一覧
                 {dateFilter && <span className="ml-2 text-sm font-normal text-muted">({formatDate(dateFilter)})</span>}
               </div>
             </div>
