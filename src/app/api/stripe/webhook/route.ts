@@ -170,6 +170,30 @@ export async function POST(req: NextRequest) {
         break;
       }
 
+      // ─── Stripe Connect: アカウントオンボーディング状態の自動同期 ───
+      case "account.updated": {
+        const account = event.data.object as Stripe.Account;
+        const accountId = account.id;
+        const onboarded = !!(account.charges_enabled && account.payouts_enabled);
+
+        // stripe_connect_account_id でテナントを逆引き
+        const { data: tenant } = await supabase
+          .from("tenants")
+          .select("id, stripe_connect_onboarded")
+          .eq("stripe_connect_account_id", accountId)
+          .limit(1)
+          .single();
+
+        if (tenant && tenant.stripe_connect_onboarded !== onboarded) {
+          await supabase
+            .from("tenants")
+            .update({ stripe_connect_onboarded: onboarded })
+            .eq("id", tenant.id);
+          console.log("webhook: connect account synced", { accountId, onboarded });
+        }
+        break;
+      }
+
       default:
         break;
     }
