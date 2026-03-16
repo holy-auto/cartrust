@@ -3,6 +3,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { createAdminClient } from "@/lib/supabase/admin";
 import { dealCreateSchema } from "@/lib/validations/market";
 import { apiOk, apiInternalError, apiUnauthorized, apiValidationError } from "@/lib/api/response";
+import { notifyDealStarted } from "@/lib/market/email";
 
 export const dynamic = "force-dynamic";
 
@@ -76,6 +77,26 @@ export async function POST(req: NextRequest) {
       .from("market_vehicles")
       .update({ status: "reserved", updated_at: new Date().toISOString() })
       .eq("id", vehicle_id);
+
+    // Notify buyer via email (non-blocking)
+    if (buyer_email) {
+      try {
+        const { data: vehicle } = await admin
+          .from("market_vehicles")
+          .select("maker, model, tenants(name)")
+          .eq("id", vehicle_id)
+          .single();
+        const sellerName = (vehicle as any)?.tenants?.name ?? "出品者";
+        const vehicleLabel = [vehicle?.maker, vehicle?.model].filter(Boolean).join(" ") || "車両";
+        notifyDealStarted(buyer_email, {
+          sellerName,
+          vehicleLabel,
+          agreedPrice: agreed_price ?? undefined,
+        }).catch((e) => console.warn("[market] notifyDealStarted failed:", e));
+      } catch (e) {
+        console.warn("[market] buyer deal notification failed:", e);
+      }
+    }
 
     return apiOk({ deal });
   } catch (e) {

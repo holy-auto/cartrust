@@ -3,6 +3,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { createAdminClient } from "@/lib/supabase/admin";
 import { inquiryCreateSchema } from "@/lib/validations/market";
 import { apiOk, apiInternalError, apiUnauthorized, apiValidationError, apiNotFound } from "@/lib/api/response";
+import { notifyNewInquiry } from "@/lib/market/email";
 
 export const dynamic = "force-dynamic";
 
@@ -70,6 +71,28 @@ export async function POST(req: NextRequest) {
 
     if (error) {
       return apiInternalError(error, "market inquiry insert");
+    }
+
+    // Notify seller via email (non-blocking)
+    try {
+      const { data: vDetail } = await admin
+        .from("market_vehicles")
+        .select("maker, model, tenant_id, tenants(contact_email, name)")
+        .eq("id", vehicle_id)
+        .single();
+      const tenant = (vDetail as any)?.tenants;
+      const sellerEmail = tenant?.contact_email;
+      const vehicleLabel = [vDetail?.maker, vDetail?.model].filter(Boolean).join(" ") || "車両";
+      if (sellerEmail) {
+        notifyNewInquiry(sellerEmail, {
+          buyerName: buyer_name,
+          buyerCompany: buyer_company ?? undefined,
+          vehicleLabel,
+          message,
+        }).catch((e) => console.warn("[market] notifyNewInquiry failed:", e));
+      }
+    } catch (e) {
+      console.warn("[market] seller notification failed:", e);
     }
 
     return apiOk({ inquiry });
