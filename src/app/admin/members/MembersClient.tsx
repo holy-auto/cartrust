@@ -133,21 +133,16 @@ export default function MembersClient() {
   const limitLabel = data?.member_limit === null ? "無制限" : `${data?.member_limit}人`;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-6">
 
-      {/* Header */}
       <PageHeader
-        tag="メンバー"
+        tag="メンバー管理"
         title="メンバー管理"
         description="テナントに所属するメンバーの追加・削除を行います。"
       />
 
-      {loading && (
-        <div className="text-sm text-muted">読み込み中…</div>
-      )}
-      {err && (
-        <div className="glass-card p-4 text-sm text-red-500">{err}</div>
-      )}
+      {loading && <div className="text-sm text-muted">読み込み中…</div>}
+      {err && <div className="glass-card p-4 text-sm text-red-500">{err}</div>}
 
       {data && (
         <>
@@ -159,7 +154,7 @@ export default function MembersClient() {
               <div className="mt-1 text-xs text-muted">現在のプラン</div>
             </div>
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">メンバー</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">メンバー数</div>
               <div className="mt-2 text-2xl font-bold text-primary">{data.member_count}</div>
               <div className="mt-1 text-xs text-muted">現在のメンバー数</div>
             </div>
@@ -187,13 +182,13 @@ export default function MembersClient() {
           )}
 
           {/* Add member form */}
-          <section className="glass-card p-5">
-            <div className="mb-4">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">追加</div>
-              <div className="mt-1 text-base font-semibold text-primary">メンバーを追加</div>
+          <section className="glass-card p-5 space-y-4">
+            <div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">メンバー追加</div>
+              <div className="mt-1 text-base font-semibold text-primary">新しいメンバーを招待</div>
             </div>
-            <div className="flex gap-3 items-end flex-wrap">
-              <div className="flex-1 min-w-0 w-full sm:w-auto space-y-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
                 <label className="text-xs text-muted">メールアドレス <span className="text-red-500">*</span></label>
                 <input
                   type="email"
@@ -205,7 +200,7 @@ export default function MembersClient() {
                   className="input-field disabled:opacity-50"
                 />
               </div>
-              <div className="min-w-0 w-full sm:w-auto sm:min-w-[140px] space-y-1">
+              <div className="space-y-1">
                 <label className="text-xs text-muted">表示名</label>
                 <input
                   type="text"
@@ -217,13 +212,15 @@ export default function MembersClient() {
                   className="input-field disabled:opacity-50"
                 />
               </div>
-              <div className="min-w-0 w-full sm:w-auto sm:min-w-[110px] space-y-1">
+            </div>
+            <div className="flex gap-3 items-end flex-wrap">
+              <div className="space-y-1">
                 <label className="text-xs text-muted">ロール</label>
                 <select
                   value={addRole}
                   onChange={(e) => setAddRole(e.target.value as Role)}
                   disabled={!data.can_add || adding}
-                  className="input-field disabled:opacity-50"
+                  className="select-field disabled:opacity-50"
                 >
                   {ASSIGNABLE_ROLES.map((r) => (
                     <option key={r} value={r}>{ROLE_LABELS[r]}</option>
@@ -236,17 +233,17 @@ export default function MembersClient() {
                 disabled={!data.can_add || adding || !email.trim()}
                 className="btn-primary"
               >
-                {adding ? "追加中…" : "追加"}
+                {adding ? "追加中…" : "メンバーを追加"}
               </button>
             </div>
-            <p className="text-xs text-muted mt-2">招待メールが送信されます。ユーザーがメール内のリンクからパスワードを設定します。</p>
+            <p className="text-xs text-muted">※ 招待メールが送信されます。ユーザーがメール内のリンクからパスワードを設定します。</p>
             {addMsg && (
-              <div className={`mt-3 text-sm ${addMsg.ok ? "text-emerald-400" : "text-red-500"}`}>
+              <div className={`text-sm ${addMsg.ok ? "text-emerald-400" : "text-red-500"}`}>
                 {addMsg.text}
               </div>
             )}
             {!data.can_add && (
-              <div className="mt-2 text-xs text-amber-400">
+              <div className="text-xs text-amber-400">
                 上限に達しているため追加できません。
               </div>
             )}
@@ -274,7 +271,7 @@ export default function MembersClient() {
                       <td className="px-5 py-3.5">
                         <span className="font-medium text-primary">{m.display_name || "-"}</span>
                         {m.is_self && (
-                          <Badge variant="default">自分</Badge>
+                          <Badge variant="info">自分</Badge>
                         )}
                       </td>
                       <td className="px-5 py-3.5 text-secondary">
@@ -290,7 +287,7 @@ export default function MembersClient() {
                             value={m.role}
                             onChange={(e) => handleRoleChange(m.user_id, e.target.value as Role)}
                             disabled={updatingRoleId === m.user_id}
-                            className="input-field !py-1 !px-2 !text-xs min-w-[100px] disabled:opacity-50"
+                            className="select-field !py-1 !px-2 !text-xs min-w-[100px] disabled:opacity-50"
                           >
                             {ASSIGNABLE_ROLES.map((r) => (
                               <option key={r} value={r}>{ROLE_LABELS[r]}</option>
