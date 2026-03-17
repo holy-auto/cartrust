@@ -168,6 +168,9 @@ export async function POST(req: NextRequest) {
     if (body.condition_note !== undefined) row.condition_note = body.condition_note;
     if (body.asking_price !== undefined) row.asking_price = body.asking_price;
     if (body.wholesale_price !== undefined) row.wholesale_price = body.wholesale_price;
+    if (body.cost_price !== undefined) row.cost_price = body.cost_price;
+    if (body.supplier_name !== undefined) row.supplier_name = body.supplier_name;
+    if (body.acquisition_date !== undefined) row.acquisition_date = body.acquisition_date;
     if (body.description !== undefined) row.description = body.description;
     if (body.features !== undefined) row.features = body.features;
 
@@ -232,9 +235,18 @@ export async function PUT(req: NextRequest) {
     if (body.condition_note !== undefined) updates.condition_note = body.condition_note;
     if (body.asking_price !== undefined) updates.asking_price = body.asking_price;
     if (body.wholesale_price !== undefined) updates.wholesale_price = body.wholesale_price;
+    if (body.cost_price !== undefined) updates.cost_price = body.cost_price;
+    if (body.supplier_name !== undefined) updates.supplier_name = body.supplier_name;
+    if (body.acquisition_date !== undefined) updates.acquisition_date = body.acquisition_date;
+    if (body.sold_price !== undefined) updates.sold_price = body.sold_price;
     if (body.status !== undefined) updates.status = body.status;
     if (body.description !== undefined) updates.description = body.description;
     if (body.features !== undefined) updates.features = body.features;
+
+    // When status changes to 'sold', set sold_at
+    if (body.status === "sold" && existing.status !== "sold") {
+      updates.sold_at = new Date().toISOString();
+    }
 
     // When status changes to 'listed', set listed_at
     if (body.status === "listed" && existing.status !== "listed") {
