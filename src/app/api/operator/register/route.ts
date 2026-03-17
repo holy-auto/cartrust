@@ -10,9 +10,19 @@ export async function POST() {
   const admin = createSupabaseAdminClient();
 
   // Check if any operator exists — if none, first user becomes super_admin
-  const { count } = await admin
+  const { count, error: countErr } = await admin
     .from("operator_users")
     .select("id", { count: "exact", head: true });
+
+  if (countErr) {
+    const msg = countErr.message ?? "";
+    if (msg.includes("schema cache") || msg.includes("does not exist")) {
+      return NextResponse.json({
+        error: "operator_users テーブルがまだ認識されていません。Supabase SQL Editorでマイグレーションを実行後、しばらく待ってからリトライしてください。",
+      }, { status: 503 });
+    }
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 
   const role = (count ?? 0) === 0 ? "super_admin" : "operator";
 

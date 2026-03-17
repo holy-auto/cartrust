@@ -23,8 +23,11 @@ export default async function OperatorLayout({ children }: { children: React.Rea
       .eq("user_id", user.id)
       .single();
 
-    if (error?.message?.includes("does not exist") || error?.code === "42P01") {
+    if (error?.message?.includes("does not exist") || error?.message?.includes("schema cache") || error?.code === "42P01") {
       tableExists = false;
+    } else if (error?.code === "PGRST116") {
+      // PGRST116 = "no rows returned" — table exists but no matching user
+      opUser = null;
     } else {
       opUser = data as { role: string } | null;
     }
