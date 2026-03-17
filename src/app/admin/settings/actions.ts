@@ -56,5 +56,7 @@ export async function updateTenantSettingsAction(formData: FormData): Promise<Se
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/settings");
   revalidatePath("/admin");
+  revalidatePath("/admin/logo");
+  revalidatePath("/admin/invoices");
   return { ok: true };
 }
