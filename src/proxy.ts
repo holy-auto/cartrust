@@ -23,6 +23,49 @@ const MARKETING_PATHS = [
   "/faq", "/contact", "/privacy", "/terms", "/tokusho",
 ];
 
+/**
+ * CSRF protection for API mutation routes.
+ * Returns a 403 response if the request is cross-origin, or null to continue.
+ */
+function csrfCheck(request: NextRequest): NextResponse | null {
+  const { method, nextUrl } = request;
+
+  if (!nextUrl.pathname.startsWith("/api/")) return null;
+  if (["GET", "HEAD", "OPTIONS"].includes(method)) return null;
+
+  const origin = request.headers.get("origin");
+  const host = request.headers.get("host");
+
+  if (!origin || !host) {
+    const secFetchSite = request.headers.get("sec-fetch-site");
+    if (secFetchSite && secFetchSite !== "same-origin") {
+      return NextResponse.json(
+        { error: "csrf_rejected", message: "Cross-origin request blocked" },
+        { status: 403 },
+      );
+    }
+    return null;
+  }
+
+  try {
+    const originUrl = new URL(origin);
+    if (originUrl.host !== host) {
+      console.warn(`[CSRF] Blocked: origin=${origin} host=${host} path=${nextUrl.pathname}`);
+      return NextResponse.json(
+        { error: "csrf_rejected", message: "Cross-origin request blocked" },
+        { status: 403 },
+      );
+    }
+  } catch {
+    return NextResponse.json(
+      { error: "csrf_rejected", message: "Invalid origin" },
+      { status: 403 },
+    );
+  }
+
+  return null;
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -30,6 +73,10 @@ export function proxy(request: NextRequest) {
   if (pathname.startsWith("/_next") || pathname === "/favicon.ico" || pathname === "/robots.txt" || pathname === "/sitemap.xml") {
     return NextResponse.next();
   }
+
+  // CSRF protection for API mutations
+  const csrfResponse = csrfCheck(request);
+  if (csrfResponse) return csrfResponse;
 
   // Marketing pages and public routes: pass through
   if (MARKETING_PATHS.includes(pathname) || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
