@@ -1,3 +1,5 @@
+"use client";
+
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
 import BillingGate from "./BillingGate";
@@ -5,7 +7,6 @@ import AdminRouteGuard from "./AdminRouteGuard";
 import BillingFetchGuard from "./BillingFetchGuard";
 
 const Sidebar = dynamic(() => import("@/components/ui/Sidebar"), {
-  ssr: false,
   loading: () => <div className="hidden lg:block lg:w-60 lg:shrink-0" />,
 });
 
