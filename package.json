@@ -20,7 +20,6 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "cheerio": "^1.2.0",
-    "holy-cert": "file:",
     "jszip": "^3.10.1",
     "next": "16.1.6",
     "qrcode": "^1.5.4",
