@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import { resolve } from "path";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
@@ -9,10 +8,6 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "10mb",
     },
-  },
-
-  turbopack: {
-    root: resolve("."),
   },
 
   images: {
