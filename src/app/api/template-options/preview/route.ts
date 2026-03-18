@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveCallerFull } from "@/lib/api/auth";
 import { apiUnauthorized, apiValidationError, apiInternalError, apiForbidden } from "@/lib/api/response";
 import { templateConfigSchema } from "@/lib/template-options/configSchema";
-import { getTemplateOptionStatus } from "@/lib/template-options/templateOptionFeatures";
+import { getTemplateOptionStatus, TEST_ISSUE_LIMITS } from "@/lib/template-options/templateOptionFeatures";
 import { renderBrandedCertificatePdf } from "@/lib/template-options/renderBrandedCertificate";
 import type { CertRow } from "@/lib/pdfCertificate";
 import type { TemplateConfig } from "@/types/templateOption";
@@ -60,6 +60,48 @@ export async function POST(req: NextRequest) {
     const optionStatus = await getTemplateOptionStatus(caller.tenantId);
     if (!optionStatus.hasSubscription) {
       return apiForbidden("テンプレートオプションの契約が必要です。");
+    }
+
+    // テスト発行回数制限チェック
+    const limit = TEST_ISSUE_LIMITS[optionStatus.optionType!];
+    const admin = (await import("@/lib/supabase/admin")).createAdminClient();
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const { count } = await admin
+      .from("template_order_logs")
+      .select("*", { count: "exact", head: true })
+      .eq("action", "test_issue")
+      .gte("created_at", monthStart.toISOString())
+      .in("order_id", (
+        await admin
+          .from("template_orders")
+          .select("id")
+          .eq("tenant_id", caller.tenantId)
+      ).data?.map((o: any) => o.id) ?? []);
+
+    const usedCount = count ?? 0;
+    if (usedCount >= limit) {
+      return apiForbidden(`今月のテスト発行上限（${limit}回）に達しています。来月までお待ちください。`);
+    }
+
+    // テスト発行ログ記録（オーダーがあれば）
+    const { data: latestOrder } = await admin
+      .from("template_orders")
+      .select("id")
+      .eq("tenant_id", caller.tenantId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (latestOrder) {
+      await admin.from("template_order_logs").insert({
+        order_id: latestOrder.id,
+        action: "test_issue",
+        actor: caller.userId,
+        message: `テスト発行 (${usedCount + 1}/${limit})`,
+      });
     }
 
     const config = parsed.data.config as TemplateConfig;

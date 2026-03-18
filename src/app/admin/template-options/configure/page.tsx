@@ -331,6 +331,18 @@ export default function ConfigurePage() {
                 <option value="light-gray">ライトグレー</option>
               </select>
             </label>
+            <label className="block">
+              <span className="text-xs text-muted">フォント</span>
+              <select
+                className="input-field w-full mt-1"
+                value={config.style?.font_family ?? "noto-sans-jp"}
+                onChange={(e) => updateStyle("font_family", e.target.value)}
+              >
+                <option value="noto-sans-jp">ゴシック体（Noto Sans JP）</option>
+                <option value="noto-serif-jp">明朝体（Noto Serif JP）</option>
+              </select>
+              <span className="text-xs text-muted">※ フォント変更はプレミアムプランのみ有効です</span>
+            </label>
           </div>
 
           {/* フッター文言 */}

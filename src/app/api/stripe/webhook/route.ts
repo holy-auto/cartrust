@@ -294,6 +294,28 @@ export async function POST(req: NextRequest) {
         if (!subscriptionId) break;
 
         const sub = await stripe.subscriptions.retrieve(subscriptionId);
+
+        // ─── テンプレートオプション invoice ───
+        if (isTemplateOptionEvent(sub.metadata as Record<string, string> | null)) {
+          const tenantId = sub.metadata?.tenant_id;
+          const optionType = sub.metadata?.option_type;
+          if (tenantId && optionType) {
+            const isPaid = event.type === "invoice.paid";
+            await supabase.from("tenant_option_subscriptions")
+              .update({
+                status: isPaid ? "active" : "past_due",
+                current_period_end: sub.current_period_end
+                  ? new Date(sub.current_period_end * 1000).toISOString()
+                  : null,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("tenant_id", tenantId)
+              .eq("option_type", optionType);
+            console.log("webhook: template option invoice", { tenantId, optionType, event: event.type });
+          }
+          break;
+        }
+
         const isInsurer = sub.metadata?.type === "insurer";
         if (isInsurer) {
           await syncInsurerSubscription(stripe, supabase, sub);

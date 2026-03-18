@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import PageHeader from "@/components/ui/PageHeader";
 import {
   ORDER_STATUS_LABELS,
@@ -183,18 +184,26 @@ export default function PlatformTemplateOrdersPage() {
                       {new Date(order.created_at).toLocaleDateString("ja-JP")}
                     </td>
                     <td className="p-3">
-                      <select
-                        className="input-field text-xs py-1"
-                        value={order.status}
-                        disabled={updating === order.id}
-                        onChange={(e) => updateStatus(order.id, e.target.value)}
-                      >
-                        {STATUS_OPTIONS.map((s) => (
-                          <option key={s} value={s}>
-                            {ORDER_STATUS_LABELS[s]}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="flex items-center gap-2">
+                        <select
+                          className="input-field text-xs py-1"
+                          value={order.status}
+                          disabled={updating === order.id}
+                          onChange={(e) => updateStatus(order.id, e.target.value)}
+                        >
+                          {STATUS_OPTIONS.map((s) => (
+                            <option key={s} value={s}>
+                              {ORDER_STATUS_LABELS[s]}
+                            </option>
+                          ))}
+                        </select>
+                        <Link
+                          href={`/admin/platform/template-orders/${order.id}`}
+                          className="text-[#0071e3] text-xs underline whitespace-nowrap"
+                        >
+                          詳細
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
