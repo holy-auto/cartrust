@@ -50,7 +50,7 @@ async function sendPaymentFailureEmail(
     .from("tenant_memberships")
     .select("user_id, role")
     .eq("tenant_id", tenantId)
-    .in("role", ["owner", "admin"])
+    .in("role", ["owner", "admin", "super_admin"])
     .limit(1);
 
   if (!members?.[0]) {
