@@ -40,21 +40,30 @@ async function sendPaymentFailureEmail(
 ) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM;
-  if (!apiKey || !from) return;
+  if (!apiKey || !from) {
+    console.warn("webhook: payment failure email skipped — missing RESEND_API_KEY or RESEND_FROM");
+    return;
+  }
 
-  // Resolve owner email from tenant membership
+  // Resolve owner email from tenant membership (try owner first, then admin)
   const { data: members } = await supabase
     .from("tenant_memberships")
     .select("user_id, role")
     .eq("tenant_id", tenantId)
-    .eq("role", "owner")
+    .in("role", ["owner", "admin"])
     .limit(1);
 
-  if (!members?.[0]) return;
+  if (!members?.[0]) {
+    console.warn("webhook: payment failure email skipped — no owner/admin member found", { tenantId });
+    return;
+  }
 
   const { data: userData } = await supabase.auth.admin.getUserById(members[0].user_id);
   const email = userData?.user?.email;
-  if (!email) return;
+  if (!email) {
+    console.warn("webhook: payment failure email skipped — no email for user", { tenantId, userId: members[0].user_id });
+    return;
+  }
 
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
@@ -80,7 +89,7 @@ async function sendPaymentFailureEmail(
   `;
 
   try {
-    await fetch(RESEND_API, {
+    const res = await fetch(RESEND_API, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -90,7 +99,12 @@ async function sendPaymentFailureEmail(
         html,
       }),
     });
-    console.log("webhook: payment failure email sent", { tenantId, email });
+    const resBody = await res.text();
+    if (!res.ok) {
+      console.error("webhook: Resend API error", { status: res.status, body: resBody, tenantId, email });
+    } else {
+      console.log("webhook: payment failure email sent", { tenantId, email, resendResponse: resBody });
+    }
   } catch (e) {
     console.error("webhook: failed to send payment failure email", { tenantId, error: e });
   }
