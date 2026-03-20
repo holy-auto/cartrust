@@ -28,7 +28,8 @@ export default function MarketingLayout({
 }) {
   return (
     <div
-      className={`${notoSansJP.variable} font-[family-name:var(--font-noto)] bg-[#060a12]`}
+      data-theme="dark"
+      className={`${notoSansJP.variable} font-[family-name:var(--font-noto)] bg-[var(--bg-base)]`}
     >
       <Header />
       <main>{children}</main>

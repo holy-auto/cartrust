@@ -292,8 +292,7 @@ export default function Sidebar() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="fixed left-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-xl border border-[rgba(0,0,0,0.08)] bg-white/90 lg:hidden"
-        style={{ backdropFilter: "blur(20px)" }}
+        className="fixed left-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-[var(--radius-lg)] border border-border-default bg-[var(--bg-elevated)] backdrop-blur-[20px] lg:hidden"
         aria-label="メニュー"
       >
         {open ? (
@@ -317,22 +316,16 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 z-40 flex h-screen w-60 flex-col transition-transform duration-300 ease-out ${
+        className={`fixed left-0 top-0 z-40 flex h-screen w-60 flex-col border-r border-border-subtle bg-[var(--bg-elevated)] backdrop-blur-[40px] backdrop-saturate-[180%] transition-transform duration-300 ease-out ${
           open ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0`}
-        style={{
-          background: "rgba(255, 255, 255, 0.92)",
-          backdropFilter: "blur(40px) saturate(180%)",
-          WebkitBackdropFilter: "blur(40px) saturate(180%)",
-          borderRight: "1px solid rgba(0, 0, 0, 0.06)",
-        }}
       >
         {/* Brand */}
-        <div className="flex h-14 items-center gap-2.5 px-5" style={{ borderBottom: "1px solid rgba(0,0,0,0.04)" }}>
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ background: "linear-gradient(135deg, #0071e3, #5856d6)" }}>
+        <div className="flex h-14 items-center gap-2.5 border-b border-border-subtle px-5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-[#5856d6]">
             <span className="text-xs font-bold text-white">C</span>
           </div>
-          <span className="text-[13px] font-semibold tracking-wide text-[#1d1d1f]">CARTRUST</span>
+          <span className="text-[13px] font-semibold tracking-wide text-primary">CARTRUST</span>
         </div>
 
         {/* Store Selector */}
@@ -350,13 +343,13 @@ export default function Sidebar() {
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all duration-150 ${
+                    className={`flex items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-2 text-[13px] font-medium transition-all duration-150 ${
                       isActive
-                        ? "bg-[rgba(0,113,227,0.08)] text-[#0071e3]"
-                        : "text-[#6e6e73] hover:bg-[rgba(0,0,0,0.04)] hover:text-[#1d1d1f]"
+                        ? "bg-accent-dim text-accent"
+                        : "text-secondary hover:bg-surface-hover hover:text-primary"
                     }`}
                   >
-                    <span className={isActive ? "text-[#0071e3]" : "text-[#aeaeb2]"}>{item.icon}</span>
+                    <span className={isActive ? "text-accent" : "text-muted"}>{item.icon}</span>
                     {item.label}
                   </Link>
                 </li>
@@ -366,10 +359,10 @@ export default function Sidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="px-3 py-3" style={{ borderTop: "1px solid rgba(0,0,0,0.04)" }}>
+        <div className="border-t border-border-subtle px-3 py-3">
           {role && (
             <div className="mb-2 flex items-center gap-2 px-2.5">
-              <span className="inline-flex items-center rounded-md bg-[rgba(0,113,227,0.08)] px-2 py-0.5 text-[11px] font-medium text-[#0071e3]">
+              <span className="inline-flex items-center rounded-md bg-accent-dim px-2 py-0.5 text-[11px] font-medium text-accent">
                 {ROLE_LABELS[role]}
               </span>
             </div>
@@ -377,7 +370,7 @@ export default function Sidebar() {
           <form action="/api/auth/logout" method="POST">
             <button
               type="submit"
-              className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-[#aeaeb2] transition-all duration-150 hover:bg-[rgba(0,0,0,0.04)] hover:text-[#1d1d1f]"
+              className="flex w-full items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-2 text-[13px] font-medium text-muted transition-all duration-150 hover:bg-surface-hover hover:text-primary"
             >
               <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />

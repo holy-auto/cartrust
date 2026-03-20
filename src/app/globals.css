@@ -1,58 +1,160 @@
 @import "tailwindcss";
 
-/* ── Apple-inspired Light Design Tokens ── */
+/* ══════════════════════════════════════════════════
+   CARTRUST Design System — Design Tokens
+   ══════════════════════════════════════════════════ */
+
+/* ── Light Mode (App) ── */
 :root {
+  /* Backgrounds */
   --bg-base: #f5f5f7;
   --bg-surface: rgba(255, 255, 255, 0.8);
   --bg-surface-solid: #ffffff;
   --bg-surface-hover: #f0f0f2;
   --bg-surface-active: #e8e8ed;
   --bg-elevated: rgba(255, 255, 255, 0.9);
+  --bg-inset: #eeeef0;
+  --bg-overlay: rgba(0, 0, 0, 0.2);
+
+  /* Borders */
   --border-default: rgba(0, 0, 0, 0.08);
   --border-subtle: rgba(0, 0, 0, 0.04);
+  --border-strong: rgba(0, 0, 0, 0.15);
   --border-focus: #0071e3;
+
+  /* Text */
   --text-primary: #1d1d1f;
   --text-secondary: #6e6e73;
   --text-muted: #aeaeb2;
+  --text-inverse: #ffffff;
+
+  /* Accent — Blue (Primary) */
   --accent-blue: #0071e3;
   --accent-blue-dim: rgba(0, 113, 227, 0.08);
+  --accent-blue-hover: #0077ed;
+  --accent-blue-text: #0071e3;
+
+  /* Accent — Emerald (Success) */
   --accent-emerald: #28a745;
   --accent-emerald-dim: rgba(40, 167, 69, 0.08);
+  --accent-emerald-text: #1a7f37;
+
+  /* Accent — Amber (Warning) */
   --accent-amber: #f09300;
   --accent-amber-dim: rgba(240, 147, 0, 0.08);
+  --accent-amber-text: #b35c00;
+
+  /* Accent — Red (Danger) */
   --accent-red: #ff3b30;
   --accent-red-dim: rgba(255, 59, 48, 0.08);
+  --accent-red-text: #d1242f;
+
+  /* Accent — Violet */
   --accent-violet: #af52de;
   --accent-violet-dim: rgba(175, 82, 222, 0.08);
-  --font-sans: "Yu Mincho", "YuMincho", "游明朝", "Hiragino Mincho ProN", "HG明朝E", serif;
-  --font-mono: var(--font-geist-mono, "SF Mono", ui-monospace, monospace);
+  --accent-violet-text: #8944ab;
+
+  /* Radius */
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
   --radius-xl: 1.25rem;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+  --shadow-focus: 0 0 0 3px var(--accent-blue-dim);
+
+  /* Fonts */
+  --font-sans: var(--font-noto-sans, "Noto Sans JP"), "Hiragino Sans",
+               "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+  --font-serif: "Yu Mincho", "YuMincho", "游明朝", "Hiragino Mincho ProN",
+                "HG明朝E", serif;
+  --font-mono: var(--font-geist-mono, "SF Mono", ui-monospace, monospace);
+
+  /* Easing */
+  --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* ── Dark Mode (Marketing HP) ── */
+[data-theme="dark"] {
+  --bg-base: #060a12;
+  --bg-surface: rgba(255, 255, 255, 0.04);
+  --bg-surface-solid: #0d1525;
+  --bg-surface-hover: rgba(255, 255, 255, 0.07);
+  --bg-surface-active: rgba(255, 255, 255, 0.10);
+  --bg-elevated: rgba(255, 255, 255, 0.06);
+  --bg-inset: #0a0f1a;
+  --bg-overlay: rgba(0, 0, 0, 0.5);
+
+  --border-default: rgba(255, 255, 255, 0.07);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --border-strong: rgba(255, 255, 255, 0.15);
+
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.5);
+  --text-muted: rgba(255, 255, 255, 0.3);
+  --text-inverse: #1d1d1f;
+}
+
+/* ── Tailwind @theme Mapping ── */
 @theme inline {
+  /* Backgrounds */
   --color-base: var(--bg-base);
   --color-surface: var(--bg-surface-solid);
   --color-surface-hover: var(--bg-surface-hover);
   --color-surface-active: var(--bg-surface-active);
+  --color-elevated: var(--bg-elevated);
+  --color-inset: var(--bg-inset);
+
+  /* Borders */
   --color-border-default: var(--border-default);
   --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+
+  /* Text */
   --color-primary: var(--text-primary);
   --color-secondary: var(--text-secondary);
   --color-muted: var(--text-muted);
+  --color-inverse: var(--text-inverse);
+
+  /* Semantic Accents */
   --color-accent: var(--accent-blue);
   --color-accent-dim: var(--accent-blue-dim);
+  --color-accent-text: var(--accent-blue-text);
   --color-success: var(--accent-emerald);
   --color-success-dim: var(--accent-emerald-dim);
+  --color-success-text: var(--accent-emerald-text);
   --color-warning: var(--accent-amber);
   --color-warning-dim: var(--accent-amber-dim);
+  --color-warning-text: var(--accent-amber-text);
   --color-danger: var(--accent-red);
   --color-danger-dim: var(--accent-red-dim);
+  --color-danger-text: var(--accent-red-text);
+  --color-violet: var(--accent-violet);
+  --color-violet-dim: var(--accent-violet-dim);
+  --color-violet-text: var(--accent-violet-text);
+
+  /* Fonts */
   --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
   --font-mono: var(--font-mono);
+
+  /* Shadows */
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+  --shadow-focus: var(--shadow-focus);
 }
+
+/* ══════════════════════════════════════════════════
+   Base Styles
+   ══════════════════════════════════════════════════ */
 
 body {
   background: var(--bg-base);
@@ -62,22 +164,31 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── Apple-style Component Recipes ── */
+/* ══════════════════════════════════════════════════
+   Component Recipes — App (Light)
+   ══════════════════════════════════════════════════ */
 @layer components {
-  /* Card — clean white with subtle border */
+  /* ── Card ── */
   .glass-card {
     background: var(--bg-surface);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-xl);
-    box-shadow:
-      0 0 0 0.5px rgba(0, 0, 0, 0.03),
-      0 1px 3px rgba(0, 0, 0, 0.06),
-      0 2px 8px rgba(0, 0, 0, 0.04);
+    box-shadow: var(--shadow-md);
   }
 
-  /* Primary Button — vibrant blue */
+  /* ── Section Tag ── */
+  .section-tag {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+
+  /* ── Primary Button ── */
   .btn-primary {
     display: inline-flex;
     align-items: center;
@@ -90,18 +201,18 @@ body {
     font-size: 0.875rem;
     letter-spacing: -0.01em;
     padding: 0.5rem 1.25rem;
-    transition: all 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transition: all 200ms var(--ease-out);
     cursor: pointer;
     border: none;
   }
   .btn-primary:hover {
-    background: #0077ed;
+    background: var(--accent-blue-hover);
     box-shadow: 0 2px 12px rgba(0, 113, 227, 0.25);
   }
   .btn-primary:active { transform: scale(0.97); }
-  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
 
-  /* Secondary Button */
+  /* ── Secondary Button ── */
   .btn-secondary {
     display: inline-flex;
     align-items: center;
@@ -115,16 +226,17 @@ body {
     font-size: 0.875rem;
     letter-spacing: -0.01em;
     padding: 0.5rem 1.25rem;
-    transition: all 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transition: all 200ms var(--ease-out);
     cursor: pointer;
   }
   .btn-secondary:hover {
     background: var(--bg-surface-hover);
-    border-color: rgba(0, 0, 0, 0.12);
+    border-color: var(--border-strong);
   }
   .btn-secondary:active { transform: scale(0.97); }
+  .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
 
-  /* Ghost Button */
+  /* ── Ghost Button ── */
   .btn-ghost {
     display: inline-flex;
     align-items: center;
@@ -142,12 +254,13 @@ body {
     border: none;
   }
   .btn-ghost:hover {
-    background: rgba(0, 0, 0, 0.04);
+    background: var(--bg-surface-hover);
     color: var(--text-primary);
   }
   .btn-ghost:active { transform: scale(0.97); }
+  .btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
 
-  /* Danger Button */
+  /* ── Danger Button ── */
   .btn-danger {
     display: inline-flex;
     align-items: center;
@@ -169,8 +282,53 @@ body {
     border-color: rgba(255, 59, 48, 0.25);
   }
   .btn-danger:active { transform: scale(0.97); }
+  .btn-danger:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
 
-  /* Input Field */
+  /* ── Outline Button ── */
+  .btn-outline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--radius-md);
+    background: transparent;
+    border: 1px solid var(--border-default);
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 0.875rem;
+    letter-spacing: -0.01em;
+    padding: 0.5rem 1.25rem;
+    transition: all 200ms var(--ease-out);
+    cursor: pointer;
+  }
+  .btn-outline:hover {
+    background: var(--bg-surface-hover);
+    border-color: var(--border-strong);
+  }
+  .btn-outline:active { transform: scale(0.97); }
+  .btn-outline:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+  /* ── Button Size Modifiers ── */
+  .btn-primary[data-size="sm"],
+  .btn-secondary[data-size="sm"],
+  .btn-ghost[data-size="sm"],
+  .btn-danger[data-size="sm"],
+  .btn-outline[data-size="sm"] {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    gap: 0.375rem;
+  }
+  .btn-primary[data-size="lg"],
+  .btn-secondary[data-size="lg"],
+  .btn-ghost[data-size="lg"],
+  .btn-danger[data-size="lg"],
+  .btn-outline[data-size="lg"] {
+    padding: 0.625rem 1.5rem;
+    font-size: 0.9375rem;
+    gap: 0.625rem;
+  }
+
+  /* ── Input Field ── */
   .input-field {
     width: 100%;
     border-radius: var(--radius-md);
@@ -185,11 +343,21 @@ body {
   }
   .input-field::placeholder { color: var(--text-muted); }
   .input-field:focus {
-    border-color: var(--accent-blue);
-    box-shadow: 0 0 0 3px var(--accent-blue-dim);
+    border-color: var(--border-focus);
+    box-shadow: var(--shadow-focus);
+  }
+  .input-field[aria-invalid="true"],
+  .input-field.is-error {
+    border-color: var(--accent-red);
+    box-shadow: 0 0 0 3px var(--accent-red-dim);
+  }
+  .input-field:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--bg-surface-hover);
   }
 
-  /* Select Field */
+  /* ── Select Field ── */
   .select-field {
     width: 100%;
     border-radius: var(--radius-md);
@@ -204,12 +372,31 @@ body {
     cursor: pointer;
   }
   .select-field:focus {
-    border-color: var(--accent-blue);
-    box-shadow: 0 0 0 3px var(--accent-blue-dim);
+    border-color: var(--border-focus);
+    box-shadow: var(--shadow-focus);
+  }
+  .select-field[aria-invalid="true"],
+  .select-field.is-error {
+    border-color: var(--accent-red);
+    box-shadow: 0 0 0 3px var(--accent-red-dim);
+  }
+  .select-field:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--bg-surface-hover);
+  }
+
+  /* ── Skeleton ── */
+  .skeleton {
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: var(--radius-md);
+    animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 }
 
-/* ── Utility Classes ── */
+/* ══════════════════════════════════════════════════
+   Utility Classes
+   ══════════════════════════════════════════════════ */
 @layer utilities {
   .glow-cyan { box-shadow: 0 0 20px var(--accent-blue-dim); }
   .glow-emerald { box-shadow: 0 0 20px var(--accent-emerald-dim); }
@@ -217,18 +404,54 @@ body {
   .glow-red { box-shadow: 0 0 20px var(--accent-red-dim); }
 }
 
-/* ── Dark Marketing Animations ── */
+/* ══════════════════════════════════════════════════
+   Animations
+   ══════════════════════════════════════════════════ */
+
+/* Skeleton pulse */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Modal / overlay enter */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Drawer slide */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+/* Toast enter */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Marketing — gradient border */
 @keyframes gradient-border-spin {
   0%   { background-position: 0% 50%; }
   50%  { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
+
+/* Marketing — float */
 @keyframes dark-float {
   0%, 100% { transform: translateY(0px) scale(1); }
   50%       { transform: translateY(-12px) scale(1.02); }
 }
 
-/* ── Dark Marketing Components ── */
+/* ══════════════════════════════════════════════════
+   Component Recipes — Marketing (Dark)
+   ══════════════════════════════════════════════════ */
 @layer components {
   .dark-card {
     background: rgba(255, 255, 255, 0.04);
@@ -250,7 +473,9 @@ body {
   }
 }
 
-/* ── Scrollbar styling ── */
+/* ══════════════════════════════════════════════════
+   Scrollbar
+   ══════════════════════════════════════════════════ */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
