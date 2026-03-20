@@ -10,6 +10,8 @@ type Vehicle = {
   year: number | null;
   plate_display: string | null;
   vin_code?: string | null;
+  customer_id?: string | null;
+  customer?: { id: string; name: string } | null;
 };
 
 type Customer = {
@@ -80,6 +82,10 @@ export default function VehiclePickerSection({
       setSelectedId(v.id);
       setModel(vehicleModel(v));
       setPlate(v.plate_display ?? "");
+      if (v.customer) {
+        setCustomerName(v.customer.name);
+        setCustomerId(v.customer.id);
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultVehicleId]);
@@ -118,6 +124,12 @@ export default function VehiclePickerSection({
     if (v) {
       setModel(vehicleModel(v));
       setPlate(v.plate_display ?? "");
+      // 車両に顧客が紐付いている場合は自動入力
+      if (v.customer) {
+        setCustomerName(v.customer.name);
+        setCustomerId(v.customer.id);
+        setCustomerSearch("");
+      }
     }
   };
 
@@ -150,6 +162,7 @@ export default function VehiclePickerSection({
           year: newYear ? Number(newYear) : null,
           plate_display: newPlate || null,
           vin_code: newVin || null,
+          customer_id: customerId || null,
         }),
       });
       const j = await res.json();
@@ -204,6 +217,11 @@ export default function VehiclePickerSection({
               <div className="text-sm font-semibold text-emerald-900 truncate">
                 {vehicleLabel(selected)}
               </div>
+              {selected.customer && (
+                <div className="text-xs text-emerald-700 mt-0.5">
+                  顧客: {selected.customer.name}
+                </div>
+              )}
             </div>
             <button
               type="button"
