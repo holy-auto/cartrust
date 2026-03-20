@@ -1,13 +1,13 @@
 import type { ReactNode } from "react";
-
-type BadgeVariant = "default" | "success" | "warning" | "danger" | "info";
+import type { BadgeVariant } from "@/lib/statusMaps";
 
 const VARIANT_CLASSES: Record<BadgeVariant, string> = {
-  default: "bg-[rgba(0,0,0,0.04)] text-[#6e6e73] border-[rgba(0,0,0,0.08)]",
-  success: "bg-[rgba(40,167,69,0.08)] text-[#1a7f37] border-[rgba(40,167,69,0.2)]",
-  warning: "bg-[rgba(240,147,0,0.08)] text-[#b35c00] border-[rgba(240,147,0,0.2)]",
-  danger: "bg-[rgba(255,59,48,0.08)] text-[#d1242f] border-[rgba(255,59,48,0.2)]",
-  info: "bg-[rgba(0,113,227,0.08)] text-[#0071e3] border-[rgba(0,113,227,0.2)]",
+  default: "bg-surface-hover text-secondary border-border-default",
+  success: "bg-success-dim text-success-text border-success/20",
+  warning: "bg-warning-dim text-warning-text border-warning/20",
+  danger:  "bg-danger-dim text-danger-text border-danger/20",
+  info:    "bg-accent-dim text-accent-text border-accent/20",
+  violet:  "bg-violet-dim text-violet-text border-violet/20",
 };
 
 interface BadgeProps {

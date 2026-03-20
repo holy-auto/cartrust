@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { CertificateStatusBadge } from "@/components/StatusBadge";
+import Badge from "@/components/ui/Badge";
+import { CERTIFICATE_STATUS_MAP, getStatusEntry } from "@/lib/statusMaps";
 import { formatDateTime } from "@/lib/format";
 
 type Row = {
@@ -304,7 +305,7 @@ export default function InsurerHomePage() {
                       {[r.vehicle_model, r.vehicle_plate].filter(Boolean).join(" / ") || "-"}
                     </td>
                     <td className="p-3">
-                      <CertificateStatusBadge status={r.status} />
+                      {(() => { const s = getStatusEntry(CERTIFICATE_STATUS_MAP, r.status); return <Badge variant={s.variant}>{s.label}</Badge>; })()}
                     </td>
                     <td className="p-3 whitespace-nowrap text-neutral-600">
                       {formatDateTime(r.created_at)}

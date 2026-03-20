@@ -8,11 +8,11 @@ export default function StoreSelector() {
   if (loading || stores.length <= 1) return null;
 
   return (
-    <div className="px-3 py-2" style={{ borderBottom: "1px solid rgba(0,0,0,0.04)" }}>
+    <div className="border-b border-border-subtle px-3 py-2">
       <select
         value={activeStoreId ?? ""}
         onChange={(e) => setActiveStoreId(e.target.value || null)}
-        className="w-full rounded-lg border border-[rgba(0,0,0,0.08)] bg-white/80 px-2.5 py-1.5 text-[12px] font-medium text-[#1d1d1f] outline-none transition-all focus:border-[#0071e3] focus:ring-1 focus:ring-[#0071e3]"
+        className="w-full rounded-[var(--radius-md)] border border-border-default bg-[var(--bg-elevated)] px-2.5 py-1.5 text-[12px] font-medium text-primary outline-none transition-all focus:border-[var(--border-focus)] focus:ring-1 focus:ring-accent"
       >
         <option value="">全店舗</option>
         {stores
