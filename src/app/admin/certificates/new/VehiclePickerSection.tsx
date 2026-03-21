@@ -64,6 +64,9 @@ export default function VehiclePickerSection({
   const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
   const customerDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Vehicle dropdown open state
+  const [vehicleDropdownOpen, setVehicleDropdownOpen] = useState(false);
+
   // Inline new vehicle form
   const [showNewVehicleForm, setShowNewVehicleForm] = useState(false);
   const [newMaker, setNewMaker] = useState("");
@@ -238,17 +241,19 @@ export default function VehiclePickerSection({
                 id={uid}
                 type="text"
                 value={search}
-                onChange={(e) => { setSearch(e.target.value); setShowNewVehicleForm(false); }}
+                onChange={(e) => { setSearch(e.target.value); setShowNewVehicleForm(false); setVehicleDropdownOpen(true); }}
+                onFocus={() => setVehicleDropdownOpen(true)}
+                onBlur={() => setTimeout(() => setVehicleDropdownOpen(false), 200)}
                 placeholder={
                   vehicles.length === 0
                     ? "登録車両がありません"
-                    : "車種・ナンバー・VINで検索…"
+                    : "車種・ナンバー・VINで検索… (クリックで一覧表示)"
                 }
                 disabled={vehicles.length === 0}
                 autoComplete="off"
                 className={`${inputCls} pr-10 disabled:bg-neutral-100 disabled:text-neutral-500`}
               />
-              {search && filtered.length > 0 && (
+              {vehicleDropdownOpen && filtered.length > 0 && (
                 <ul className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white shadow-md">
                   {filtered.map((v) => (
                     <li key={v.id}>
@@ -260,6 +265,11 @@ export default function VehiclePickerSection({
                         <span className="font-medium text-neutral-900">
                           {vehicleLabel(v)}
                         </span>
+                        {v.customer && (
+                          <span className="ml-2 text-xs text-emerald-600">
+                            {v.customer.name}
+                          </span>
+                        )}
                         {v.vin_code && (
                           <span className="ml-2 text-xs text-neutral-400 font-mono">
                             {v.vin_code}
@@ -273,7 +283,7 @@ export default function VehiclePickerSection({
             </div>
 
             {/* No match — show new vehicle option */}
-            {search && filtered.length === 0 && !showNewVehicleForm && (
+            {vehicleDropdownOpen && search && filtered.length === 0 && !showNewVehicleForm && (
               <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 flex items-center justify-between gap-3">
                 <span className="text-sm text-neutral-500">一致する車両が見つかりません</span>
                 <button
