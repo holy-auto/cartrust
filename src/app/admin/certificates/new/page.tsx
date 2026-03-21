@@ -59,7 +59,7 @@ export default async function Page({
     hasBrandedTemplate = !!tos && !!ttc;
   } catch { /* tables may not exist */ }
 
-  // テナント固有 + プラットフォーム共通テンプレートを取得
+  // テナント固有 + 共通テンプレート（tenant_id IS NULL）を取得
   const { data: templates, error: tplErr } = await supabase
     .from("templates")
     .select("id, name, schema_json, created_at")
