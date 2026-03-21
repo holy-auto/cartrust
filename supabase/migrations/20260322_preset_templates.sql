@@ -1,10 +1,10 @@
--- Insert platform-level preset templates (scope = 'platform', tenant_id = NULL)
--- These are shared across all tenants and cannot be edited by franchisees.
+-- Insert shared preset templates (scope = 'tenant', tenant_id = NULL)
+-- tenant_id NULL = shared across all tenants, not editable by franchisees.
 
 INSERT INTO templates (scope, tenant_id, name, schema_json, layout_version)
 VALUES
 -- コーティング用
-('platform', NULL, 'コーティング施工証明書', '{
+('tenant', NULL, 'コーティング施工証明書', '{
   "version": 1,
   "sections": [
     {
@@ -29,7 +29,7 @@ VALUES
 }'::jsonb, 1),
 
 -- PPF用
-('platform', NULL, 'PPF施工証明書', '{
+('tenant', NULL, 'PPF施工証明書', '{
   "version": 1,
   "sections": [
     {
@@ -53,7 +53,7 @@ VALUES
 }'::jsonb, 1),
 
 -- 整備用
-('platform', NULL, '整備記録証明書', '{
+('tenant', NULL, '整備記録証明書', '{
   "version": 1,
   "sections": [
     {
@@ -77,7 +77,7 @@ VALUES
 }'::jsonb, 1),
 
 -- 鈑金用
-('platform', NULL, '鈑金塗装証明書', '{
+('tenant', NULL, '鈑金塗装証明書', '{
   "version": 1,
   "sections": [
     {
