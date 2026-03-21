@@ -68,11 +68,11 @@ export default async function Page({
     const tenantId = mem?.tenant_id as string | undefined;
     if (!tenantId) redirect("/admin/templates?e=tenant");
 
+    // テナント固有 or 共通テンプレートを取得
     const { data: tpl, error: e1 } = await supabase
       .from("templates")
       .select("name,schema_json,layout_version")
       .eq("id", tid)
-      .eq("tenant_id", tenantId)
       .single();
     if (e1 || !tpl) redirect("/admin/templates?e=dup");
 
@@ -126,11 +126,11 @@ export default async function Page({
     redirect("/admin/templates?ok=renamed");
   }
 
+  // テナント固有 + 共通テンプレート（tenant_id IS NULL）を取得
   const { data: templates, error } = await supabase
     .from("templates")
-    .select("id,name,layout_version,created_at")
-    .eq("scope", "tenant")
-    .eq("tenant_id", tenantId)
+    .select("id,name,layout_version,created_at,tenant_id")
+    .or(`tenant_id.eq.${tenantId},tenant_id.is.null`)
     .order("created_at", { ascending: false });
 
   if (error) return <div className="text-sm text-red-500">読み込みエラー: {error.message}</div>;
@@ -183,47 +183,67 @@ export default async function Page({
             <div className="glass-card p-6 text-sm text-muted text-center">テンプレがありません</div>
           )}
 
-          {(templates ?? []).map((t) => (
-            <div key={t.id} className="glass-card p-4 space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-primary truncate">{t.name}</div>
-                  <div className="text-xs text-muted mt-0.5">
-                    v{t.layout_version} / {formatDateTime(t.created_at)}
+          {(templates ?? []).map((t) => {
+            const isShared = !t.tenant_id; // 共通テンプレ (tenant_id IS NULL)
+            return (
+              <div key={t.id} className="glass-card p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-primary truncate">{t.name}</span>
+                      {isShared && (
+                        <span className="shrink-0 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
+                          共通
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted mt-0.5">
+                      v{t.layout_version} / {formatDateTime(t.created_at)}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 shrink-0 flex-wrap">
+                    {!isShared && (
+                      <Link
+                        className="rounded-lg border border-border-default bg-base px-3 py-1.5 text-xs font-medium text-[#0071e3] hover:bg-surface-hover"
+                        href={`/admin/templates/edit?tid=${encodeURIComponent(t.id)}`}
+                      >
+                        編集
+                      </Link>
+                    )}
+                    <form action={duplicateTemplate}>
+                      <input type="hidden" name="tid" value={t.id} />
+                      <button className="rounded-lg border border-border-default bg-base px-3 py-1.5 text-xs font-medium text-secondary hover:bg-surface-hover">
+                        複製
+                      </button>
+                    </form>
+                    {!isShared && (
+                      <form action={deleteTemplate}>
+                        <input type="hidden" name="tid" value={t.id} />
+                        <button className="rounded-lg border border-red-200 bg-base px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50">
+                          削除
+                        </button>
+                      </form>
+                    )}
                   </div>
                 </div>
-                <div className="flex gap-2 shrink-0 flex-wrap">
-                  <Link
-                    className="rounded-lg border border-border-default bg-base px-3 py-1.5 text-xs font-medium text-[#0071e3] hover:bg-surface-hover"
-                    href={`/admin/templates/edit?tid=${encodeURIComponent(t.id)}`}
-                  >
-                    編集
-                  </Link>
-                  <form action={duplicateTemplate}>
-                    <input type="hidden" name="tid" value={t.id} />
-                    <button className="rounded-lg border border-border-default bg-base px-3 py-1.5 text-xs font-medium text-secondary hover:bg-surface-hover">
-                      複製
-                    </button>
-                  </form>
-                  <form action={deleteTemplate}>
-                    <input type="hidden" name="tid" value={t.id} />
-                    <button className="rounded-lg border border-red-200 bg-base px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50">
-                      削除
-                    </button>
-                  </form>
-                </div>
-              </div>
 
-              {/* Inline rename */}
-              <form action={renameTemplate} className="flex gap-2 items-center">
-                <input type="hidden" name="tid" value={t.id} />
-                <input name="name" defaultValue={t.name} className="input-field flex-1 text-xs" placeholder="テンプレ名" />
-                <button className="rounded-lg border border-border-default bg-base px-3 py-1.5 text-xs font-medium text-secondary hover:bg-surface-hover whitespace-nowrap">
-                  名前変更
-                </button>
-              </form>
-            </div>
-          ))}
+                {/* Inline rename — テナント固有テンプレのみ */}
+                {!isShared && (
+                  <form action={renameTemplate} className="flex gap-2 items-center">
+                    <input type="hidden" name="tid" value={t.id} />
+                    <input name="name" defaultValue={t.name} className="input-field flex-1 text-xs" placeholder="テンプレ名" />
+                    <button className="rounded-lg border border-border-default bg-base px-3 py-1.5 text-xs font-medium text-secondary hover:bg-surface-hover whitespace-nowrap">
+                      名前変更
+                    </button>
+                  </form>
+                )}
+
+                {isShared && (
+                  <div className="text-[11px] text-muted">共通テンプレートは編集・削除できません。「複製」してカスタマイズしてください。</div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </AdminFeatureGuard>
