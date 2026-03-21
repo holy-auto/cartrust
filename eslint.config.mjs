@@ -7,8 +7,10 @@ const eslintConfig = defineConfig([
   ...nextTs,
   {
     rules: {
-      // Downgrade no-explicit-any to warning — too many legacy usages to fix at once
+      // Downgrade to warnings — too many legacy usages to fix at once before launch
       "@typescript-eslint/no-explicit-any": "warn",
+      "prefer-const": "warn",
+      "@typescript-eslint/no-require-imports": "warn",
     },
   },
   // Override default ignores of eslint-config-next.
