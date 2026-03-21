@@ -1,0 +1,84 @@
+import { NextRequest } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { apiUnauthorized, apiInternalError, apiOk } from "@/lib/api/response";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * Daily Maintenance Cron Job
+ * 1. Auto-expire certificates past their expiry_date
+ * 2. Clean up old stripe_processed_events (>90 days)
+ */
+export async function GET(req: NextRequest) {
+  const authHeader = req.headers.get("authorization");
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    return apiUnauthorized();
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return apiInternalError(new Error("Missing Supabase config"), "cron/maintenance");
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const results = {
+    expired_certificates: 0,
+    cleaned_stripe_events: 0,
+    errors: [] as string[],
+  };
+
+  // ─── 1. Auto-expire certificates past expiry_date ───
+  try {
+    const { data, error } = await supabase
+      .from("certificates")
+      .update({ status: "expired" })
+      .eq("status", "active")
+      .not("expiry_date", "is", null)
+      .lt("expiry_date", todayStr)
+      .select("id");
+
+    if (error) {
+      console.error("[cron/maintenance] expire certificates error:", error.message);
+      results.errors.push(`expire: ${error.message}`);
+    } else {
+      results.expired_certificates = data?.length ?? 0;
+      if (results.expired_certificates > 0) {
+        console.log(`[cron/maintenance] Expired ${results.expired_certificates} certificates`);
+      }
+    }
+  } catch (err) {
+    console.error("[cron/maintenance] expire certificates exception:", err);
+    results.errors.push("expire: unexpected error");
+  }
+
+  // ─── 2. Clean up old stripe_processed_events (>90 days) ───
+  try {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 90);
+    const cutoffStr = cutoff.toISOString();
+
+    const { count, error } = await supabase
+      .from("stripe_processed_events")
+      .delete()
+      .lt("created_at", cutoffStr);
+
+    if (error) {
+      console.error("[cron/maintenance] cleanup stripe events error:", error.message);
+      results.errors.push(`stripe_cleanup: ${error.message}`);
+    } else {
+      results.cleaned_stripe_events = count ?? 0;
+      if (results.cleaned_stripe_events > 0) {
+        console.log(`[cron/maintenance] Cleaned ${results.cleaned_stripe_events} old stripe events`);
+      }
+    }
+  } catch (err) {
+    console.error("[cron/maintenance] cleanup stripe events exception:", err);
+    results.errors.push("stripe_cleanup: unexpected error");
+  }
+
+  console.log("[cron/maintenance] Done:", JSON.stringify(results));
+  return apiOk(results);
+}
