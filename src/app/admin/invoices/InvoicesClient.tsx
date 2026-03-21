@@ -40,6 +40,17 @@ type Customer = {
   name: string;
 };
 
+type VehicleOption = {
+  id: string;
+  maker: string | null;
+  model: string | null;
+  year: number | null;
+  plate_display: string | null;
+  vin_code: string | null;
+  customer_id: string | null;
+  customer_name: string | null;
+};
+
 type MenuItem = {
   id: string;
   name: string;
@@ -141,7 +152,9 @@ export default function InvoicesClient() {
   // Menu items (品目マスタ)
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
 
-  // Vehicle info
+  // Vehicle selection
+  const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
+  const [formVehicleId, setFormVehicleId] = useState("");
   const [formVehicleModel, setFormVehicleModel] = useState("");
   const [formVehiclePlate, setFormVehiclePlate] = useState("");
   const [formVehicleVin, setFormVehicleVin] = useState("");
@@ -167,6 +180,25 @@ export default function InvoicesClient() {
     } catch {}
   }, []);
 
+  const fetchVehicles = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/vehicles", { cache: "no-store" });
+      const j = await res.json().catch(() => null);
+      if (res.ok && j?.vehicles) {
+        setVehicles(j.vehicles.map((v: any) => ({
+          id: v.id,
+          maker: v.maker,
+          model: v.model,
+          year: v.year,
+          plate_display: v.plate_display,
+          vin_code: v.vin_code,
+          customer_id: v.customer_id ?? v.customer?.id ?? null,
+          customer_name: v.customer?.name ?? null,
+        })));
+      }
+    } catch {}
+  }, []);
+
   const fetchMenuItems = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/menu-items?active_only=true", { cache: "no-store" });
@@ -184,8 +216,8 @@ export default function InvoicesClient() {
   }, []);
 
   useEffect(() => {
-    Promise.all([fetchCustomers(), fetchMenuItems()]);
-  }, [fetchCustomers, fetchMenuItems]);
+    Promise.all([fetchCustomers(), fetchMenuItems(), fetchVehicles()]);
+  }, [fetchCustomers, fetchMenuItems, fetchVehicles]);
 
   // 顧客が変わったら証明書を取得
   const fetchCertificatesForCustomer = useCallback(async (customerId: string) => {
@@ -209,6 +241,28 @@ export default function InvoicesClient() {
   const handleCustomerChange = (val: string) => {
     setFormCustomerId(val);
     fetchCertificatesForCustomer(val);
+  };
+
+  const handleVehicleSelect = (vehicleId: string) => {
+    setFormVehicleId(vehicleId);
+    if (!vehicleId) {
+      setFormVehicleModel("");
+      setFormVehiclePlate("");
+      setFormVehicleVin("");
+      return;
+    }
+    const v = vehicles.find((veh) => veh.id === vehicleId);
+    if (v) {
+      const modelStr = [v.maker, v.model, v.year ? String(v.year) : null].filter(Boolean).join(" ");
+      setFormVehicleModel(modelStr);
+      setFormVehiclePlate(v.plate_display ?? "");
+      setFormVehicleVin(v.vin_code ?? "");
+      // 車両に紐付き顧客がいて、顧客未選択なら自動選択
+      if (v.customer_id && !formCustomerId) {
+        setFormCustomerId(v.customer_id);
+        fetchCertificatesForCustomer(v.customer_id);
+      }
+    }
   };
 
   const handleFilterChange = (val: string) => {
@@ -291,6 +345,7 @@ export default function InvoicesClient() {
           show_logo: formShowLogo,
           show_bank_info: formShowBankInfo,
           recipient_name: formRecipientName || null,
+          vehicle_id: formVehicleId || null,
           vehicle_info: (formVehicleModel || formVehiclePlate || formVehicleVin)
             ? { model: formVehicleModel, plate: formVehiclePlate, vin: formVehicleVin }
             : null,
@@ -309,6 +364,7 @@ export default function InvoicesClient() {
       setFormShowLogo(true);
       setFormShowBankInfo(false);
       setFormRecipientName("");
+      setFormVehicleId("");
       setFormVehicleModel("");
       setFormVehiclePlate("");
       setFormVehicleVin("");
@@ -506,6 +562,26 @@ export default function InvoicesClient() {
               {/* Vehicle Info */}
               <div className="space-y-2">
                 <div className="text-xs font-semibold text-muted tracking-[0.18em]">車両情報（任意）</div>
+                {vehicles.length > 0 && (
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted">登録車両から選択</label>
+                    <select
+                      className="select-field"
+                      value={formVehicleId}
+                      onChange={(e) => handleVehicleSelect(e.target.value)}
+                    >
+                      <option value="">車両を選択...</option>
+                      {vehicles.map((v) => {
+                        const label = [v.maker, v.model, v.year ? String(v.year) : null].filter(Boolean).join(" ");
+                        return (
+                          <option key={v.id} value={v.id}>
+                            {label || "（名称なし）"}{v.plate_display ? `（${v.plate_display}）` : ""}{v.customer_name ? ` — ${v.customer_name}` : ""}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <label className="text-xs text-muted">車種</label>
