@@ -54,6 +54,9 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
   const customer_id = String(formData.get("customer_id") || "").trim() || null;
   const expiry_date = String(formData.get("expiry_date") || "").trim() || null;
   const warranty_period_end = String(formData.get("warranty_period_end") || "").trim() || null;
+  const maintenance_date = String(formData.get("maintenance_date") || "").trim() || null;
+  const warranty_exclusions = String(formData.get("warranty_exclusions") || "").trim() || null;
+  const remarks = String(formData.get("remarks") || "").trim() || null;
 
   // Film thickness JSON (optional)
   let film_thickness: any[] = [];
@@ -118,6 +121,9 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
     expiry_value,
     expiry_date: expiry_date || null,
     warranty_period_end: warranty_period_end || null,
+    maintenance_date: maintenance_date || null,
+    warranty_exclusions: warranty_exclusions || null,
+    remarks: remarks || null,
     footer_variant: "holy",
     logo_asset_path: tenantLogoPath,
     created_by: userId,

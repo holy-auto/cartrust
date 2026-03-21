@@ -163,6 +163,8 @@ export async function POST(req: NextRequest) {
     const showBankInfo = !!body?.show_bank_info;
     const recipientName = (body?.recipient_name ?? "").trim() || null;
     const taxRate = parseInt(String(body?.tax_rate ?? 10), 10);
+    const vehicleId = (body?.vehicle_id ?? "").trim() || null;
+    const vehicleInfo = body?.vehicle_info ?? null;
 
     // 金額計算
     let subtotal = 0;
@@ -204,6 +206,8 @@ export async function POST(req: NextRequest) {
       show_bank_info: showBankInfo,
       recipient_name: recipientName,
       tax_rate: taxRate,
+      vehicle_id: vehicleId,
+      vehicle_info_json: vehicleInfo ?? {},
     };
 
     const { data, error } = await supabase.from("invoices").insert(row).select().single();
