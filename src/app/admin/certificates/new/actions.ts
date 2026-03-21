@@ -30,20 +30,6 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
     .single();
   const tenantLogoPath = (tenantRow?.logo_asset_path as string | null) ?? null;
 
-  const template_id = String(formData.get("template_id") || "");
-  const template_name = String(formData.get("template_name") || "");
-
-  let schema_snapshot: any = null;
-  if (template_id) {
-    const { data: tpl } = await supabase
-      .from("templates")
-      .select("schema_json")
-      .eq("id", template_id)
-      .eq("tenant_id", tenantId)
-      .single();
-    schema_snapshot = tpl?.schema_json ?? null;
-  }
-
   const vehicle_id = String(formData.get("vehicle_id") || "").trim() || null;
   const customer_name = String(formData.get("customer_name") || "").trim();
   const model = String(formData.get("model") || "").trim();
@@ -81,19 +67,6 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
   if (!customer_name) return { ok: false, error: "customer_name_required" };
   if (!vehicle_id) return { ok: false, error: "vehicle_required" };
 
-  // Collect template field values
-  const values: Record<string, any> = {};
-  for (const [k, v] of formData.entries()) {
-    const key = String(k);
-    if (!key.startsWith("f__")) continue;
-    const fkey = key.slice(3);
-    if (v === "on") { values[fkey] = true; continue; }
-    const sv = String(v);
-    if (values[fkey] === undefined) values[fkey] = sv;
-    else if (Array.isArray(values[fkey])) values[fkey].push(sv);
-    else values[fkey] = [values[fkey], sv];
-  }
-
   const public_id = makePublicId();
 
   // Draft or active status
@@ -110,10 +83,6 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
     vehicle_info_json: { model, plate },
     content_free_text,
     content_preset_json: {
-      template_id,
-      template_name,
-      schema_snapshot,
-      values,
       ...(film_thickness.length > 0 ? { film_thickness } : {}),
     },
     coating_products_json: coating_products.length > 0 ? coating_products : [],
@@ -153,7 +122,7 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
       customer_name,
       vehicle_model: model,
       vehicle_plate: plate,
-      service_type: template_name || content_free_text?.slice(0, 50) || "",
+      service_type: content_free_text?.slice(0, 50) || "",
       created_by: userId,
     }).catch((e) => console.warn("[cert] QStash enqueue failed:", e));
   }

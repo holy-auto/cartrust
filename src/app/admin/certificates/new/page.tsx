@@ -11,10 +11,9 @@ export const dynamic = "force-dynamic";
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ tid?: string; vehicle_id?: string }>;
+  searchParams: Promise<{ vehicle_id?: string }>;
 }) {
   const sp = await searchParams;
-  const selectedTemplateId = sp.tid ?? "";
   const defaultVehicleId = sp.vehicle_id ?? undefined;
 
   const supabase = await createSupabaseServerClient();
@@ -59,26 +58,12 @@ export default async function Page({
     hasBrandedTemplate = !!tos && !!ttc;
   } catch { /* tables may not exist */ }
 
-  // テナント固有 + 共通テンプレート（tenant_id IS NULL）を取得
-  const { data: templates, error: tplErr } = await supabase
-    .from("templates")
-    .select("id, name, schema_json, created_at")
-    .or(`tenant_id.eq.${tenantId},tenant_id.is.null`)
-    .order("created_at", { ascending: false });
-
-  if (tplErr) return <div className="text-sm text-danger">テンプレ読み込みエラー: {tplErr.message}</div>;
-
   // 車両一覧（顧客情報を JOIN）
   const { data: vehiclesRaw } = await supabase
     .from("vehicles")
     .select("id, maker, model, year, plate_display, vin_code, customer_id, customer:customers(id, name)")
     .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false });
-
-  const list = templates ?? [];
-  const fallbackId = list[0]?.id ?? "";
-  const tid = selectedTemplateId || fallbackId;
-  const selected = list.find((t) => t.id === tid) ?? list[0];
 
   return (
     <div className="space-y-4">
@@ -103,11 +88,8 @@ export default async function Page({
       <CertNewFormWrapper
         vehicles={(vehiclesRaw ?? []) as any[]}
         defaultVehicleId={defaultVehicleId}
-        templates={list as any[]}
-        selectedTemplate={(selected ?? null) as any}
         tenantLogoPath={tenantLogoPath}
         planTier={planTier}
-        tid={tid}
       />
     </div>
   );

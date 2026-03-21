@@ -23,36 +23,11 @@ type Vehicle = {
   customer?: { id: string; name: string } | null;
 };
 
-type FieldType = "text" | "textarea" | "number" | "date" | "select" | "multiselect" | "checkbox";
-
-type TemplateSchema = {
-  version: number;
-  sections: Array<{
-    title: string;
-    fields: Array<{
-      key: string;
-      label: string;
-      type: FieldType;
-      options?: string[];
-      required?: boolean;
-    }>;
-  }>;
-};
-
-type Template = {
-  id: string;
-  name: string;
-  schema_json: TemplateSchema | null;
-};
-
 type Props = {
   vehicles: Vehicle[];
   defaultVehicleId?: string;
-  templates: Template[];
-  selectedTemplate: Template | null;
   tenantLogoPath: string | null;
   planTier: PlanTier;
-  tid: string;
 };
 
 const inputCls =
@@ -73,11 +48,8 @@ const PLAN_LABELS: Record<PlanTier, string> = {
 export default function CertNewFormWrapper({
   vehicles,
   defaultVehicleId,
-  templates,
-  selectedTemplate,
   tenantLogoPath,
   planTier,
-  tid,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -89,7 +61,6 @@ export default function CertNewFormWrapper({
 
   const maxPhotos = PHOTO_LIMITS[planTier];
   const planLabel = PLAN_LABELS[planTier];
-  const schema = selectedTemplate?.schema_json ?? null;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -153,40 +124,12 @@ export default function CertNewFormWrapper({
 
   return (
     <>
-      {/* ── テンプレート選択 ── */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-        <div className="mb-3">
-          <div className={sectionTagCls}>TEMPLATE</div>
-          <div className="mt-1 text-base font-semibold text-neutral-900">テンプレートを選択</div>
+      {!tenantLogoPath && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-600">
+          ロゴ未設定 —{" "}
+          <Link href="/admin/logo" className="underline">ロゴを設定する</Link>
         </div>
-        <form action="/admin/certificates/new" method="get" className="flex gap-3 items-center">
-          <select
-            name="tid"
-            defaultValue={tid}
-            className="flex-1 rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
-          >
-            {templates.length === 0 ? (
-              <option value="">テンプレートがありません</option>
-            ) : (
-              templates.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))
-            )}
-          </select>
-          <button
-            type="submit"
-            className="rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 whitespace-nowrap"
-          >
-            選択
-          </button>
-        </form>
-        {!tenantLogoPath && (
-          <p className="mt-2 text-xs text-amber-600">
-            ロゴ未設定 —{" "}
-            <Link href="/admin/logo" className="underline">ロゴを設定する</Link>
-          </p>
-        )}
-      </div>
+      )}
 
       {/* ── メインフォーム ── */}
       <form
@@ -194,8 +137,6 @@ export default function CertNewFormWrapper({
         onSubmit={handleSubmit}
         className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm space-y-0"
       >
-        <input type="hidden" name="template_id" value={selectedTemplate?.id ?? ""} />
-        <input type="hidden" name="template_name" value={selectedTemplate?.name ?? ""} />
 
         {/* ━━━ 1. 車種選択 ━━━ */}
         <section data-vehicle-picker className="pb-6">
@@ -312,95 +253,6 @@ export default function CertNewFormWrapper({
             />
           </label>
         </section>
-
-        {/* ━━━ テンプレ追加フィールド（あれば） ━━━ */}
-        {schema && schema.sections.length > 0 && (
-          <section className="border-t border-neutral-100 py-6 space-y-5">
-            <div className={sectionHeaderCls}>
-              <div className={sectionTagCls}>TEMPLATE FIELDS</div>
-              <div className={sectionTitleCls}>テンプレート追加項目</div>
-              <p className="mt-0.5 text-xs text-neutral-500">
-                選択中のテンプレート「{selectedTemplate?.name}」で定義された追加フィールド
-              </p>
-            </div>
-
-            {schema.sections.map((sec) => (
-              <div key={sec.title} className="rounded-xl border border-neutral-200 p-4 space-y-4">
-                <div className="text-sm font-semibold text-neutral-800">{sec.title}</div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {sec.fields.map((f) => {
-                    const name = `f__${f.key}`;
-
-                    if (f.type === "checkbox") {
-                      return (
-                        <label key={f.key} className="flex items-center gap-2.5 text-sm text-neutral-700">
-                          <input type="checkbox" name={name} className="h-4 w-4 rounded border-neutral-300" />
-                          <span>{f.label}</span>
-                        </label>
-                      );
-                    }
-                    if (f.type === "select") {
-                      return (
-                        <div key={f.key} className={labelCls}>
-                          <span className={labelTextCls}>{f.label}{f.required ? " *" : ""}</span>
-                          <select name={name} className={inputCls} required={!!f.required}>
-                            <option value="">選択してください</option>
-                            {(f.options ?? []).map((opt) => (
-                              <option key={opt} value={opt}>{opt}</option>
-                            ))}
-                          </select>
-                        </div>
-                      );
-                    }
-                    if (f.type === "multiselect") {
-                      return (
-                        <div key={f.key} className={`${labelCls} sm:col-span-2`}>
-                          <span className={labelTextCls}>{f.label}{f.required ? " *" : ""}</span>
-                          <select name={name} multiple className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm h-28 focus:outline-none focus:ring-2 focus:ring-neutral-400" required={!!f.required}>
-                            {(f.options ?? []).map((opt) => (
-                              <option key={opt} value={opt}>{opt}</option>
-                            ))}
-                          </select>
-                          <p className="text-[11px] text-neutral-500">Ctrl / Shift で複数選択</p>
-                        </div>
-                      );
-                    }
-                    if (f.type === "textarea") {
-                      return (
-                        <div key={f.key} className={`${labelCls} sm:col-span-2`}>
-                          <span className={labelTextCls}>{f.label}{f.required ? " *" : ""}</span>
-                          <textarea name={name} className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400" rows={3} required={!!f.required} />
-                        </div>
-                      );
-                    }
-                    if (f.type === "number") {
-                      return (
-                        <div key={f.key} className={labelCls}>
-                          <span className={labelTextCls}>{f.label}{f.required ? " *" : ""}</span>
-                          <input type="number" name={name} className={inputCls} required={!!f.required} />
-                        </div>
-                      );
-                    }
-                    if (f.type === "date") {
-                      return (
-                        <div key={f.key} className={labelCls}>
-                          <span className={labelTextCls}>{f.label}{f.required ? " *" : ""}</span>
-                          <input type="date" name={name} className={inputCls} required={!!f.required} />
-                        </div>
-                      );
-                    }
-                    return (
-                      <div key={f.key} className={labelCls}>
-                        <span className={labelTextCls}>{f.label}{f.required ? " *" : ""}</span>
-                        <input name={name} className={inputCls} required={!!f.required} />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </section>
-        )}
 
         {/* ── エラー ── */}
         {error && (
