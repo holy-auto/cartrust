@@ -176,6 +176,7 @@ export async function POST(req: NextRequest) {
       const mapped: Record<string, unknown> = {
         description: (item.description ?? "").trim(),
         quantity: qty,
+        unit: (item.unit ?? "式").trim(),
         unit_price: unitPrice,
         amount,
       };
@@ -262,6 +263,7 @@ export async function PUT(req: NextRequest) {
         const mapped: Record<string, unknown> = {
           description: (item.description ?? "").trim(),
           quantity: qty,
+          unit: (item.unit ?? "式").trim(),
           unit_price: unitPrice,
           amount,
         };
