@@ -366,6 +366,31 @@ export default function ReservationsClient() {
           }
         />
 
+        {/* Googleカレンダー連携結果フィードバック */}
+        {typeof window !== "undefined" && (() => {
+          const params = new URLSearchParams(window.location.search);
+          const gcalResult = params.get("gcal");
+          if (gcalResult === "connected") {
+            // URLからパラメータを除去
+            window.history.replaceState({}, "", window.location.pathname);
+            if (!gcalConnected) setGcalConnected(true);
+            return (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+                ✅ Googleカレンダーとの連携が完了しました！予約が自動同期されます。
+              </div>
+            );
+          }
+          if (gcalResult === "error" || gcalResult === "auth_error") {
+            window.history.replaceState({}, "", window.location.pathname);
+            return (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                ❌ Googleカレンダーの連携に失敗しました。再度お試しください。
+              </div>
+            );
+          }
+          return null;
+        })()}
+
         {/* Googleカレンダー連携 */}
         <section className="glass-card p-4 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
