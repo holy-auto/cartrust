@@ -18,7 +18,9 @@ type Vehicle = {
   model: string | null;
   year: number | null;
   plate_display: string | null;
-  customer_name: string | null;
+  vin_code?: string | null;
+  customer_id?: string | null;
+  customer?: { id: string; name: string } | null;
 };
 
 type FieldType = "text" | "textarea" | "number" | "date" | "select" | "multiselect" | "checkbox";
@@ -57,6 +59,9 @@ const inputCls =
   "w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400";
 const labelCls = "block space-y-1.5";
 const labelTextCls = "text-sm font-medium text-neutral-700";
+const sectionHeaderCls = "mb-4";
+const sectionTagCls = "text-xs font-semibold tracking-[0.18em] text-neutral-500";
+const sectionTitleCls = "mt-0.5 text-base font-semibold text-neutral-900";
 
 const PLAN_LABELS: Record<PlanTier, string> = {
   free: "FREE",
@@ -92,9 +97,6 @@ export default function CertNewFormWrapper({
 
     const form = e.currentTarget;
     const formData = new FormData(form);
-
-    // Client-side validation: vehicle required
-    // Inject current submit status
     formData.set("status", submitStatus);
 
     const vehicleId = String(formData.get("vehicle_id") ?? "").trim();
@@ -110,7 +112,6 @@ export default function CertNewFormWrapper({
     const files = photoRef.current?.getFiles() ?? [];
 
     startTransition(async () => {
-      // Step 1: Create certificate
       const result = await createCertAction(formData);
       if (!result.ok) {
         setError(
@@ -125,7 +126,6 @@ export default function CertNewFormWrapper({
 
       const { public_id } = result;
 
-      // Step 2: Upload photos (if any)
       if (files.length > 0) {
         setUploadProgress(`写真をアップロード中 (0/${files.length})…`);
         try {
@@ -139,7 +139,6 @@ export default function CertNewFormWrapper({
           const uploadJson = await uploadRes.json();
           if (!uploadRes.ok) {
             console.warn("photo upload failed", uploadJson);
-            // Don't block — cert was created, just skip photos
           } else {
             setUploadProgress(`写真 ${uploadJson.uploaded} 枚をアップロードしました`);
           }
@@ -148,17 +147,16 @@ export default function CertNewFormWrapper({
         }
       }
 
-      // Step 3: Navigate to success
       router.push(`/admin/certificates/new/success?pid=${encodeURIComponent(public_id)}`);
     });
   };
 
   return (
     <>
-      {/* Template selector */}
+      {/* ── テンプレート選択 ── */}
       <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
         <div className="mb-3">
-          <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">TEMPLATE</div>
+          <div className={sectionTagCls}>TEMPLATE</div>
           <div className="mt-1 text-base font-semibold text-neutral-900">テンプレートを選択</div>
         </div>
         <form action="/admin/certificates/new" method="get" className="flex gap-3 items-center">
@@ -171,9 +169,7 @@ export default function CertNewFormWrapper({
               <option value="">テンプレートがありません</option>
             ) : (
               templates.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
+                <option key={t.id} value={t.id}>{t.name}</option>
               ))
             )}
           </select>
@@ -184,39 +180,148 @@ export default function CertNewFormWrapper({
             選択
           </button>
         </form>
-        {!tenantLogoPath ? (
+        {!tenantLogoPath && (
           <p className="mt-2 text-xs text-amber-600">
             ロゴ未設定 —{" "}
-            <Link href="/admin/logo" className="underline">
-              ロゴを設定する
-            </Link>
+            <Link href="/admin/logo" className="underline">ロゴを設定する</Link>
           </p>
-        ) : null}
+        )}
       </div>
 
-      {/* Main form */}
+      {/* ── メインフォーム ── */}
       <form
         ref={formRef}
         onSubmit={handleSubmit}
-        className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm space-y-6"
+        className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm space-y-0"
       >
         <input type="hidden" name="template_id" value={selectedTemplate?.id ?? ""} />
         <input type="hidden" name="template_name" value={selectedTemplate?.name ?? ""} />
 
-        {/* Vehicle picker + basic info */}
-        <div data-vehicle-picker>
+        {/* ━━━ 1. 車種選択 ━━━ */}
+        <section data-vehicle-picker className="pb-6">
           <VehiclePickerSection
             vehicles={vehicles}
             defaultVehicleId={defaultVehicleId}
           />
-        </div>
+        </section>
 
-        {/* Template fields */}
-        {schema ? (
-          <div className="border-t border-neutral-100 pt-6 space-y-5">
-            <div>
-              <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">TEMPLATE FIELDS</div>
-              <div className="mt-1 text-base font-semibold text-neutral-900">テンプレート項目</div>
+        {/* ━━━ 2. コーティング情報 ━━━ */}
+        <section className="border-t border-neutral-100 py-6">
+          <CoatingProductsSection />
+        </section>
+
+        {/* ━━━ 3. 有効期限・保証期間 ━━━ */}
+        <section className="border-t border-neutral-100 py-6 space-y-4">
+          <div className={sectionHeaderCls}>
+            <div className={sectionTagCls}>EXPIRY & WARRANTY</div>
+            <div className={sectionTitleCls}>有効期限・保証期間</div>
+          </div>
+          <label className={labelCls}>
+            <span className={labelTextCls}>有効条件（テキスト）</span>
+            <input
+              name="expiry_value"
+              className={inputCls}
+              placeholder="半年ごとにメンテ推奨 など"
+            />
+          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className={labelCls}>
+              <span className={labelTextCls}>有効期限</span>
+              <input type="date" name="expiry_date" className={inputCls} />
+            </label>
+            <label className={labelCls}>
+              <span className={labelTextCls}>保証期間（終了日）</span>
+              <input type="date" name="warranty_period_end" className={inputCls} />
+            </label>
+          </div>
+        </section>
+
+        {/* ━━━ 4. 施工写真 ━━━ */}
+        <section className="border-t border-neutral-100 py-6">
+          <PhotoUploadSection
+            ref={photoRef}
+            maxPhotos={maxPhotos}
+            planLabel={planLabel}
+          />
+        </section>
+
+        {/* ━━━ 5. 詳細な施工内容 ━━━ */}
+        <section className="border-t border-neutral-100 py-6 space-y-4">
+          <div className={sectionHeaderCls}>
+            <div className={sectionTagCls}>WORK DETAILS</div>
+            <div className={sectionTitleCls}>詳細な施工内容</div>
+          </div>
+          <label className={`${labelCls} block`}>
+            <span className={labelTextCls}>施工内容（自由記述）</span>
+            <textarea
+              name="content_free_text"
+              className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+              rows={5}
+              placeholder="施工内容の詳細を記入してください（下地処理、コーティング工程、仕上げ等）"
+            />
+          </label>
+        </section>
+
+        {/* ━━━ 6. 膜厚計測 ━━━ */}
+        <section className="border-t border-neutral-100 py-6">
+          <FilmThicknessSection />
+        </section>
+
+        {/* ━━━ 7. メンテナンス実施日 ━━━ */}
+        <section className="border-t border-neutral-100 py-6 space-y-4">
+          <div className={sectionHeaderCls}>
+            <div className={sectionTagCls}>MAINTENANCE</div>
+            <div className={sectionTitleCls}>メンテナンス実施日</div>
+          </div>
+          <label className={labelCls}>
+            <span className={labelTextCls}>実施日</span>
+            <input type="date" name="maintenance_date" className={inputCls} />
+          </label>
+        </section>
+
+        {/* ━━━ 8. 保証除外内容 ━━━ */}
+        <section className="border-t border-neutral-100 py-6 space-y-4">
+          <div className={sectionHeaderCls}>
+            <div className={sectionTagCls}>WARRANTY EXCLUSIONS</div>
+            <div className={sectionTitleCls}>保証除外内容</div>
+          </div>
+          <label className={`${labelCls} block`}>
+            <span className={labelTextCls}>保証対象外となる条件・注意事項</span>
+            <textarea
+              name="warranty_exclusions"
+              className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+              rows={4}
+              placeholder="例: 飛び石による損傷、経年劣化、不適切な洗車方法による損傷等"
+            />
+          </label>
+        </section>
+
+        {/* ━━━ 9. 備考欄 ━━━ */}
+        <section className="border-t border-neutral-100 py-6 space-y-4">
+          <div className={sectionHeaderCls}>
+            <div className={sectionTagCls}>REMARKS</div>
+            <div className={sectionTitleCls}>備考</div>
+          </div>
+          <label className={`${labelCls} block`}>
+            <span className={labelTextCls}>備考・特記事項</span>
+            <textarea
+              name="remarks"
+              className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+              rows={3}
+              placeholder="その他の特記事項があれば記入してください"
+            />
+          </label>
+        </section>
+
+        {/* ━━━ テンプレ追加フィールド（あれば） ━━━ */}
+        {schema && schema.sections.length > 0 && (
+          <section className="border-t border-neutral-100 py-6 space-y-5">
+            <div className={sectionHeaderCls}>
+              <div className={sectionTagCls}>TEMPLATE FIELDS</div>
+              <div className={sectionTitleCls}>テンプレート追加項目</div>
+              <p className="mt-0.5 text-xs text-neutral-500">
+                選択中のテンプレート「{selectedTemplate?.name}」で定義された追加フィールド
+              </p>
             </div>
 
             {schema.sections.map((sec) => (
@@ -294,80 +399,24 @@ export default function CertNewFormWrapper({
                 </div>
               </div>
             ))}
-          </div>
-        ) : null}
+          </section>
+        )}
 
-        {/* Free text & conditions */}
-        <div className="border-t border-neutral-100 pt-6 space-y-4">
-          <div>
-            <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">CONTENT</div>
-            <div className="mt-1 text-base font-semibold text-neutral-900">自由記述・条件</div>
-          </div>
-          <label className={`${labelCls} block`}>
-            <span className={labelTextCls}>施工内容（自由記述）</span>
-            <textarea
-              name="content_free_text"
-              className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
-              rows={4}
-              placeholder="施工内容の詳細を記入してください"
-            />
-          </label>
-          <label className={labelCls}>
-            <span className={labelTextCls}>有効条件（テキスト）</span>
-            <input
-              name="expiry_value"
-              className={inputCls}
-              placeholder="半年ごとにメンテ推奨 など"
-            />
-          </label>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className={labelCls}>
-              <span className={labelTextCls}>有効期限</span>
-              <input
-                type="date"
-                name="expiry_date"
-                className={inputCls}
-              />
-            </label>
-            <label className={labelCls}>
-              <span className={labelTextCls}>保証期間（終了日）</span>
-              <input
-                type="date"
-                name="warranty_period_end"
-                className={inputCls}
-              />
-            </label>
-          </div>
-        </div>
-
-        {/* Film thickness */}
-        <FilmThicknessSection />
-
-        {/* Coating products */}
-        <CoatingProductsSection />
-
-        {/* Photo upload */}
-        <PhotoUploadSection
-          ref={photoRef}
-          maxPhotos={maxPhotos}
-          planLabel={planLabel}
-        />
-
-        {/* Error */}
+        {/* ── エラー ── */}
         {error && (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
 
-        {/* Upload progress */}
+        {/* ── アップロード進捗 ── */}
         {uploadProgress && (
           <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
             {uploadProgress}
           </div>
         )}
 
-        {/* Actions */}
+        {/* ── アクション ── */}
         <div className="border-t border-neutral-100 pt-6 flex flex-wrap gap-3 items-center">
           <Button
             type="submit"

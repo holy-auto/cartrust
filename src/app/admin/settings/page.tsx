@@ -4,6 +4,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { createSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import SettingsForm from "./SettingsForm";
 import FollowUpSettings from "./FollowUpSettings";
+import RestartTourButton from "./RestartTourButton";
 import PageHeader from "@/components/ui/PageHeader";
 import { formatDate } from "@/lib/format";
 
@@ -88,8 +89,8 @@ export default async function AdminSettingsPage() {
     <div className="space-y-6">
 
         <PageHeader
-          tag="設定"
-          title="テナント設定"
+          tag="店舗設定"
+          title="店舗設定"
           description="店舗情報の編集・プラン確認を行います。"
           actions={
             <Link href="/admin" className="btn-secondary">ダッシュボード</Link>
@@ -208,8 +209,9 @@ export default async function AdminSettingsPage() {
               </div>
             )}
           </div>
-          <div className="mt-4">
+          <div className="mt-4 flex gap-3">
             <Link href="/api/auth/signout" className="btn-secondary">ログアウト</Link>
+            <RestartTourButton />
           </div>
         </section>
 

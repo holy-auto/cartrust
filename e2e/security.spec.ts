@@ -52,7 +52,7 @@ test.describe("Cron authentication", () => {
   });
 });
 
-test.describe("Public endpoints rate limiting", () => {
+test.describe("Public endpoints", () => {
   test("GET /api/certificate/public-status returns 400 without pid", async ({ request }) => {
     const res = await request.get("/api/certificate/public-status");
     expect([400, 404]).toContain(res.status());

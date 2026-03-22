@@ -7,6 +7,7 @@ import { useCurrentRole } from "@/lib/auth/useCurrentRole";
 import { ROUTE_PERMISSIONS, type Permission } from "@/lib/auth/permissions";
 import { ROLE_LABELS } from "@/lib/auth/roles";
 import StoreSelector from "@/components/ui/StoreSelector";
+import ThemeToggle from "@/lib/theme/ThemeToggle";
 
 type NavItem = {
   href: string;
@@ -133,7 +134,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     href: "/admin/orders",
-    label: "受発注",
+    label: "案件受発注",
     requiredPermission: "orders:view",
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -196,6 +197,7 @@ const NAV_ITEMS: NavItem[] = [
     href: "/admin/market-vehicles",
     label: "マーケット車両",
     requiredPermission: "market:view",
+    hidden: true,
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
@@ -206,6 +208,7 @@ const NAV_ITEMS: NavItem[] = [
     href: "/admin/deals",
     label: "商談管理",
     requiredPermission: "market:view",
+    hidden: true,
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
@@ -235,7 +238,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     href: "/admin/settings",
-    label: "設定",
+    label: "店舗設定",
     requiredPermission: "settings:view",
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -376,6 +379,22 @@ export default function Sidebar() {
 
         {/* Footer */}
         <div className="border-t border-border-subtle px-3 py-3">
+          <Link
+            href="/admin/support"
+            className={`flex items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-2 text-[13px] font-medium transition-all duration-150 mb-1 ${
+              pathname === "/admin/support"
+                ? "bg-accent-dim text-accent"
+                : "text-muted hover:bg-surface-hover hover:text-primary"
+            }`}
+          >
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
+            </svg>
+            サポート
+          </Link>
+          <div className="mb-2 px-2.5">
+            <ThemeToggle />
+          </div>
           {role && (
             <div className="mb-2 flex items-center gap-2 px-2.5">
               <span className="inline-flex items-center rounded-md bg-accent-dim px-2 py-0.5 text-[11px] font-medium text-accent">

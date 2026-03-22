@@ -22,6 +22,7 @@ type Row = {
   brand_name: string;
   product_id: string;
   product_name: string;
+  lot_number: string; // ロット番号
 };
 
 // 施工部位プリセット
@@ -59,6 +60,7 @@ function newRow(): Row {
     brand_name: "",
     product_id: "",
     product_name: "",
+    lot_number: "",
   };
 }
 
@@ -115,6 +117,7 @@ export default function CoatingProductsSection() {
       brand_name: r.brand_name || null,
       product_id: r.product_id || null,
       product_name: r.product_name || null,
+      lot_number: r.lot_number?.trim() || null,
     }))
   );
 
@@ -144,10 +147,11 @@ export default function CoatingProductsSection() {
       ) : null}
 
       {/* ヘッダー行 */}
-      <div className="hidden sm:grid sm:grid-cols-[2fr_2fr_2fr_auto] gap-2 px-1">
+      <div className="hidden sm:grid sm:grid-cols-[2fr_2fr_2fr_1.5fr_auto] gap-2 px-1">
         <span className="text-[11px] font-semibold text-neutral-500 uppercase">部位</span>
         <span className="text-[11px] font-semibold text-neutral-500 uppercase">ブランド</span>
         <span className="text-[11px] font-semibold text-neutral-500 uppercase">製品</span>
+        <span className="text-[11px] font-semibold text-neutral-500 uppercase">ロット番号</span>
         <span />
       </div>
 
@@ -156,7 +160,7 @@ export default function CoatingProductsSection() {
         return (
           <div
             key={row.id}
-            className="grid grid-cols-1 sm:grid-cols-[2fr_2fr_2fr_auto] gap-2 items-start rounded-xl border border-neutral-100 bg-neutral-50 p-3 sm:p-0 sm:bg-transparent sm:border-0"
+            className="grid grid-cols-1 sm:grid-cols-[2fr_2fr_2fr_1.5fr_auto] gap-2 items-start rounded-xl border border-neutral-100 bg-neutral-50 p-3 sm:p-0 sm:bg-transparent sm:border-0"
           >
             {/* 部位 */}
             <div>
@@ -213,6 +217,17 @@ export default function CoatingProductsSection() {
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* ロット番号 */}
+            <div>
+              <span className="sm:hidden text-[11px] font-semibold text-neutral-500 uppercase mb-1 block">ロット番号</span>
+              <input
+                value={row.lot_number}
+                onChange={(e) => update(row.id, "lot_number", e.target.value)}
+                placeholder="ロット番号"
+                className={inputCls}
+              />
             </div>
 
             {/* 削除 */}
