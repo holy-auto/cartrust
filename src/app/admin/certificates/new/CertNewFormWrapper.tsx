@@ -48,6 +48,7 @@ type Template = {
 type Props = {
   vehicles: Vehicle[];
   defaultVehicleId?: string;
+  defaultCustomerId?: string;
   templates: Template[];
   selectedTemplate: Template | null;
   tenantLogoPath: string | null;
@@ -73,6 +74,7 @@ const PLAN_LABELS: Record<PlanTier, string> = {
 export default function CertNewFormWrapper({
   vehicles,
   defaultVehicleId,
+  defaultCustomerId,
   templates,
   selectedTemplate,
   tenantLogoPath,
@@ -196,11 +198,15 @@ export default function CertNewFormWrapper({
       >
         <input type="hidden" name="template_id" value={selectedTemplate?.id ?? ""} />
         <input type="hidden" name="template_name" value={selectedTemplate?.name ?? ""} />
+        {defaultCustomerId && <input type="hidden" name="customer_id" value={defaultCustomerId} />}
 
         {/* ━━━ 1. 車種選択 ━━━ */}
         <section data-vehicle-picker className="pb-6">
           <VehiclePickerSection
-            vehicles={vehicles}
+            vehicles={defaultCustomerId
+              ? vehicles.filter((v) => (v as Record<string, unknown>).customer_id === defaultCustomerId || !defaultVehicleId)
+              : vehicles
+            }
             defaultVehicleId={defaultVehicleId}
           />
         </section>
