@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkRateLimit as checkUpstashRateLimit } from "@/lib/api/rateLimit";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { joinSchemaV2, parseBody } from "@/lib/validation/schemas";
 
@@ -17,8 +18,12 @@ export const runtime = "nodejs";
  *   terms_accepted: boolean
  * }
  */
-export async function POST(req: Request) {
-  // Rate limit: 3 registration attempts per IP per 10 minutes
+export async function POST(req: NextRequest) {
+  // Rate limit: Upstash Redis (production) with in-memory fallback (dev)
+  const upstashDeny = await checkUpstashRateLimit(req, "auth");
+  if (upstashDeny) return upstashDeny;
+
+  // Additional in-memory rate limit as defense-in-depth
   const ip = getClientIp(req);
   const rl = checkRateLimit(`join:${ip}`, { limit: 3, windowSec: 600 });
   if (!rl.allowed) {
@@ -69,6 +74,21 @@ export async function POST(req: Request) {
     );
   }
 
+  // Validate corporate number format if provided
+  if (data.corporate_number) {
+    const { isValidCorporateNumber } = await import("@/lib/insurer/corporateNumber");
+    if (!isValidCorporateNumber(data.corporate_number)) {
+      return NextResponse.json(
+        { error: "invalid_corporate_number", message: "法人番号の形式が正しくありません（13桁の数字）" },
+        { status: 400 },
+      );
+    }
+  }
+
+  // Extract optional referral/agency params
+  const referralCode = (rawBody as any)?.referral_code || null;
+  const agencyId = (rawBody as any)?.agency_id || null;
+
   // Call transactional RPC
   const { data: result, error: rpcError } = await supabase.rpc("register_insurer_v2", {
     p_email: data.email,
@@ -81,6 +101,8 @@ export async function POST(req: Request) {
     p_address: data.address || null,
     p_representative_name: data.representative_name || null,
     p_terms_accepted: data.terms_accepted,
+    p_referral_code: referralCode,
+    p_agency_id: agencyId,
   });
 
   if (rpcError) {

@@ -1,7 +1,10 @@
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { InsurerPlanTier, InsurerRole } from "@/types/insurer";
 import { normalizeInsurerPlanTier, normalizeInsurerRole, INSURER_PLAN_RANK } from "@/types/insurer";
+
+const ACTIVE_INSURER_COOKIE = "active_insurer_id";
 
 export type InsurerCallerContext = {
   userId: string;
@@ -13,6 +16,7 @@ export type InsurerCallerContext = {
 
 /**
  * Resolve the current user's insurer context from Supabase session.
+ * Uses `active_insurer_id` cookie to support multi-insurer switching.
  * Returns null if the user is not authenticated or not an insurer user.
  */
 export async function resolveInsurerCaller(): Promise<InsurerCallerContext | null> {
@@ -22,18 +26,52 @@ export async function resolveInsurerCaller(): Promise<InsurerCallerContext | nul
 
   const admin = createAdminClient();
 
-  // Get insurer_user record
-  const { data: iu, error: iuErr } = await admin
+  // Check for active insurer cookie
+  const cookieStore = await cookies();
+  const activeInsurerId = cookieStore.get(ACTIVE_INSURER_COOKIE)?.value;
+
+  // Build query for insurer_user record
+  let query = admin
     .from("insurer_users")
     .select("id, insurer_id, role")
     .eq("user_id", auth.user.id)
-    .eq("is_active", true)
+    .eq("is_active", true);
+
+  if (activeInsurerId) {
+    // Try specific insurer first
+    query = query.eq("insurer_id", activeInsurerId);
+  }
+
+  const { data: iu, error: iuErr } = await query
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
 
+  // If cookie-specified insurer not found, fall back to any
+  if (!iu && activeInsurerId) {
+    const { data: fallbackIu } = await admin
+      .from("insurer_users")
+      .select("id, insurer_id, role")
+      .eq("user_id", auth.user.id)
+      .eq("is_active", true)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (!fallbackIu) return null;
+    // Use fallback and continue
+    return resolveInsurerContext(admin, auth.user.id, fallbackIu);
+  }
+
   if (iuErr || !iu) return null;
 
+  return resolveInsurerContext(admin, auth.user.id, iu);
+}
+
+async function resolveInsurerContext(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  iu: { id: string; insurer_id: string; role: string },
+): Promise<InsurerCallerContext | null> {
   // Get insurer plan info — also verify insurer is active and not suspended
   const { data: insurer, error: insErr } = await admin
     .from("insurers")
@@ -47,7 +85,7 @@ export async function resolveInsurerCaller(): Promise<InsurerCallerContext | nul
   if (insErr || !insurer) return null;
 
   return {
-    userId: auth.user.id,
+    userId,
     insurerId: iu.insurer_id,
     insurerUserId: iu.id,
     role: normalizeInsurerRole(iu.role),
