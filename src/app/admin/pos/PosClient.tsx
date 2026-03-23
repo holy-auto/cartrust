@@ -187,6 +187,8 @@ export default function PosClient() {
     setActivePaymentIntentId(null);
     setActiveConnectAccount(null);
     setCardConfirmStep(false);
+    setServerDrivenStep("idle");
+    setServerDrivenError(null);
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
@@ -273,6 +275,8 @@ export default function PosClient() {
     setTerminalError(null);
     setActivePaymentIntentId(null);
     setActiveConnectAccount(null);
+    setServerDrivenStep("idle");
+    setServerDrivenError(null);
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
@@ -480,6 +484,130 @@ export default function PosClient() {
     }
   }, [selected, amount, checkoutItems, note, mutate, mode]);
 
+  // ── Card payment: Server-driven Terminal flow ──
+  const [serverDrivenStep, setServerDrivenStep] = useState<
+    "idle" | "searching_readers" | "sending_to_reader" | "waiting_tap" | "processing" | "succeeded" | "failed" | "no_reader"
+  >("idle");
+  const [serverDrivenError, setServerDrivenError] = useState<string | null>(null);
+
+  const handleCardPaymentServerDriven = useCallback(async (): Promise<boolean> => {
+    setServerDrivenStep("searching_readers");
+    setServerDrivenError(null);
+    setTerminalError(null);
+
+    try {
+      // 1. PaymentIntent 作成
+      const description = checkoutItems.map((i) => i.description).join(", ") || (mode === "reservation" ? selected?.title : "ウォークイン会計") || "POS会計";
+      const piRes = await fetch("/api/admin/pos/terminal/create-payment-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount, description }),
+      });
+      const piData = await piRes.json();
+      if (!piRes.ok) throw new Error(piData?.error ?? "PaymentIntent の作成に失敗しました");
+
+      const paymentIntentId = piData.payment_intent_id as string;
+      setActivePaymentIntentId(paymentIntentId);
+      setActiveConnectAccount(piData.connect_account as string | null);
+
+      // 2. リーダー検索
+      const readersRes = await fetch("/api/admin/pos/terminal/readers");
+      const readersData = await readersRes.json();
+      if (!readersRes.ok) throw new Error("リーダー一覧の取得に失敗しました");
+
+      const onlineReaders = (readersData.readers ?? []).filter(
+        (r: { status: string }) => r.status === "online",
+      );
+
+      if (onlineReaders.length === 0) {
+        // リーダーが見つからない → フォールバック
+        setServerDrivenStep("no_reader");
+        return false;
+      }
+
+      // 3. リーダーに PaymentIntent を送信
+      setServerDrivenStep("sending_to_reader");
+      const reader = onlineReaders[0] as { id: string };
+      const processRes = await fetch("/api/admin/pos/terminal/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          payment_intent_id: paymentIntentId,
+          reader_id: reader.id,
+        }),
+      });
+      const processData = await processRes.json();
+      if (!processRes.ok) throw new Error(processData?.error ?? "リーダーへの送信に失敗しました");
+
+      // 4. タッチ決済待ち → ポーリング
+      setServerDrivenStep("waiting_tap");
+
+      await new Promise<void>((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 90; // 最大3分 (2秒間隔)
+
+        pollingRef.current = setInterval(async () => {
+          attempts++;
+          if (attempts > maxAttempts) {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            pollingRef.current = null;
+            reject(new Error("決済がタイムアウトしました。もう一度お試しください。"));
+            return;
+          }
+
+          try {
+            const statusRes = await fetch(
+              `/api/admin/pos/terminal/create-payment-intent?id=${paymentIntentId}`,
+            );
+            if (statusRes.status === 405) return;
+
+            const statusData = await statusRes.json();
+            if (statusData.status === "requires_capture" || statusData.status === "succeeded") {
+              if (pollingRef.current) clearInterval(pollingRef.current);
+              pollingRef.current = null;
+              resolve();
+            } else if (statusData.status === "canceled" || statusData.status === "requires_payment_method") {
+              if (pollingRef.current) clearInterval(pollingRef.current);
+              pollingRef.current = null;
+              reject(new Error("決済がキャンセルされました"));
+            }
+          } catch {
+            // ポーリング中のネットワークエラーは無視して次回リトライ
+          }
+        }, 2000);
+      });
+
+      // 5. CARTRUST DB に記録
+      setServerDrivenStep("processing");
+      const checkoutRes = await fetch("/api/admin/pos/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reservation_id: mode === "reservation" ? selected?.id : undefined,
+          customer_id: mode === "reservation" ? selected?.customer_id : undefined,
+          payment_method: "card",
+          amount,
+          items_json: checkoutItems,
+          tax_rate: 10,
+          note: note || undefined,
+          create_receipt: true,
+        }),
+      });
+      const checkoutData = await checkoutRes.json();
+      if (!checkoutRes.ok) throw new Error(checkoutData?.error ?? "決済の記録に失敗しました");
+
+      setResult(checkoutData);
+      setServerDrivenStep("succeeded");
+      await mutate();
+      return true;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "カード決済に失敗しました";
+      setServerDrivenError(msg);
+      setServerDrivenStep("failed");
+      return false;
+    }
+  }, [selected, amount, checkoutItems, note, mutate, mode]);
+
   // ── Card payment: 2ステップ確認フロー ──
   const [cardConfirmStep, setCardConfirmStep] = useState(false);
 
@@ -518,9 +646,37 @@ export default function PosClient() {
   const handleCheckout = useCallback(async () => {
     if (!hasSelection || processing) return;
 
-    // カード決済: Stripeアプリで決済する案内画面を表示
+    // カード決済: server-driven → SDK → 手動確認 のフォールバック
     if (paymentMethod === "card") {
-      setCardConfirmStep(true);
+      setProcessing(true);
+      setError(null);
+
+      // 1. Server-driven: リーダーに自動送信
+      const serverDrivenOk = await handleCardPaymentServerDriven();
+      if (serverDrivenOk) {
+        setProcessing(false);
+        return;
+      }
+
+      // server-driven がリーダー未検出 or 失敗の場合
+      if (serverDrivenStep === "no_reader" || serverDrivenStep === "failed") {
+        // 2. SDK flow を試行
+        const terminal = await getTerminal();
+        if (terminal) {
+          await handleCardPaymentWithTerminal(terminal);
+          setProcessing(false);
+          return;
+        }
+
+        // 3. 手動確認フォールバック
+        setServerDrivenStep("idle");
+        setServerDrivenError(null);
+        setProcessing(false);
+        setCardConfirmStep(true);
+        return;
+      }
+
+      setProcessing(false);
       return;
     }
 
@@ -552,7 +708,7 @@ export default function PosClient() {
     } finally {
       setProcessing(false);
     }
-  }, [hasSelection, processing, paymentMethod, amount, received, checkoutItems, note, mutate, mode, selected]);
+  }, [hasSelection, processing, paymentMethod, amount, received, checkoutItems, note, mutate, mode, selected, handleCardPaymentServerDriven, serverDrivenStep, getTerminal, handleCardPaymentWithTerminal]);
 
   // ── Render ──
   return (
@@ -916,6 +1072,67 @@ export default function PosClient() {
                   </div>
                 )}
 
+                {/* Server-driven Terminal status */}
+                {serverDrivenStep !== "idle" && paymentMethod === "card" && (
+                  <div className="space-y-3 rounded-xl bg-info-dim p-4">
+                    <div className="text-center">
+                      {serverDrivenStep === "searching_readers" && (
+                        <>
+                          <div className="mx-auto mb-2 h-6 w-6 animate-spin rounded-full border-2 border-info-text border-t-transparent" />
+                          <p className="text-sm font-semibold text-info-text">リーダーを検索中...</p>
+                        </>
+                      )}
+                      {serverDrivenStep === "sending_to_reader" && (
+                        <>
+                          <div className="mx-auto mb-2 h-6 w-6 animate-spin rounded-full border-2 border-info-text border-t-transparent" />
+                          <p className="text-sm font-semibold text-info-text">Stripeアプリに送信中...</p>
+                        </>
+                      )}
+                      {serverDrivenStep === "waiting_tap" && (
+                        <>
+                          <div className="text-3xl">💳</div>
+                          <p className="mt-2 text-sm font-semibold text-info-text">
+                            Stripeアプリでタッチ決済してください {formatJpy(amount)}
+                          </p>
+                          <div className="mx-auto mt-2 h-5 w-5 animate-spin rounded-full border-2 border-info-text border-t-transparent" />
+                        </>
+                      )}
+                      {serverDrivenStep === "processing" && (
+                        <>
+                          <div className="mx-auto mb-2 h-6 w-6 animate-spin rounded-full border-2 border-info-text border-t-transparent" />
+                          <p className="text-sm font-semibold text-info-text">決済処理中...</p>
+                        </>
+                      )}
+                      {serverDrivenStep === "succeeded" && (
+                        <p className="text-sm font-semibold text-success-text">カード決済完了</p>
+                      )}
+                      {serverDrivenStep === "no_reader" && (
+                        <p className="text-sm font-semibold text-warning-text">
+                          リーダーが見つかりません。手動で決済してください
+                        </p>
+                      )}
+                      {serverDrivenStep === "failed" && (
+                        <>
+                          <p className="text-sm font-semibold text-danger-text">
+                            {serverDrivenError ?? "カード決済に失敗しました"}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setServerDrivenStep("idle");
+                              setServerDrivenError(null);
+                              setError(null);
+                            }}
+                            className="mt-2 rounded-lg bg-surface px-4 py-1.5 text-xs font-medium text-primary shadow-sm transition-colors hover:bg-surface-hover"
+                          >
+                            再試行
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Card confirm step */}
                 {cardConfirmStep && paymentMethod === "card" && (
                   <div className="space-y-3 rounded-xl bg-info-dim p-4">
@@ -952,7 +1169,7 @@ export default function PosClient() {
                 <button
                   type="button"
                   onClick={handleCheckout}
-                  disabled={!canCheckout || cardConfirmStep}
+                  disabled={!canCheckout || cardConfirmStep || (serverDrivenStep !== "idle" && serverDrivenStep !== "failed" && serverDrivenStep !== "no_reader")}
                   className="btn-primary w-full rounded-xl py-3.5 text-base font-semibold disabled:opacity-40"
                 >
                   {processing ? (
