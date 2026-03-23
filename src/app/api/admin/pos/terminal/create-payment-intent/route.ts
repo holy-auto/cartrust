@@ -90,3 +90,57 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }
+
+// ─── GET: PaymentIntent ステータス確認（ポーリング用） ───
+export async function GET(req: NextRequest) {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+    if (!requireMinRole(caller, "staff")) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
+
+    const id = req.nextUrl.searchParams.get("id");
+    if (!id || !id.startsWith("pi_")) {
+      return NextResponse.json({ error: "invalid_id" }, { status: 400 });
+    }
+
+    // テナントのStripe Connectアカウントを取得
+    const admin = createAdminClient();
+    const { data: tenant } = await admin
+      .from("tenants")
+      .select("stripe_connect_account_id, stripe_connect_onboarded")
+      .eq("id", caller.tenantId)
+      .single();
+
+    const connectAccountId = tenant?.stripe_connect_account_id as string | null;
+    const isOnboarded = tenant?.stripe_connect_onboarded as boolean | null;
+
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: "2025-02-24.acacia" as any,
+    });
+
+    const stripeOptions = connectAccountId && isOnboarded
+      ? { stripeAccount: connectAccountId }
+      : undefined;
+
+    const pi = await stripe.paymentIntents.retrieve(id, stripeOptions);
+
+    // tenant_id チェック（自テナントのPIのみ参照可能）
+    if (pi.metadata?.tenant_id !== caller.tenantId) {
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      id: pi.id,
+      status: pi.status,
+      amount: pi.amount,
+    });
+  } catch (e: unknown) {
+    console.error("[pos/terminal/create-payment-intent GET] error:", e);
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+  }
+}

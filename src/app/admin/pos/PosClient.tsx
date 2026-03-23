@@ -470,11 +470,31 @@ export default function PosClient() {
   }, [selected, amount, checkoutItems, note, mutate, mode]);
 
   // ── Main checkout handler ──
-  // 全決済方法で即 pos_checkout（外部端末で決済済みの記録方式）
-  // Stripe Terminal端末導入時はここにカード分岐を追加
   const handleCheckout = useCallback(async () => {
     if (!hasSelection || processing) return;
 
+    // カード決済: Stripe連携フロー（Stripeアプリで決済）
+    if (paymentMethod === "card") {
+      setProcessing(true);
+      setError(null);
+      try {
+        // Terminal SDK が使える場合はSDKフロー
+        const terminal = await getTerminal();
+        if (terminal) {
+          await handleCardPaymentWithTerminal(terminal);
+        } else {
+          // SDKなし: Stripeアプリ連携フォールバック
+          await handleCardPaymentFallback();
+        }
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "カード決済に失敗しました");
+      } finally {
+        setProcessing(false);
+      }
+      return;
+    }
+
+    // 現金・QR・振込・その他: 即 pos_checkout（外部で決済済みの記録方式）
     setProcessing(true);
     setError(null);
     try {
@@ -502,7 +522,7 @@ export default function PosClient() {
     } finally {
       setProcessing(false);
     }
-  }, [hasSelection, processing, paymentMethod, amount, received, checkoutItems, note, mutate, mode, selected]);
+  }, [hasSelection, processing, paymentMethod, amount, received, checkoutItems, note, mutate, mode, selected, getTerminal, handleCardPaymentWithTerminal, handleCardPaymentFallback]);
 
   // ── Render ──
   return (
@@ -867,13 +887,51 @@ export default function PosClient() {
                 )}
 
                 {/* Terminal status (card payment) */}
-                {/* Terminal UI: Stripe Terminal端末導入時に有効化 */}
+                {terminalStatus !== "idle" && paymentMethod === "card" && (
+                  <div className={`rounded-xl p-4 text-sm ${
+                    terminalStatus === "succeeded" ? "bg-success-dim text-success-text" :
+                    terminalStatus === "failed" ? "bg-danger-dim text-danger-text" :
+                    "bg-info-dim text-info-text"
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      {terminalStatus !== "succeeded" && terminalStatus !== "failed" && (
+                        <svg className="h-5 w-5 animate-spin flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                      )}
+                      <div>
+                        <p className="font-medium">
+                          {terminalStatus === "connecting" && "リーダーに接続中..."}
+                          {terminalStatus === "waiting_card" && "💳 Stripeアプリでカード決済を実行してください"}
+                          {terminalStatus === "processing" && "決済処理中..."}
+                          {terminalStatus === "succeeded" && "✅ カード決済完了"}
+                          {terminalStatus === "failed" && `❌ ${terminalError || "カード決済に失敗しました"}`}
+                        </p>
+                        {terminalStatus === "waiting_card" && (
+                          <p className="mt-1 text-xs opacity-80">
+                            Stripeモバイルアプリで {formatJpy(amount)} の決済を確認・実行してください（最大2分）
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    {terminalStatus === "failed" && (
+                      <button
+                        type="button"
+                        onClick={() => { setTerminalStatus("idle"); setTerminalError(null); }}
+                        className="mt-2 rounded-lg border border-danger-text/30 px-3 py-1 text-xs font-medium hover:bg-danger-text/10"
+                      >
+                        やり直す
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {/* Submit */}
                 <button
                   type="button"
                   onClick={handleCheckout}
-                  disabled={!canCheckout}
+                  disabled={!canCheckout || terminalStatus === "waiting_card" || terminalStatus === "processing"}
                   className="btn-primary w-full rounded-xl py-3.5 text-base font-semibold disabled:opacity-40"
                 >
                   {processing ? (
@@ -884,6 +942,8 @@ export default function PosClient() {
                       </svg>
                       処理中...
                     </span>
+                  ) : paymentMethod === "card" ? (
+                    `💳 ${formatJpy(amount)} カード決済を開始`
                   ) : (
                     `${formatJpy(amount)} を会計する`
                   )}
