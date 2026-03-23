@@ -60,7 +60,7 @@ interface ReservationsData {
 }
 
 interface MenuItemsData {
-  menuItems: MasterMenuItem[];
+  items: MasterMenuItem[];
 }
 
 interface CheckoutResult {
@@ -117,7 +117,7 @@ export default function PosClient() {
 
   const reservations = data?.reservations ?? [];
   const masterMenuItems = useMemo(
-    () => (menuData?.menuItems ?? []).filter((mi) => mi.is_active),
+    () => (menuData?.items ?? []).filter((mi) => mi.is_active),
     [menuData],
   );
 
