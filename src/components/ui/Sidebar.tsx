@@ -2,12 +2,60 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useCurrentRole } from "@/lib/auth/useCurrentRole";
 import { ROUTE_PERMISSIONS, type Permission } from "@/lib/auth/permissions";
 import { ROLE_LABELS } from "@/lib/auth/roles";
 import StoreSelector from "@/components/ui/StoreSelector";
 import ThemeToggle from "@/lib/theme/ThemeToggle";
+
+/* ------------------------------------------------------------------ */
+/*  Badge counts hook                                                  */
+/* ------------------------------------------------------------------ */
+type BadgeCounts = Record<string, number>;
+
+function useSidebarBadges(intervalMs = 60_000): BadgeCounts {
+  const [badges, setBadges] = useState<BadgeCounts>({});
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchBadges = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/sidebar-badges");
+      if (!res.ok) return;
+      const json = await res.json();
+      if (!json.ok) return;
+      const next: BadgeCounts = {};
+      if (json.reservations_today > 0) next.reservations_today = json.reservations_today;
+      if (json.square_unlinked > 0) next.square_unlinked = json.square_unlinked;
+      setBadges(next);
+    } catch {
+      // silently ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBadges();
+    timerRef.current = setInterval(fetchBadges, intervalMs);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [fetchBadges, intervalMs]);
+
+  return badges;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Badge component                                                    */
+/* ------------------------------------------------------------------ */
+function NavBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  const label = count > 99 ? "99+" : String(count);
+  return (
+    <span className="ml-auto inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+      {label}
+    </span>
+  );
+}
 
 type NavItem = {
   href: string;
@@ -17,6 +65,8 @@ type NavItem = {
   requiredPermission?: Permission;
   /** Hide from sidebar — used to suppress unreleased features before launch */
   hidden?: boolean;
+  /** Badge key used to look up dynamic badge counts */
+  badgeKey?: string;
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -75,6 +125,7 @@ const NAV_ITEMS: NavItem[] = [
     href: "/admin/reservations",
     label: "予約管理",
     requiredPermission: "reservations:view",
+    badgeKey: "reservations_today",
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
@@ -98,6 +149,17 @@ const NAV_ITEMS: NavItem[] = [
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+      </svg>
+    ),
+  },
+  {
+    href: "/admin/square",
+    label: "Square 売上",
+    requiredPermission: "payments:view",
+    badgeKey: "square_unlinked",
+    icon: (
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
       </svg>
     ),
   },
@@ -313,6 +375,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const { role, can, loading } = useCurrentRole();
+  const badges = useSidebarBadges();
 
   useEffect(() => {
     setOpen(false);
@@ -378,6 +441,8 @@ export default function Sidebar() {
                 ? pathname === item.href
                 : pathname.startsWith(item.href);
 
+              const badgeCount = item.badgeKey ? (badges[item.badgeKey] ?? 0) : 0;
+
               return (
                 <li key={item.href}>
                   <Link
@@ -390,6 +455,7 @@ export default function Sidebar() {
                   >
                     <span className={isActive ? "text-accent" : "text-muted"}>{item.icon}</span>
                     {item.label}
+                    {badgeCount > 0 && <NavBadge count={badgeCount} />}
                   </Link>
                 </li>
               );
