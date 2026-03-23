@@ -168,6 +168,7 @@ export const ROUTE_PERMISSIONS: Record<string, Permission> = {
   "/admin/logo": "logo:manage",
   "/admin/audit": "audit:view",
   "/admin/stores": "stores:view",
+  "/admin/pos": "register_sessions:operate",
   "/admin/registers": "registers:view",
   "/admin/deals": "market:view",
   "/admin/template-options": "template_options:view",

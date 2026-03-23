@@ -49,8 +49,14 @@ DROP POLICY IF EXISTS invoices_tenant_delete ON invoices;
 DROP INDEX IF EXISTS idx_invoices_tenant;
 DROP INDEX IF EXISTS idx_invoices_customer;
 
--- invoices テーブルを削除
-DROP TABLE IF EXISTS invoices;
+-- invoices テーブルを削除（VIEWの場合はDROP VIEW）
+DO $$ BEGIN
+IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='invoices' AND table_type='BASE TABLE') THEN
+  EXECUTE 'DROP TABLE invoices CASCADE';
+ELSIF EXISTS (SELECT 1 FROM information_schema.views WHERE table_schema='public' AND table_name='invoices') THEN
+  EXECUTE 'DROP VIEW invoices CASCADE';
+END IF;
+END $$;
 
 -- invoices VIEW を作成（後方互換性）
 CREATE OR REPLACE VIEW invoices AS
