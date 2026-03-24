@@ -135,21 +135,35 @@ as $$
   select value::uuid from platform_config where key = 'platform_tenant_id';
 $$;
 
--- Drop old broken policy and create fixed one
-drop policy if exists "aal_select_platform_admin" on admin_audit_logs;
-
-create policy "aal_select_platform_admin" on admin_audit_logs
-  for select using (
-    exists (
-      select 1 from tenant_memberships tm
-      where tm.user_id = auth.uid()
-        and tm.tenant_id = get_platform_tenant_id()
-        and tm.role in ('admin', 'owner')
-    )
-  );
-
 -- RLS for platform_config: read-only for authenticated, no public writes
 alter table platform_config enable row level security;
 
-create policy "platform_config_select" on platform_config
-  for select using (true);
+do $$
+begin
+  if not exists (select 1 from pg_policies where policyname = 'platform_config_select' and tablename = 'platform_config') then
+    create policy "platform_config_select" on platform_config for select using (true);
+  end if;
+end $$;
+
+-- Fix admin_audit_logs RLS only if the table exists
+-- (table is created in 20260325000000_insurer_onboarding_v2.sql)
+do $$
+begin
+  if exists (select 1 from pg_tables where tablename = 'admin_audit_logs') then
+    -- Drop old broken policy that uses current_setting
+    execute 'drop policy if exists "aal_select_platform_admin" on admin_audit_logs';
+
+    -- Create fixed policy using platform_config lookup
+    execute '
+      create policy "aal_select_platform_admin" on admin_audit_logs
+        for select using (
+          exists (
+            select 1 from tenant_memberships tm
+            where tm.user_id = auth.uid()
+              and tm.tenant_id = get_platform_tenant_id()
+              and tm.role in (''admin'', ''owner'')
+          )
+        )
+    ';
+  end if;
+end $$;
