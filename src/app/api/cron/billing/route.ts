@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
 import { verifyCronRequest } from "@/lib/cronAuth";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -48,13 +48,7 @@ export async function GET(req: NextRequest) {
     return apiUnauthorized(authError);
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  if (!supabaseUrl || !supabaseServiceKey) {
-    return apiInternalError(new Error("Missing Supabase config"), "cron/billing");
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const supabase = getSupabaseAdmin();
   const today = new Date().toISOString().slice(0, 10);
   let overdueUpdated = 0;
   let remindersSent = 0;
