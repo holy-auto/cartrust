@@ -17,7 +17,7 @@ const FROM = process.env.RESEND_FROM ?? "CAR TRUST <support@cartrust.co.jp>";
 export async function POST(request: Request) {
   // Rate limit: 5 contact form submissions per IP per 15 minutes
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`contact:${ip}`, { limit: 5, windowSec: 900 });
+  const rl = await checkRateLimit(`contact:${ip}`, { limit: 5, windowSec: 900 });
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "rate_limited", message: "送信が多すぎます。しばらくしてから再度お試しください。" },

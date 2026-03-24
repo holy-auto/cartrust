@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   try {
     // Rate limit: 30 requests per IP per minute
     const ip = getClientIp(req);
-    const rl = checkRateLimit(`public-status:${ip}`, { limit: 30, windowSec: 60 });
+    const rl = await checkRateLimit(`public-status:${ip}`, { limit: 30, windowSec: 60 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: "rate_limited", message: "リクエストが多すぎます。しばらくしてから再度お試しください。" },

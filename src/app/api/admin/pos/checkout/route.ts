@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
     // Rate limiting: 10 requests per 60 seconds per user
     const rlKey = `pos-checkout:${caller.userId || getClientIp(req)}`;
-    const rl = checkRateLimit(rlKey, { limit: 10, windowSec: 60 });
+    const rl = await checkRateLimit(rlKey, { limit: 10, windowSec: 60 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: "rate_limited", retry_after: rl.retryAfterSec },

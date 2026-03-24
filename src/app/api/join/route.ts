@@ -20,7 +20,7 @@ function slugify(name: string): string {
 export async function POST(req: Request) {
   // Rate limit: 3 registration attempts per IP per 10 minutes
   const ip = getClientIp(req);
-  const rl = checkRateLimit(`join:${ip}`, { limit: 3, windowSec: 600 });
+  const rl = await checkRateLimit(`join:${ip}`, { limit: 3, windowSec: 600 });
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "rate_limited", message: "登録リクエストが多すぎます。しばらくしてから再度お試しください。" },
