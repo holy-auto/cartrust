@@ -55,6 +55,7 @@ export async function GET(req: NextRequest) {
     } else if (type === "received") {
       query = query.eq("to_tenant_id", tenantId);
     } else {
+      // 発注先未定(to_tenant_id IS NULL)の注文も発注者なら表示
       query = query.or(`from_tenant_id.eq.${tenantId},to_tenant_id.eq.${tenantId}`);
     }
 
@@ -85,15 +86,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { to_tenant_id, title, description, category, budget, deadline, vehicle_id } = body;
 
-    if (!to_tenant_id || !title) {
-      return NextResponse.json({ error: "to_tenant_id and title are required" }, { status: 400 });
+    if (!title) {
+      return NextResponse.json({ error: "title is required" }, { status: 400 });
     }
 
     const { data, error } = await supabase
       .from("job_orders")
       .insert({
         from_tenant_id: tenantId,
-        to_tenant_id,
+        to_tenant_id: to_tenant_id || null,
         title,
         description: description || null,
         category: category || null,
@@ -160,7 +161,7 @@ export async function PUT(req: NextRequest) {
 
     // 操作権限チェック（from/to のどちら側が操作可能か）
     const isFrom = current.from_tenant_id === tenantId;
-    const isTo = current.to_tenant_id === tenantId;
+    const isTo = current.to_tenant_id != null && current.to_tenant_id === tenantId;
     if (transition.side === "from" && !isFrom) {
       return NextResponse.json({ error: "発注者のみがこの操作を行えます" }, { status: 403 });
     }
