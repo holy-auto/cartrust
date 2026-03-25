@@ -7,7 +7,12 @@
 DO $$
 DECLARE
   col record;
-  required_cols text[] := ARRAY['id', 'from_tenant_id', 'title', 'status'];
+  required_cols text[] := ARRAY[
+    'id', 'from_tenant_id', 'title', 'status',
+    'public_id', 'payment_status',
+    'payment_confirmed_by_client', 'payment_confirmed_by_vendor',
+    'created_at', 'updated_at'
+  ];
 BEGIN
   FOR col IN
     SELECT column_name
