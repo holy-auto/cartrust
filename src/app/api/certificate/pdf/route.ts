@@ -167,7 +167,7 @@ function PdfDocEl(cert: CertPublic, publicUrl: string, qrDataUrl: string) {
 export async function GET(req: Request) {
   // Rate limit: 10 PDF generations per IP per minute (heavy operation)
   const ip = getClientIp(req);
-  const rl = checkRateLimit(`pdf:${ip}`, { limit: 10, windowSec: 60 });
+  const rl = await checkRateLimit(`pdf:${ip}`, { limit: 10, windowSec: 60 });
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "rate_limited", message: "リクエストが多すぎます。しばらくしてから再度お試しください。" },

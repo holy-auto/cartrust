@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   try {
     // Rate limiting
     const ip = getClientIp(req);
-    const rl = checkRateLimit(`terminal-pi:${ip}`, { limit: 30, windowSec: 60 });
+    const rl = await checkRateLimit(`terminal-pi:${ip}`, { limit: 30, windowSec: 60 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: "rate_limited", retry_after: rl.retryAfterSec },
