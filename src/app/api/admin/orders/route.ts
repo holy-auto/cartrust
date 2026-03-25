@@ -60,7 +60,19 @@ export async function GET(req: NextRequest) {
         tenant_id: tid,
         tenant_name: tenantMap[tid] ?? tid.slice(0, 8),
       }));
-      return NextResponse.json({ myTenants });
+
+      // 自社のパートナースコアも返す
+      let myScore = null;
+      if (tenantId) {
+        const { data: ps } = await getSupabaseAdmin()
+          .from("partner_scores")
+          .select("total_orders, completed_orders, on_time_orders, cancelled_orders, avg_rating, rating_count")
+          .eq("tenant_id", tenantId)
+          .maybeSingle();
+        myScore = ps;
+      }
+
+      return NextResponse.json({ myTenants, myScore });
     }
 
     const type = searchParams.get("type"); // sent | received | all | browse
