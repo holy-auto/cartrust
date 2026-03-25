@@ -52,7 +52,8 @@
         {
           "photosPermission": "CARTRUSTは施工写真の選択に使用します"
         }
-      ]
+      ],
+      "expo-sqlite"
     ]
   }
 }
