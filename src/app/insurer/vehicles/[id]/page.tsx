@@ -100,7 +100,7 @@ export default function InsurerVehicleDetailPage() {
           </Link>
         </div>
         <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
-          VEHICLE DETAIL
+          車両詳細
         </div>
         <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
           車両詳細
@@ -117,7 +117,7 @@ export default function InsurerVehicleDetailPage() {
         <>
           <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
             <div className="mb-3 text-xs font-semibold tracking-[0.18em] text-neutral-500">
-              VEHICLE INFO
+              車両情報
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <InfoItem label="車台番号" value={vehicle.vin_code || "-"} mono />
@@ -140,7 +140,7 @@ export default function InsurerVehicleDetailPage() {
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">
-                  CERTIFICATES
+                  証明書履歴
                 </div>
                 <div className="mt-1 text-base font-semibold text-neutral-900">
                   証明書履歴

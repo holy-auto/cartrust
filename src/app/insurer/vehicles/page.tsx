@@ -55,7 +55,7 @@ export default function InsurerVehiclesPage() {
     <div className="mx-auto max-w-7xl space-y-6 p-6">
       <header className="space-y-3">
         <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
-          VEHICLE SEARCH
+          車両検索
         </div>
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-neutral-900">

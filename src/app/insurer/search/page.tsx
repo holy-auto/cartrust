@@ -195,7 +195,7 @@ export default async function Page({
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-3">
             <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
-              INSURER SEARCH
+              証明書検索
             </div>
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-neutral-900">

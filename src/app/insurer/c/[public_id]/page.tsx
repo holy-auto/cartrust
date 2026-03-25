@@ -146,7 +146,7 @@ export default function InsurerCertificatePage() {
             ← 検索へ戻る
           </Link>
           <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
-            CERTIFICATE DETAIL
+            証明書詳細
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-neutral-900">証明書詳細</h1>
           <div className="text-sm text-neutral-500">
