@@ -68,7 +68,7 @@ export async function POST(req: Request) {
   const ip = getClientIp(req);
 
   // IP-based rate limit: 5 requests per 10 minutes
-  const rl = checkRateLimit(`join-code:${ip}`, { limit: 5, windowSec: 600 });
+  const rl = await checkRateLimit(`join-code:${ip}`, { limit: 5, windowSec: 600 });
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "rate_limited", message: "リクエストが多すぎます。しばらくお待ちください。" },
@@ -93,7 +93,7 @@ export async function POST(req: Request) {
   const email = parsed.data;
 
   // Email-based rate limit: 3 codes per 10 minutes per email address
-  const emailRl = checkRateLimit(`join-code-email:${email}`, { limit: 3, windowSec: 600 });
+  const emailRl = await checkRateLimit(`join-code-email:${email}`, { limit: 3, windowSec: 600 });
   if (!emailRl.allowed) {
     return NextResponse.json(
       { error: "rate_limited", message: "このメールアドレスへの送信が多すぎます。しばらくお待ちください。" },

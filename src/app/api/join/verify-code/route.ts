@@ -11,7 +11,7 @@ export const runtime = "nodejs";
  */
 export async function POST(req: Request) {
   const ip = getClientIp(req);
-  const rl = checkRateLimit(`join-verify:${ip}`, { limit: 10, windowSec: 600 });
+  const rl = await checkRateLimit(`join-verify:${ip}`, { limit: 10, windowSec: 600 });
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "rate_limited", message: "リクエストが多すぎます。しばらくお待ちください。" },
