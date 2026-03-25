@@ -9,7 +9,7 @@
 -- =============================================================
 
 -- =============================================================
--- 1) insurer_tenant_access テーブル（未作成の場合のみ）
+-- 1) insurer_tenant_access テーブル（既存の場合は不足カラム追加）
 -- =============================================================
 CREATE TABLE IF NOT EXISTS insurer_tenant_access (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -23,6 +23,41 @@ CREATE TABLE IF NOT EXISTS insurer_tenant_access (
   created_at  timestamptz NOT NULL DEFAULT now(),
   UNIQUE (insurer_id, tenant_id)
 );
+
+-- テーブルが既存で is_active カラムがない場合は追加
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'insurer_tenant_access' AND column_name = 'is_active'
+  ) THEN
+    ALTER TABLE insurer_tenant_access ADD COLUMN is_active boolean NOT NULL DEFAULT true;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'insurer_tenant_access' AND column_name = 'revoked_at'
+  ) THEN
+    ALTER TABLE insurer_tenant_access ADD COLUMN revoked_at timestamptz;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'insurer_tenant_access' AND column_name = 'granted_by'
+  ) THEN
+    ALTER TABLE insurer_tenant_access ADD COLUMN granted_by uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'insurer_tenant_access' AND column_name = 'granted_at'
+  ) THEN
+    ALTER TABLE insurer_tenant_access ADD COLUMN granted_at timestamptz NOT NULL DEFAULT now();
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'insurer_tenant_access' AND column_name = 'notes'
+  ) THEN
+    ALTER TABLE insurer_tenant_access ADD COLUMN notes text;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_ita_insurer ON insurer_tenant_access(insurer_id) WHERE is_active = true;
 CREATE INDEX IF NOT EXISTS idx_ita_tenant ON insurer_tenant_access(tenant_id) WHERE is_active = true;
