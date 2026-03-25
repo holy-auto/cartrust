@@ -26,17 +26,113 @@ const LOCATION_PRESETS = [
   "左サイドステップ",
 ];
 
+// 車展開図の部位→座標マッピング（トップダウンビュー）
+const DIAGRAM_POSITIONS: Record<string, { x: number; y: number }> = {
+  "ボンネット":       { x: 150, y: 55 },
+  "ルーフ":           { x: 150, y: 155 },
+  "右フロントフェンダー": { x: 255, y: 75 },
+  "左フロントフェンダー": { x: 45, y: 75 },
+  "右フロントドア":   { x: 265, y: 135 },
+  "左フロントドア":   { x: 35, y: 135 },
+  "右リアドア":       { x: 265, y: 195 },
+  "左リアドア":       { x: 35, y: 195 },
+  "右リアフェンダー": { x: 255, y: 245 },
+  "左リアフェンダー": { x: 45, y: 245 },
+  "トランク/リアゲート": { x: 150, y: 275 },
+  "右サイドステップ": { x: 275, y: 165 },
+  "左サイドステップ": { x: 25, y: 165 },
+};
+
 let nextId = 1;
 function newRow(): Row {
   return { id: nextId++, location: "", before_um: "", after_um: "", notes: "" };
 }
 
 const inputCls =
-  "w-full rounded-lg border border-neutral-300 bg-white px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400";
+  "w-full rounded-lg border border-border-default bg-surface px-2.5 py-2 text-sm text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent";
+
+function CarDiagramSvg({ rows }: { rows: Row[] }) {
+  // 部位ごとの after_um を取得
+  const valueMap = new Map<string, string>();
+  for (const r of rows) {
+    if (r.location.trim() && r.after_um) {
+      valueMap.set(r.location.trim(), r.after_um);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-border-default bg-inset p-4">
+      <p className="text-xs font-semibold text-muted mb-2">膜厚マップ（施工後 μm）</p>
+      <svg viewBox="0 0 300 330" className="w-full max-w-[360px] mx-auto" aria-label="車両膜厚マップ">
+        {/* 車体アウトライン（トップダウン） */}
+        <path
+          d="M100,20 Q90,20 85,30 L80,60 Q75,80 75,100 L75,260 Q75,280 85,290 L95,305 Q100,310 110,310 L190,310 Q200,310 205,305 L215,290 Q225,280 225,260 L225,100 Q225,80 220,60 L215,30 Q210,20 200,20 Z"
+          fill="#f5f5f5"
+          stroke="#d4d4d4"
+          strokeWidth="1.5"
+        />
+        {/* フロントガラス */}
+        <path d="M105,45 L195,45 L210,85 L90,85 Z" fill="#e0e7ff" stroke="#c7d2fe" strokeWidth="1" />
+        {/* リアガラス */}
+        <path d="M95,240 L205,240 L200,270 L100,270 Z" fill="#e0e7ff" stroke="#c7d2fe" strokeWidth="1" />
+        {/* ドア分割線 */}
+        <line x1="75" y1="165" x2="225" y2="165" stroke="#d4d4d4" strokeWidth="0.8" strokeDasharray="4,2" />
+        {/* 左右分割線 */}
+        <line x1="150" y1="20" x2="150" y2="310" stroke="#e5e5e5" strokeWidth="0.5" strokeDasharray="2,3" />
+
+        {/* ミラー */}
+        <ellipse cx="68" cy="90" rx="8" ry="5" fill="#d4d4d4" stroke="#a3a3a3" strokeWidth="0.8" />
+        <ellipse cx="232" cy="90" rx="8" ry="5" fill="#d4d4d4" stroke="#a3a3a3" strokeWidth="0.8" />
+
+        {/* 部位ラベル（値がある場合は数値を表示） */}
+        {Object.entries(DIAGRAM_POSITIONS).map(([loc, pos]) => {
+          const val = valueMap.get(loc);
+          return (
+            <g key={loc}>
+              {val ? (
+                <>
+                  <rect
+                    x={pos.x - 18}
+                    y={pos.y - 8}
+                    width="36"
+                    height="16"
+                    rx="3"
+                    fill="#059669"
+                    opacity="0.9"
+                  />
+                  <text
+                    x={pos.x}
+                    y={pos.y + 4}
+                    textAnchor="middle"
+                    className="text-[9px] font-bold fill-white"
+                  >
+                    {val}μm
+                  </text>
+                </>
+              ) : (
+                <text
+                  x={pos.x}
+                  y={pos.y + 3}
+                  textAnchor="middle"
+                  className="text-[7px] fill-neutral-400"
+                >
+                  ―
+                </text>
+              )}
+            </g>
+          );
+        })}
+
+        {/* 方向表示 */}
+        <text x="150" y="14" textAnchor="middle" className="text-[8px] fill-neutral-400 font-medium">▲ フロント</text>
+        <text x="150" y="326" textAnchor="middle" className="text-[8px] fill-neutral-400 font-medium">▼ リア</text>
+      </svg>
+    </div>
+  );
+}
 
 export default function FilmThicknessSection() {
   const [rows, setRows] = useState<Row[]>([newRow()]);
-  const [open, setOpen] = useState(false);
 
   const update = (id: number, field: keyof Row, value: string) =>
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
@@ -45,7 +141,6 @@ export default function FilmThicknessSection() {
   const removeRow = (id: number) =>
     setRows((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== id) : prev));
 
-  // Serialize non-empty rows to JSON
   const validRows = rows.filter((r) => r.location.trim() || r.before_um || r.after_um);
   const jsonValue = JSON.stringify(
     validRows.map((r) => ({
@@ -56,126 +151,105 @@ export default function FilmThicknessSection() {
     }))
   );
 
+  const hasAnyValue = rows.some((r) => r.after_um || r.before_um);
+
   return (
-    <div className="border-t border-neutral-100 pt-6">
-      {/* Hidden input always present */}
+    <div className="space-y-4">
       <input type="hidden" name="film_thickness_json" value={jsonValue} />
+
+      <div>
+        <div className="text-xs font-semibold tracking-[0.18em] text-muted">FILM THICKNESS</div>
+        <div className="mt-0.5 text-base font-semibold text-primary">
+          膜厚計測
+          <span className="ml-2 text-xs font-normal text-muted">任意</span>
+        </div>
+        <p className="mt-1 text-xs text-muted">各部位の施工前後の膜厚（μm）を記録します。</p>
+      </div>
+
+      {/* 車展開図 */}
+      {hasAnyValue && <CarDiagramSvg rows={rows} />}
+
+      {/* ヘッダー行 */}
+      <div className="hidden sm:grid sm:grid-cols-[2fr_1fr_1fr_1.5fr_auto] gap-2 px-1">
+        <span className="text-[11px] font-semibold text-muted uppercase">部位</span>
+        <span className="text-[11px] font-semibold text-muted uppercase">施工前(μm)</span>
+        <span className="text-[11px] font-semibold text-muted uppercase">施工後(μm)</span>
+        <span className="text-[11px] font-semibold text-muted uppercase">備考</span>
+        <span />
+      </div>
+
+      {rows.map((row) => (
+        <div key={row.id} className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_1.5fr_auto] gap-2 items-start rounded-xl border border-border-subtle bg-inset p-3 sm:p-0 sm:bg-transparent sm:border-0">
+          <div>
+            <span className="sm:hidden text-[11px] font-semibold text-muted uppercase mb-1 block">部位</span>
+            <input
+              list={`loc-list-${row.id}`}
+              value={row.location}
+              onChange={(e) => update(row.id, "location", e.target.value)}
+              placeholder="ボンネット"
+              className={inputCls}
+            />
+            <datalist id={`loc-list-${row.id}`}>
+              {LOCATION_PRESETS.map((p) => (
+                <option key={p} value={p} />
+              ))}
+            </datalist>
+          </div>
+          <div>
+            <span className="sm:hidden text-[11px] font-semibold text-muted uppercase mb-1 block">施工前(μm)</span>
+            <input
+              type="number"
+              min="0"
+              step="0.1"
+              value={row.before_um}
+              onChange={(e) => update(row.id, "before_um", e.target.value)}
+              placeholder="例: 90"
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <span className="sm:hidden text-[11px] font-semibold text-muted uppercase mb-1 block">施工後(μm)</span>
+            <input
+              type="number"
+              min="0"
+              step="0.1"
+              value={row.after_um}
+              onChange={(e) => update(row.id, "after_um", e.target.value)}
+              placeholder="例: 110"
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <span className="sm:hidden text-[11px] font-semibold text-muted uppercase mb-1 block">備考</span>
+            <input
+              value={row.notes}
+              onChange={(e) => update(row.id, "notes", e.target.value)}
+              placeholder="備考（任意）"
+              className={inputCls}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => removeRow(row.id)}
+            disabled={rows.length === 1}
+            className="mt-1 self-center rounded-lg border border-border-default px-2 py-1.5 text-xs text-muted hover:border-red-200 hover:text-red-500 disabled:opacity-30 sm:mt-0"
+          >
+            ✕
+          </button>
+        </div>
+      ))}
 
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between text-left"
+        onClick={addRow}
+        className="rounded-lg border border-dashed border-border-default px-4 py-2 text-sm text-muted hover:border-neutral-400 hover:text-neutral-700"
       >
-        <div>
-          <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">
-            FILM THICKNESS
-          </div>
-          <div className="mt-0.5 text-base font-semibold text-neutral-900">
-            膜厚計測
-            <span className="ml-2 text-xs font-normal text-neutral-500">任意</span>
-          </div>
-        </div>
-        <span className="text-sm text-neutral-500">{open ? "▲ 閉じる" : "▼ 入力する"}</span>
+        ＋ 部位を追加
       </button>
 
-      {open && (
-        <div className="mt-4 space-y-3">
-          <p className="text-xs text-neutral-500">
-            各部位の施工前後の膜厚（μm）を記録します。
-          </p>
-
-          {/* Header row */}
-          <div className="hidden sm:grid sm:grid-cols-[2fr_1fr_1fr_1.5fr_auto] gap-2 px-1">
-            <span className="text-[11px] font-semibold text-neutral-500 uppercase">部位</span>
-            <span className="text-[11px] font-semibold text-neutral-500 uppercase">施工前(μm)</span>
-            <span className="text-[11px] font-semibold text-neutral-500 uppercase">施工後(μm)</span>
-            <span className="text-[11px] font-semibold text-neutral-500 uppercase">備考</span>
-            <span />
-          </div>
-
-          {rows.map((row) => (
-            <div key={row.id} className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_1.5fr_auto] gap-2 items-start rounded-xl border border-neutral-100 bg-neutral-50 p-3 sm:p-0 sm:bg-transparent sm:border-0">
-              {/* Location */}
-              <div>
-                <span className="sm:hidden text-[11px] font-semibold text-neutral-500 uppercase mb-1 block">部位</span>
-                <input
-                  list={`loc-list-${row.id}`}
-                  value={row.location}
-                  onChange={(e) => update(row.id, "location", e.target.value)}
-                  placeholder="ボンネット"
-                  className={inputCls}
-                />
-                <datalist id={`loc-list-${row.id}`}>
-                  {LOCATION_PRESETS.map((p) => (
-                    <option key={p} value={p} />
-                  ))}
-                </datalist>
-              </div>
-
-              {/* Before */}
-              <div>
-                <span className="sm:hidden text-[11px] font-semibold text-neutral-500 uppercase mb-1 block">施工前(μm)</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={row.before_um}
-                  onChange={(e) => update(row.id, "before_um", e.target.value)}
-                  placeholder="例: 90"
-                  className={inputCls}
-                />
-              </div>
-
-              {/* After */}
-              <div>
-                <span className="sm:hidden text-[11px] font-semibold text-neutral-500 uppercase mb-1 block">施工後(μm)</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={row.after_um}
-                  onChange={(e) => update(row.id, "after_um", e.target.value)}
-                  placeholder="例: 110"
-                  className={inputCls}
-                />
-              </div>
-
-              {/* Notes */}
-              <div>
-                <span className="sm:hidden text-[11px] font-semibold text-neutral-500 uppercase mb-1 block">備考</span>
-                <input
-                  value={row.notes}
-                  onChange={(e) => update(row.id, "notes", e.target.value)}
-                  placeholder="備考（任意）"
-                  className={inputCls}
-                />
-              </div>
-
-              {/* Remove */}
-              <button
-                type="button"
-                onClick={() => removeRow(row.id)}
-                disabled={rows.length === 1}
-                className="mt-1 self-center rounded-lg border border-neutral-200 px-2 py-1.5 text-xs text-neutral-500 hover:border-red-200 hover:text-red-500 disabled:opacity-30 sm:mt-0"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-
-          <button
-            type="button"
-            onClick={addRow}
-            className="rounded-lg border border-dashed border-neutral-300 px-4 py-2 text-sm text-neutral-500 hover:border-neutral-400 hover:text-neutral-700"
-          >
-            ＋ 部位を追加
-          </button>
-
-          {validRows.length > 0 && (
-            <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-xs text-neutral-500">
-              {validRows.length} 部位を記録します
-            </div>
-          )}
+      {validRows.length > 0 && (
+        <div className="rounded-xl border border-border-default bg-inset p-3 text-xs text-muted">
+          {validRows.length} 部位を記録します
         </div>
       )}
     </div>

@@ -117,7 +117,7 @@ export default async function AdminVehicleDetailPage({
 
   const { data: vehicle, error: vehicleError } = await supabase
     .from("vehicles")
-    .select("*")
+    .select("*, customer:customers(id, name)")
     .eq("tenant_id", membership.tenant_id)
     .eq("id", id)
     .single();
@@ -200,9 +200,17 @@ export default async function AdminVehicleDetailPage({
           <div>車種: {vehicle.model ?? "-"}</div>
           <div>年式: {vehicle.year ?? "-"}</div>
           <div>ナンバー: {vehicle.plate_display ?? "-"}</div>
-          <div>顧客名: {vehicle.customer_name ?? "-"}</div>
-          <div>顧客メール: {vehicle.customer_email ?? "-"}</div>
-          <div>顧客電話: {vehicle.customer_phone_masked ?? "-"}</div>
+          <div>
+            サイズ: {(vehicle as any).size_class ? (
+              <span className="inline-flex items-center rounded-md bg-accent-dim px-2 py-0.5 text-xs font-bold text-accent">
+                {(vehicle as any).size_class}
+              </span>
+            ) : <span className="text-muted">未設定</span>}
+          </div>
+          <div className="font-mono">車体番号: {vehicle.vin_code ?? "-"}</div>
+          <div>
+            現所有者: {(vehicle as any).customer?.name ?? <span className="text-muted">未設定</span>}
+          </div>
         </div>
         {vehicle.notes ? <div className="text-sm text-secondary">メモ: {vehicle.notes}</div> : null}
       </section>
@@ -240,7 +248,7 @@ export default async function AdminVehicleDetailPage({
                             href={`/c/${row.public_id}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="underline text-[#0071e3] hover:text-[#0077ED]"
+                            className="underline text-accent hover:text-accent"
                           >
                             表示
                           </a>

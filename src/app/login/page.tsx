@@ -11,7 +11,7 @@ function safeNextPath(value: string | undefined) {
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; e?: string }>;
+  searchParams: Promise<{ next?: string; e?: string; reason?: string }>;
 }) {
   const sp = await searchParams;
   const next = safeNextPath(sp.next);
@@ -33,13 +33,19 @@ export default async function Page({
       <div className="glass-card w-full max-w-sm space-y-6 p-8">
         {/* Branding */}
         <div className="flex items-center justify-center gap-3">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg" style={{ background: "linear-gradient(135deg, #0071e3, #5856d6)" }}>
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg" style={{ background: "linear-gradient(135deg, var(--accent-blue), #5856d6)" }}>
             C
           </div>
           <span className="text-xl font-bold text-primary tracking-wide">CARTRUST</span>
         </div>
 
         <h1 className="text-xl font-bold text-primary text-center">ログイン</h1>
+
+        {sp.reason === "idle" && (
+          <div className="text-sm text-amber-500 text-center">
+            一定時間操作がなかったため、自動的にログアウトしました。
+          </div>
+        )}
 
         {sp.e && (
           <div className="text-sm text-red-400 text-center">
@@ -66,12 +72,12 @@ export default async function Page({
         </form>
 
         <div className="text-center space-y-2">
-          <Link href="/forgot-password" className="text-xs text-[#0071e3] hover:underline">
+          <Link href="/forgot-password" className="text-xs text-accent hover:underline">
             パスワードをお忘れですか？
           </Link>
           <p className="text-sm text-secondary">
             アカウントをお持ちでないですか？{" "}
-            <Link href="/signup" className="text-[#0071e3] hover:underline font-medium">
+            <Link href="/signup" className="text-accent hover:underline font-medium">
               新規登録
             </Link>
           </p>

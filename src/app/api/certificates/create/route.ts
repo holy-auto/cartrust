@@ -1,37 +1,35 @@
 import { NextResponse } from "next/server";
 import { phoneLast4Hash } from "@/lib/customerPortalServer";
 import { certificateCreateSchema } from "@/lib/validations/certificate";
-import { apiOk, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { apiInternalError, apiValidationError, apiUnauthorized, apiForbidden } from "@/lib/api/response";
 import { enforceBilling } from "@/lib/billing/guard";
 import { logCertificateAction } from "@/lib/audit/certificateLog";
+import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
 async function supaInsertCertificate(row: any) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const srk = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !srk) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  const admin = getSupabaseAdmin();
+  const { data, error } = await admin
+    .from("certificates")
+    .insert(row)
+    .select()
+    .single();
 
-  const res = await fetch(`${url}/rest/v1/certificates`, {
-    method: "POST",
-    cache: "no-store",
-    headers: {
-      apikey: srk,
-      Authorization: `Bearer ${srk}`,
-      "Content-Type": "application/json",
-      Prefer: "return=representation",
-    },
-    body: JSON.stringify(row),
-  });
-
-  const txt = await res.text().catch(() => "");
-  if (!res.ok) throw new Error(`Supabase insert failed: ${res.status} ${txt}`);
-
-  const json = txt ? JSON.parse(txt) : null;
-  return Array.isArray(json) ? json[0] : json;
+  if (error) throw new Error(`Supabase insert failed: ${error.message}`);
+  return data;
 }
 
 export async function POST(req: Request) {
+  // ── 認証チェック: ログイン済みユーザーのテナントを検証 ──
+  const supabase = await createSupabaseServerClient();
+  const caller = await resolveCallerWithRole(supabase);
+  if (!caller) {
+    return apiUnauthorized();
+  }
+
   const deny = await enforceBilling(req, { minPlan: "free", action: "create" });
   if (deny) return deny as any;
   try {
@@ -42,12 +40,17 @@ export async function POST(req: Request) {
     }
     const b = parsed.data;
 
+    // ── tenant_id照合: リクエストのtenant_idと認証ユーザーのテナントが一致するか検証 ──
+    if (b.tenant_id !== caller.tenantId) {
+      return apiForbidden("テナントIDが一致しません。");
+    }
+
     const customer_phone_last4 = b.customer_phone_last4 ?? null;
     const customer_phone_last4_hash =
       customer_phone_last4 ? phoneLast4Hash(b.tenant_id, customer_phone_last4) : null;
 
     const insertRow = {
-      tenant_id: b.tenant_id,
+      tenant_id: caller.tenantId,
       status: b.status ?? "active",
       customer_name: b.customer_name,
 
@@ -69,10 +72,11 @@ export async function POST(req: Request) {
     // Fire-and-forget audit log
     logCertificateAction({
       type: "certificate_issued",
-      tenantId: b.tenant_id,
+      tenantId: caller.tenantId,
       publicId: certificate?.public_id ?? "",
       certificateId: certificate?.id ?? null,
       vehicleId: certificate?.vehicle_id ?? null,
+      userId: caller.userId,
       description: `顧客: ${b.customer_name}`,
     });
 

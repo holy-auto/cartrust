@@ -8,6 +8,7 @@ import { logCertificateAction, getRequestMeta } from "@/lib/audit/certificateLog
 import { createAdminClient } from "@/lib/supabase/admin";
 import { apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 import { renderBrandedCertificatePdf } from "@/lib/template-options/renderBrandedCertificate";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import type { TemplateConfig } from "@/types/templateOption";
 import type { CertRow } from "@/lib/pdfCertificate";
 
@@ -164,6 +165,16 @@ function PdfDocEl(cert: CertPublic, publicUrl: string, qrDataUrl: string) {
 }
 
 export async function GET(req: Request) {
+  // Rate limit: 10 PDF generations per IP per minute (heavy operation)
+  const ip = getClientIp(req);
+  const rl = await checkRateLimit(`pdf:${ip}`, { limit: 10, windowSec: 60 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "rate_limited", message: "リクエストが多すぎます。しばらくしてから再度お試しください。" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
+    );
+  }
+
   const deny = await enforceBilling(req as any, { minPlan: "free", action: "public_pdf" });
   if (deny) return deny as any;
   const { searchParams } = new URL(req.url);
@@ -234,17 +245,33 @@ export async function GET(req: Request) {
           .maybeSingle();
 
         if (tplConfig?.config_json) {
+          // Fetch additional fields for PPF support
+          const { data: fullCert } = await adm2
+            .from("certificates")
+            .select("ppf_coverage_json, service_type, coating_products_json, warranty_period_end, warranty_exclusions, current_version, maintenance_json, body_repair_json")
+            .eq("public_id", pid)
+            .limit(1)
+            .maybeSingle();
+
           const brandedRow: CertRow = {
             public_id: cert.public_id,
             customer_name: cert.customer_name ?? "",
             vehicle_info_json: cert.vehicle_info_json ?? {},
             content_free_text: cert.content_free_text ?? null,
             content_preset_json: cert.content_preset_json ?? {},
+            coating_products_json: (fullCert?.coating_products_json as any[] | null) ?? null,
+            ppf_coverage_json: (fullCert?.ppf_coverage_json as any[] | null) ?? null,
+            maintenance_json: (fullCert?.maintenance_json as any) ?? null,
+            body_repair_json: (fullCert?.body_repair_json as any) ?? null,
+            service_type: (fullCert?.service_type as string | null) ?? null,
             expiry_type: cert.expiry_type ?? null,
             expiry_value: cert.expiry_value ?? null,
+            warranty_period_end: (fullCert?.warranty_period_end as string | null) ?? null,
+            warranty_exclusions: (fullCert?.warranty_exclusions as string | null) ?? null,
             logo_asset_path: cert.logo_asset_path ?? null,
             created_at: cert.created_at ?? new Date().toISOString(),
             tenant_custom_domain: cert.tenant_custom_domain,
+            current_version: (fullCert?.current_version as number | null) ?? null,
           };
 
           const brandedBuf = await renderBrandedCertificatePdf(

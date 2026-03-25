@@ -237,7 +237,7 @@ export default function DocumentsClient({ initialTypeFilter }: { initialTypeFilt
       />
 
       {loading && <div className="text-sm text-muted">読み込み中…</div>}
-      {err && <div className="glass-card p-4 text-sm text-red-500">{err}</div>}
+      {err && <div className="glass-card p-4 text-sm text-danger">{err}</div>}
 
       {swrData && (
         <>
@@ -287,7 +287,7 @@ export default function DocumentsClient({ initialTypeFilter }: { initialTypeFilt
           </section>
 
           {saveMsg && (
-            <div className={`text-sm ${saveMsg.ok ? "text-emerald-600" : "text-red-500"}`}>
+            <div className={`text-sm ${saveMsg.ok ? "text-success" : "text-danger"}`}>
               {saveMsg.text}
             </div>
           )}
@@ -422,7 +422,7 @@ export default function DocumentsClient({ initialTypeFilter }: { initialTypeFilt
                       {idx === 0 && <label className="text-xs text-muted">内容</label>}
                       {menuItems.length > 0 && (
                         <select
-                          className="select-field !py-1 !text-xs mb-1"
+                          className="select-field py-1 text-xs mb-1"
                           value=""
                           onChange={(e) => { if (e.target.value) handleMenuItemSelect(e.target.value, idx); }}
                         >
@@ -437,10 +437,22 @@ export default function DocumentsClient({ initialTypeFilter }: { initialTypeFilt
                       <input
                         type="text"
                         className="input-field"
-                        placeholder="品目・内容"
+                        list={`doc-menu-list-${idx}`}
+                        placeholder="品目・内容を入力 or 選択"
                         value={item.description}
-                        onChange={(e) => updateItem(idx, "description", e.target.value)}
+                        onChange={(e) => {
+                          updateItem(idx, "description", e.target.value);
+                          const matched = menuItems.find((m) => m.name === e.target.value);
+                          if (matched) {
+                            updateItem(idx, "unit_price", String(matched.unit_price ?? 0));
+                          }
+                        }}
                       />
+                      <datalist id={`doc-menu-list-${idx}`}>
+                        {menuItems.map((m) => (
+                          <option key={m.id} value={m.name}>{m.name} — ¥{(m.unit_price ?? 0).toLocaleString()}</option>
+                        ))}
+                      </datalist>
                     </div>
                     <div className="col-span-2 space-y-1">
                       {idx === 0 && <label className="text-xs text-muted">数量</label>}
@@ -471,7 +483,7 @@ export default function DocumentsClient({ initialTypeFilter }: { initialTypeFilt
                     <div className="col-span-1">
                       <button
                         type="button"
-                        className="btn-ghost !px-2 !py-1 !text-xs text-red-500"
+                        className="btn-ghost px-2 py-1 text-xs text-danger"
                         onClick={() => removeItem(idx)}
                         disabled={formItems.length <= 1}
                       >
@@ -480,7 +492,7 @@ export default function DocumentsClient({ initialTypeFilter }: { initialTypeFilt
                     </div>
                   </div>
                 ))}
-                <button type="button" className="btn-ghost !text-xs" onClick={addItem}>
+                <button type="button" className="btn-ghost text-xs" onClick={addItem}>
                   + 明細を追加
                 </button>
               </div>
@@ -542,10 +554,10 @@ export default function DocumentsClient({ initialTypeFilter }: { initialTypeFilt
                   <tr>
                     <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">種別</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">書類番号</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">顧客名</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">発行日</th>
+                    <th className="hidden sm:table-cell text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">顧客名</th>
+                    <th className="hidden md:table-cell text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">発行日</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">合計</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">ステータス</th>
+                    <th className="hidden sm:table-cell text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">ステータス</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">操作</th>
                   </tr>
                 </thead>
@@ -560,19 +572,19 @@ export default function DocumentsClient({ initialTypeFilter }: { initialTypeFilt
                       <td className="px-5 py-3.5">
                         <Link
                           href={`/admin/documents/${doc.id}`}
-                          className="font-mono text-[#0071e3] hover:text-[#0077ED] underline"
+                          className="font-mono text-accent hover:text-accent underline"
                         >
                           {doc.doc_number}
                         </Link>
                       </td>
-                      <td className="px-5 py-3.5 text-secondary">{doc.recipient_name || doc.customer_name || "-"}</td>
-                      <td className="px-5 py-3.5 whitespace-nowrap text-secondary">
+                      <td className="hidden sm:table-cell px-5 py-3.5 text-secondary">{doc.recipient_name || doc.customer_name || "-"}</td>
+                      <td className="hidden md:table-cell px-5 py-3.5 whitespace-nowrap text-secondary">
                         {formatDate(doc.issued_at)}
                       </td>
                       <td className="px-5 py-3.5 font-medium text-primary">
                         {formatJpy(doc.total)}
                       </td>
-                      <td className="px-5 py-3.5">
+                      <td className="hidden sm:table-cell px-5 py-3.5">
                         <Badge variant={statusVariant(doc.status)}>
                           {statusLabel(doc.status)}
                         </Badge>
@@ -581,14 +593,14 @@ export default function DocumentsClient({ initialTypeFilter }: { initialTypeFilt
                         <div className="flex gap-2">
                           <Link
                             href={`/admin/documents/${doc.id}`}
-                            className="btn-ghost !px-3 !py-1 !text-xs"
+                            className="btn-ghost px-3 py-1 text-xs"
                           >
                             詳細
                           </Link>
                           {doc.status === "draft" && (
                             <button
                               type="button"
-                              className="btn-danger !px-3 !py-1 !text-xs"
+                              className="btn-danger px-3 py-1 text-xs"
                               disabled={deletingId === doc.id}
                               onClick={() => handleDelete(doc.id)}
                             >

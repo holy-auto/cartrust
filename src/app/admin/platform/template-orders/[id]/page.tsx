@@ -234,9 +234,9 @@ export default function OrderDetailPage() {
                   <div key={log.id} className="flex gap-3">
                     <div className="flex flex-col items-center">
                       <div className={`w-2.5 h-2.5 rounded-full mt-1.5 ${
-                        log.action === "status_change" ? "bg-[#0071e3]" :
+                        log.action === "status_change" ? "bg-accent" :
                         log.action === "test_issue" ? "bg-violet-400" :
-                        "bg-gray-400"
+                        "bg-muted"
                       }`} />
                       <div className="w-px flex-1 bg-border-default" />
                     </div>

@@ -11,13 +11,13 @@ function getResend() {
 /** 送信先（問い合わせ受信用アドレス） */
 const TO = process.env.CONTACT_TO_EMAIL ?? "info@cartrust.co.jp";
 
-/** 送信元として表示するアドレス（Resendの検証済みドメインである必要がある） */
-const FROM = process.env.CONTACT_FROM_EMAIL ?? "noreply@cartrust.co.jp";
+/** 送信元: RESEND_FROM（検証済みドメイン）を使用 */
+const FROM = process.env.RESEND_FROM ?? "CAR TRUST <support@cartrust.co.jp>";
 
 export async function POST(request: Request) {
   // Rate limit: 5 contact form submissions per IP per 15 minutes
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`contact:${ip}`, { limit: 5, windowSec: 900 });
+  const rl = await checkRateLimit(`contact:${ip}`, { limit: 5, windowSec: 900 });
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "rate_limited", message: "送信が多すぎます。しばらくしてから再度お試しください。" },

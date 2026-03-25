@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/format";
 import PageHeader from "@/components/ui/PageHeader";
+import VehicleListActions from "./VehicleListActions";
 
 export const dynamic = "force-dynamic";
 
@@ -32,9 +33,7 @@ export default async function AdminVehicleListPage() {
 
   const { data: vehicles, error } = await supabase
     .from("vehicles")
-    .select(
-      "id,maker,model,year,plate_display,customer_name,customer_email,notes,created_at,updated_at"
-    )
+    .select("id,maker,model,year,plate_display,vin_code,notes,created_at,updated_at,customer_id,customer:customers(id,name)")
     .eq("tenant_id", membership.tenant_id)
     .order("created_at", { ascending: false })
     .limit(200);
@@ -58,7 +57,7 @@ export default async function AdminVehicleListPage() {
         actions={
           <div className="flex gap-3 items-center">
             <Link href="/admin" className="btn-secondary">ダッシュボード</Link>
-            <Link href="/admin/vehicles/new" className="btn-primary">+ 車両を登録</Link>
+            <VehicleListActions />
           </div>
         }
       />
@@ -100,7 +99,8 @@ export default async function AdminVehicleListPage() {
                   <th className="p-3 text-left text-xs font-semibold tracking-[0.12em] text-muted">車種</th>
                   <th className="hidden sm:table-cell p-3 text-left text-xs font-semibold tracking-[0.12em] text-muted">年式</th>
                   <th className="hidden sm:table-cell p-3 text-left text-xs font-semibold tracking-[0.12em] text-muted">ナンバー</th>
-                  <th className="p-3 text-left text-xs font-semibold tracking-[0.12em] text-muted">顧客名</th>
+                  <th className="hidden md:table-cell p-3 text-left text-xs font-semibold tracking-[0.12em] text-muted">車体番号</th>
+                  <th className="hidden sm:table-cell p-3 text-left text-xs font-semibold tracking-[0.12em] text-muted">所有者</th>
                   <th className="p-3 text-left text-xs font-semibold tracking-[0.12em] text-muted">操作</th>
                 </tr>
               </thead>
@@ -122,20 +122,23 @@ export default async function AdminVehicleListPage() {
                     <td className="hidden sm:table-cell p-3 font-mono text-primary">
                       {v.plate_display || "-"}
                     </td>
-                    <td className="p-3 text-primary">
-                      {v.customer_name || "-"}
+                    <td className="hidden md:table-cell p-3 font-mono text-secondary text-xs">
+                      {v.vin_code || "-"}
+                    </td>
+                    <td className="hidden sm:table-cell p-3 text-secondary text-sm">
+                      {(v as any).customer?.name || "-"}
                     </td>
                     <td className="p-3">
                       <div className="flex gap-2 flex-wrap">
                         <Link
                           href={`/admin/vehicles/${v.id}`}
-                          className="btn-ghost !px-3 !py-1 !text-xs"
+                          className="btn-ghost px-3 py-1 text-xs"
                         >
                           詳細
                         </Link>
                         <Link
                           href={`/admin/certificates/new?vehicleId=${v.id}`}
-                          className="btn-primary !px-3 !py-1.5 !text-xs"
+                          className="btn-primary px-3 py-1.5 text-xs"
                         >
                           証明書発行
                         </Link>

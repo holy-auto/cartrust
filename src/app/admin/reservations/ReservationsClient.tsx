@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import useSWR from "swr";
 import PageHeader from "@/components/ui/PageHeader";
 import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
 import CalendarView from "./CalendarView";
 import { formatDate, formatJpy } from "@/lib/format";
 import { fetcher } from "@/lib/swr";
@@ -75,7 +76,7 @@ const statusLabel = (s: string) => {
 // ─── Styles ───
 
 const inputCls =
-  "w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400";
+  "w-full rounded-xl border border-neutral-300 bg-surface px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400";
 const labelCls = "block space-y-1.5";
 const labelTextCls = "text-sm font-medium text-neutral-700";
 
@@ -137,6 +138,15 @@ export default function ReservationsClient() {
   const [cancelTarget, setCancelTarget] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState("");
 
+  // Googleカレンダー連携
+  const [gcalConnected, setGcalConnected] = useState(false);
+  const [gcalLoading, setGcalLoading] = useState(false);
+  const [gcalSyncing, setGcalSyncing] = useState(false);
+  const [gcalLastSynced, setGcalLastSynced] = useState<string | null>(null);
+  const [gcalCalendars, setGcalCalendars] = useState<{ id: string; summary: string; primary?: boolean }[]>([]);
+  const [gcalCalendarId, setGcalCalendarId] = useState<string | null>(null);
+  const [gcalCalendarSaving, setGcalCalendarSaving] = useState(false);
+
   // ─── Reference data (one-time fetch) ───
 
   const fetchMasterData = useCallback(async () => {
@@ -153,6 +163,20 @@ export default function ReservationsClient() {
       if (menuRes.ok && menuJ?.items) {
         setMenuItems(menuJ.items.map((m: Record<string, unknown>) => ({ id: m.id, name: m.name, unit_price: m.unit_price })));
       }
+      // Googleカレンダー接続状態チェック
+      try {
+        const gcRes = await fetch("/api/admin/gcal", { cache: "no-store" });
+        const gcJ = await gcRes.json().catch(() => null);
+        if (gcRes.ok && gcJ?.connected) {
+          setGcalConnected(true);
+          if (gcJ?.calendar_id) setGcalCalendarId(gcJ.calendar_id);
+          // カレンダー一覧を取得
+          const calRes = await fetch("/api/admin/gcal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "list-calendars" }) });
+          const calJ = await calRes.json().catch(() => null);
+          if (calJ?.calendars) setGcalCalendars(calJ.calendars);
+        }
+        if (gcJ?.last_synced_at) setGcalLastSynced(gcJ.last_synced_at);
+      } catch { /* gcal not configured */ }
     } catch {}
   }, []);
 
@@ -354,6 +378,147 @@ export default function ReservationsClient() {
           }
         />
 
+        {/* Googleカレンダー連携結果フィードバック */}
+        {typeof window !== "undefined" && (() => {
+          const params = new URLSearchParams(window.location.search);
+          const gcalResult = params.get("gcal");
+          if (gcalResult === "connected") {
+            // URLからパラメータを除去
+            window.history.replaceState({}, "", window.location.pathname);
+            if (!gcalConnected) setGcalConnected(true);
+            return (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+                ✅ Googleカレンダーとの連携が完了しました！予約が自動同期されます。
+              </div>
+            );
+          }
+          if (gcalResult === "error" || gcalResult === "auth_error") {
+            window.history.replaceState({}, "", window.location.pathname);
+            return (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                ❌ Googleカレンダーの連携に失敗しました。再度お試しください。
+              </div>
+            );
+          }
+          return null;
+        })()}
+
+        {/* Googleカレンダー連携 */}
+        <section className="glass-card p-4 flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="text-muted">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+            </svg>
+            <div>
+              <div className="text-sm font-semibold text-primary">Googleカレンダー連携</div>
+              <div className="text-xs text-muted">
+                {gcalConnected
+                  ? `✅ 連携中${gcalLastSynced ? ` — 最終同期: ${new Date(gcalLastSynced).toLocaleString("ja-JP")}` : " — 予約がGoogleカレンダーに自動同期されます"}`
+                  : "連携するとGoogleカレンダーと予約を自動同期できます"}
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {gcalConnected ? (
+              <>
+                <button
+                  onClick={async () => {
+                    setGcalSyncing(true);
+                    try {
+                      const today = new Date();
+                      const fromDate = new Date(today);
+                      fromDate.setDate(fromDate.getDate() - 30);
+                      const from = fromDate.toISOString().slice(0, 10);
+                      const toDate = new Date(today);
+                      toDate.setDate(toDate.getDate() + 90);
+                      const to = toDate.toISOString().slice(0, 10);
+                      const syncRes = await fetch("/api/admin/gcal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "sync", from, to }) });
+                      const syncJ = await syncRes.json().catch(() => null);
+                      if (syncJ?.synced_at) setGcalLastSynced(syncJ.synced_at);
+                      const parts = [];
+                      if (syncJ?.pushed) parts.push(`Push: ${syncJ.pushed}件`);
+                      if (syncJ?.imported) parts.push(`取込: ${syncJ.imported}件`);
+                      if (syncJ?.updated) parts.push(`更新: ${syncJ.updated}件`);
+                      if (parts.length > 0) alert(`同期完了: ${parts.join(", ")}`);
+                      mutate();
+                    } catch (err) {
+                      console.error("[gcal] sync error:", err);
+                      alert("同期中にエラーが発生しました");
+                    }
+                    setGcalSyncing(false);
+                  }}
+                  disabled={gcalSyncing}
+                  className="btn-secondary text-xs px-3 py-1.5"
+                >
+                  {gcalSyncing ? "同期中..." : "今すぐ同期"}
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!confirm("Googleカレンダー連携を解除しますか？")) return;
+                    await fetch("/api/admin/gcal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "disconnect" }) });
+                    setGcalConnected(false);
+                    setGcalCalendars([]);
+                    setGcalCalendarId(null);
+                  }}
+                  className="btn-ghost text-xs px-3 py-1.5 text-red-500"
+                >
+                  連携解除
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={async () => {
+                  setGcalLoading(true);
+                  try {
+                    const res = await fetch("/api/admin/gcal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "connect" }) });
+                    const j = await res.json().catch(() => null);
+                    if (j?.auth_url) {
+                      window.location.href = j.auth_url;
+                    } else if (res.status === 503) {
+                      alert("Googleカレンダー連携は現在準備中です。\n\nGoogle Cloud ConsoleでOAuth認証情報を設定し、環境変数（GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_REDIRECT_URI）をVercelに登録してください。");
+                    } else if (j?.error) {
+                      alert("連携エラー: " + (typeof j.error === "string" ? j.error : j.error.message ?? JSON.stringify(j.error)));
+                    } else {
+                      alert("Googleカレンダー連携の設定が必要です。管理者にお問い合わせください。");
+                    }
+                  } catch {
+                    alert("通信エラーが発生しました");
+                  }
+                  setGcalLoading(false);
+                }}
+                disabled={gcalLoading}
+                className="btn-primary text-xs px-4 py-1.5"
+              >
+                {gcalLoading ? "準備中..." : "Googleカレンダーと連携"}
+              </button>
+            )}
+          </div>
+          {gcalConnected && gcalCalendars.length > 0 && (
+            <div className="w-full flex items-center gap-2 pt-1 border-t border-border">
+              <label className="text-xs text-muted whitespace-nowrap">同期先カレンダー:</label>
+              <select
+                value={gcalCalendarId ?? "primary"}
+                onChange={async (e) => {
+                  const id = e.target.value;
+                  setGcalCalendarId(id);
+                  setGcalCalendarSaving(true);
+                  await fetch("/api/admin/gcal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "set-calendar", calendar_id: id }) });
+                  setGcalCalendarSaving(false);
+                }}
+                disabled={gcalCalendarSaving}
+                className="text-xs border border-border rounded px-2 py-1 flex-1 min-w-0 bg-background text-primary"
+              >
+                {gcalCalendars.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.summary}{c.primary ? " (メイン)" : ""}
+                  </option>
+                ))}
+              </select>
+              {gcalCalendarSaving && <span className="text-xs text-muted">保存中...</span>}
+            </div>
+          )}
+        </section>
+
         {err && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">{err}</div>
         )}
@@ -383,13 +548,13 @@ export default function ReservationsClient() {
           <div className="flex rounded-lg border border-border-subtle overflow-hidden">
             <button
               onClick={() => setViewMode("list")}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors ${viewMode === "list" ? "bg-[#0071e3] text-white" : "bg-white text-secondary hover:bg-surface-hover"}`}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${viewMode === "list" ? "bg-accent text-inverse" : "bg-surface text-secondary hover:bg-surface-hover"}`}
             >
               リスト
             </button>
             <button
               onClick={() => setViewMode("calendar")}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors ${viewMode === "calendar" ? "bg-[#0071e3] text-white" : "bg-white text-secondary hover:bg-surface-hover"}`}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${viewMode === "calendar" ? "bg-accent text-inverse" : "bg-surface text-secondary hover:bg-surface-hover"}`}
             >
               カレンダー
             </button>
@@ -399,7 +564,7 @@ export default function ReservationsClient() {
           <select
             value={statusFilter}
             onChange={(e) => handleFilterChange(e.target.value)}
-            className="rounded-lg border border-border-subtle bg-white px-3 py-1.5 text-xs text-primary"
+            className="rounded-lg border border-border-subtle bg-surface px-3 py-1.5 text-xs text-primary"
           >
             {STATUS_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
@@ -413,7 +578,7 @@ export default function ReservationsClient() {
                 type="date"
                 value={dateFilter}
                 onChange={(e) => handleDateChange(e.target.value)}
-                className="rounded-lg border border-border-subtle bg-white px-3 py-1.5 text-xs text-primary"
+                className="rounded-lg border border-border-subtle bg-surface px-3 py-1.5 text-xs text-primary"
               />
               {dateFilter && (
                 <button
@@ -504,6 +669,27 @@ export default function ReservationsClient() {
                               </button>
                             </>
                           )}
+                          {(r.status === "cancelled" || r.status === "completed") && (
+                            <button
+                              onClick={async () => {
+                                if (!confirm("この予約を完全に削除しますか？この操作は取り消せません。")) return;
+                                try {
+                                  const res = await fetch("/api/admin/reservations", {
+                                    method: "DELETE",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ id: r.id, hard_delete: true }),
+                                  });
+                                  if (!res.ok) throw new Error("削除に失敗しました");
+                                  mutate();
+                                } catch (e: unknown) {
+                                  setMutationErr(e instanceof Error ? e.message : String(e));
+                                }
+                              }}
+                              className="btn-secondary px-2.5 py-1 text-[11px] text-red-500 hover:text-red-600"
+                            >
+                              削除
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -517,7 +703,7 @@ export default function ReservationsClient() {
         {/* ─── Create / Edit Modal ─── */}
         {showForm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={() => setShowForm(false)}>
-            <div className="mx-4 w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mx-4 w-full max-w-lg rounded-2xl bg-surface p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
               <h2 className="text-lg font-semibold text-primary mb-4">
                 {editingId ? "予約を編集" : "新規予約"}
               </h2>
@@ -624,8 +810,8 @@ export default function ReservationsClient() {
                             onClick={() => toggleMenuItem(mi)}
                             className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                               selected
-                                ? "border-[#0071e3] bg-[rgba(0,113,227,0.08)] text-[#0071e3]"
-                                : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400"
+                                ? "border-accent bg-accent-dim text-accent"
+                                : "border-border-default bg-surface text-secondary hover:border-border-strong"
                             }`}
                           >
                             {mi.name} ({formatJpy(mi.unit_price)})
@@ -664,9 +850,9 @@ export default function ReservationsClient() {
                   <button type="button" onClick={() => setShowForm(false)} className="btn-secondary px-4 py-2 text-sm">
                     キャンセル
                   </button>
-                  <button type="submit" disabled={saving} className="btn-primary px-4 py-2 text-sm">
-                    {saving ? "保存中..." : editingId ? "更新" : "作成"}
-                  </button>
+                  <Button type="submit" loading={saving} disabled={saving}>
+                    {editingId ? "更新" : "作成"}
+                  </Button>
                 </div>
               </form>
             </div>
@@ -676,7 +862,7 @@ export default function ReservationsClient() {
         {/* ─── Cancel Dialog ─── */}
         {cancelTarget && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={() => setCancelTarget(null)}>
-            <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mx-4 w-full max-w-sm rounded-2xl bg-surface p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
               <h3 className="text-base font-semibold text-primary mb-3">予約をキャンセル</h3>
               <label className={labelCls}>
                 <span className={labelTextCls}>キャンセル理由</span>

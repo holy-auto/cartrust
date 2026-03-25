@@ -1,19 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function getSupabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
-  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-}
-
 export async function GET(req: NextRequest) {
   try {
+    // Rate limit: 30 requests per IP per minute
+    const ip = getClientIp(req);
+    const rl = await checkRateLimit(`public-status:${ip}`, { limit: 30, windowSec: 60 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "rate_limited", message: "リクエストが多すぎます。しばらくしてから再度お試しください。" },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
+      );
+    }
+
     const pid = req.nextUrl.searchParams.get("pid") ?? req.nextUrl.searchParams.get("public_id");
     if (!pid) return apiValidationError("pid は必須です。");
 
@@ -25,7 +29,9 @@ export async function GET(req: NextRequest) {
       .select(
         "id, tenant_id, public_id, vehicle_id, status, customer_name, created_at, updated_at, " +
         "vehicle_info_json, content_free_text, content_preset_json, expiry_type, expiry_value, " +
-        "logo_asset_path, footer_variant, current_version"
+        "logo_asset_path, footer_variant, current_version, service_type, ppf_coverage_json, " +
+        "coating_products_json, warranty_period_end, warranty_exclusions, " +
+        "maintenance_json, body_repair_json"
       )
       .eq("public_id", pid)
       .limit(1)

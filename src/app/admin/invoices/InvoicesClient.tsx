@@ -11,6 +11,7 @@ import { fetcher } from "@/lib/swr";
 type InvoiceItem = {
   description: string;
   quantity: number;
+  unit: string;
   unit_price: number;
   amount: number;
   certificate_id?: string | null;
@@ -37,6 +38,26 @@ type Invoice = {
 type Customer = {
   id: string;
   name: string;
+};
+
+type VehicleOption = {
+  id: string;
+  maker: string | null;
+  model: string | null;
+  year: number | null;
+  plate_display: string | null;
+  vin_code: string | null;
+  customer_id: string | null;
+  customer_name: string | null;
+  size_class: string | null;
+};
+
+type MenuItem = {
+  id: string;
+  name: string;
+  description: string | null;
+  unit_price: number;
+  tax_category: number;
 };
 
 type CertificateOption = {
@@ -90,7 +111,9 @@ const statusLabel = (s: string) => {
   }
 };
 
-const emptyItem = (): InvoiceItem => ({ description: "", quantity: 1, unit_price: 0, amount: 0, certificate_id: null, certificate_public_id: null });
+const UNIT_OPTIONS = ["式", "台", "個", "セット", "本", "枚", "m", "m²", "時間"];
+
+const emptyItem = (): InvoiceItem => ({ description: "", quantity: 1, unit: "式", unit_price: 0, amount: 0, certificate_id: null, certificate_public_id: null });
 
 export default function InvoicesClient() {
   const [statusFilter, setStatusFilter] = useState("all");
@@ -127,6 +150,16 @@ export default function InvoicesClient() {
   const [formShowBankInfo, setFormShowBankInfo] = useState(false);
   const [formRecipientName, setFormRecipientName] = useState("");
 
+  // Menu items (品目マスタ)
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+
+  // Vehicle selection
+  const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
+  const [formVehicleId, setFormVehicleId] = useState("");
+  const [formVehicleModel, setFormVehicleModel] = useState("");
+  const [formVehiclePlate, setFormVehiclePlate] = useState("");
+  const [formVehicleVin, setFormVehicleVin] = useState("");
+
   // Certificates for linking
   const [certificates, setCertificates] = useState<CertificateOption[]>([]);
 
@@ -148,9 +181,44 @@ export default function InvoicesClient() {
     } catch {}
   }, []);
 
+  const fetchVehicles = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/vehicles", { cache: "no-store" });
+      const j = await res.json().catch(() => null);
+      if (res.ok && j?.vehicles) {
+        setVehicles(j.vehicles.map((v: any) => ({
+          id: v.id,
+          maker: v.maker,
+          model: v.model,
+          year: v.year,
+          plate_display: v.plate_display,
+          vin_code: v.vin_code,
+          customer_id: v.customer_id ?? v.customer?.id ?? null,
+          customer_name: v.customer?.name ?? null,
+        })));
+      }
+    } catch {}
+  }, []);
+
+  const fetchMenuItems = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/menu-items?active_only=true", { cache: "no-store" });
+      const j = await res.json().catch(() => null);
+      if (res.ok && j?.items) {
+        setMenuItems(j.items.map((m: any) => ({
+          id: m.id,
+          name: m.name,
+          description: m.description,
+          unit_price: m.unit_price,
+          tax_category: m.tax_category,
+        })));
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
-    fetchCustomers();
-  }, [fetchCustomers]);
+    Promise.all([fetchCustomers(), fetchMenuItems(), fetchVehicles()]);
+  }, [fetchCustomers, fetchMenuItems, fetchVehicles]);
 
   // 顧客が変わったら証明書を取得
   const fetchCertificatesForCustomer = useCallback(async (customerId: string) => {
@@ -176,6 +244,29 @@ export default function InvoicesClient() {
     fetchCertificatesForCustomer(val);
   };
 
+  const handleVehicleSelect = (vehicleId: string) => {
+    setFormVehicleId(vehicleId);
+    if (!vehicleId) {
+      setFormVehicleModel("");
+      setFormVehiclePlate("");
+      setFormVehicleVin("");
+      return;
+    }
+    const v = vehicles.find((veh) => veh.id === vehicleId);
+    if (v) {
+      const sizeTag = v.size_class ? ` [${v.size_class}]` : "";
+      const modelStr = [v.maker, v.model, v.year ? String(v.year) : null].filter(Boolean).join(" ") + sizeTag;
+      setFormVehicleModel(modelStr);
+      setFormVehiclePlate(v.plate_display ?? "");
+      setFormVehicleVin(v.vin_code ?? "");
+      // 車両に紐付き顧客がいて、顧客未選択なら自動選択
+      if (v.customer_id && !formCustomerId) {
+        setFormCustomerId(v.customer_id);
+        fetchCertificatesForCustomer(v.customer_id);
+      }
+    }
+  };
+
   const handleFilterChange = (val: string) => {
     setStatusFilter(val);
     setActiveFilter(val);
@@ -187,9 +278,22 @@ export default function InvoicesClient() {
     const item = { ...newItems[index] };
     if (field === "description") item.description = value as string;
     if (field === "quantity") item.quantity = parseInt(String(value), 10) || 0;
+    if (field === "unit") item.unit = value as string;
     if (field === "unit_price") item.unit_price = parseInt(String(value), 10) || 0;
     item.amount = item.quantity * item.unit_price;
     newItems[index] = item;
+    setFormItems(newItems);
+  };
+
+  const handleMenuItemSelect = (menuItemId: string, itemIndex: number) => {
+    const mi = menuItems.find((m) => m.id === menuItemId);
+    if (!mi) return;
+    const newItems = [...formItems];
+    const item = { ...newItems[itemIndex] };
+    item.description = mi.name + (mi.description ? ` (${mi.description})` : "");
+    item.unit_price = mi.unit_price;
+    item.amount = item.quantity * item.unit_price;
+    newItems[itemIndex] = item;
     setFormItems(newItems);
   };
 
@@ -243,6 +347,10 @@ export default function InvoicesClient() {
           show_logo: formShowLogo,
           show_bank_info: formShowBankInfo,
           recipient_name: formRecipientName || null,
+          vehicle_id: formVehicleId || null,
+          vehicle_info: (formVehicleModel || formVehiclePlate || formVehicleVin)
+            ? { model: formVehicleModel, plate: formVehiclePlate, vin: formVehicleVin }
+            : null,
         }),
       });
       const j = await res.json().catch(() => null);
@@ -258,6 +366,10 @@ export default function InvoicesClient() {
       setFormShowLogo(true);
       setFormShowBankInfo(false);
       setFormRecipientName("");
+      setFormVehicleId("");
+      setFormVehicleModel("");
+      setFormVehiclePlate("");
+      setFormVehicleVin("");
       setSaveMsg({ text: `請求書 ${j.invoice?.invoice_number} を作成しました`, ok: true });
       mutate();
     } catch (e: any) {
@@ -351,18 +463,18 @@ export default function InvoicesClient() {
                   <div className="mt-0.5 text-[11px] text-muted">{aging.current}件</div>
                 </div>
                 <div className="glass-card p-4">
-                  <div className="text-[10px] font-semibold tracking-[0.18em] text-[#b35c00]">30日超</div>
-                  <div className="mt-1 text-lg font-bold text-[#b35c00]">{formatJpy(aging.d30Amt)}</div>
+                  <div className="text-[10px] font-semibold tracking-[0.18em] text-warning-text">30日超</div>
+                  <div className="mt-1 text-lg font-bold text-warning-text">{formatJpy(aging.d30Amt)}</div>
                   <div className="mt-0.5 text-[11px] text-muted">{aging.d30}件</div>
                 </div>
                 <div className="glass-card p-4">
-                  <div className="text-[10px] font-semibold tracking-[0.18em] text-[#d1242f]">60日超</div>
-                  <div className="mt-1 text-lg font-bold text-[#d1242f]">{formatJpy(aging.d60Amt)}</div>
+                  <div className="text-[10px] font-semibold tracking-[0.18em] text-danger-text">60日超</div>
+                  <div className="mt-1 text-lg font-bold text-danger-text">{formatJpy(aging.d60Amt)}</div>
                   <div className="mt-0.5 text-[11px] text-muted">{aging.d60}件</div>
                 </div>
                 <div className="glass-card p-4">
-                  <div className="text-[10px] font-semibold tracking-[0.18em] text-[#d1242f]">90日超</div>
-                  <div className="mt-1 text-lg font-bold text-[#d1242f]">{formatJpy(aging.d90Amt)}</div>
+                  <div className="text-[10px] font-semibold tracking-[0.18em] text-danger-text">90日超</div>
+                  <div className="mt-1 text-lg font-bold text-danger-text">{formatJpy(aging.d90Amt)}</div>
                   <div className="mt-0.5 text-[11px] text-muted">{aging.d90}件</div>
                 </div>
               </section>
@@ -449,16 +561,69 @@ export default function InvoicesClient() {
                 </div>
               </div>
 
+              {/* Vehicle Info */}
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-muted tracking-[0.18em]">車両情報（任意）</div>
+                {vehicles.length > 0 && (
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted">登録車両から選択</label>
+                    <select
+                      className="select-field"
+                      value={formVehicleId}
+                      onChange={(e) => handleVehicleSelect(e.target.value)}
+                    >
+                      <option value="">車両を選択...</option>
+                      {vehicles.map((v) => {
+                        const label = [v.maker, v.model, v.year ? String(v.year) : null].filter(Boolean).join(" ");
+                        return (
+                          <option key={v.id} value={v.id}>
+                            {label || "（名称なし）"}{v.plate_display ? `（${v.plate_display}）` : ""}{v.customer_name ? ` — ${v.customer_name}` : ""}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted">車種</label>
+                    <input type="text" className="input-field" placeholder="Toyota Prius" value={formVehicleModel} onChange={(e) => setFormVehicleModel(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted">ナンバー</label>
+                    <input type="text" className="input-field" placeholder="水戸 300 あ 12-34" value={formVehiclePlate} onChange={(e) => setFormVehiclePlate(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted">車台番号</label>
+                    <input type="text" className="input-field font-mono" placeholder="VIN" value={formVehicleVin} onChange={(e) => setFormVehicleVin(e.target.value)} />
+                  </div>
+                </div>
+              </div>
+
               {/* Line Items */}
               <div className="space-y-2">
                 <div className="text-xs font-semibold text-muted tracking-[0.18em]">明細項目</div>
                 {formItems.map((item, idx) => (
                   <div key={idx} className="space-y-1">
+                    {menuItems.length > 0 && (
+                      <select
+                        className="select-field py-1 text-xs mb-1"
+                        value=""
+                        onChange={(e) => { if (e.target.value) handleMenuItemSelect(e.target.value, idx); }}
+                      >
+                        <option value="">品目マスタから選択...</option>
+                        {menuItems.map((mi) => (
+                          <option key={mi.id} value={mi.id}>
+                            {mi.name} ({formatJpy(mi.unit_price)})
+                          </option>
+                        ))}
+                      </select>
+                    )}
                     {certificates.length > 0 && (
                       <div className="flex items-center gap-2">
                         <label className="text-[10px] text-muted whitespace-nowrap">証明書紐付け:</label>
                         <select
-                          className="select-field !text-xs !py-1"
+                          className="select-field text-xs py-1"
                           value={item.certificate_id ?? ""}
                           onChange={(e) => linkCertificate(idx, e.target.value)}
                         >
@@ -475,15 +640,30 @@ export default function InvoicesClient() {
                       </div>
                     )}
                     <div className="grid grid-cols-6 sm:grid-cols-12 gap-2 items-end">
-                      <div className="col-span-6 sm:col-span-5 space-y-1">
-                        {idx === 0 && <label className="text-xs text-muted">内容</label>}
-                        <input
-                          type="text"
-                          className="input-field"
-                          placeholder="施工内容"
-                          value={item.description}
-                          onChange={(e) => updateItem(idx, "description", e.target.value)}
-                        />
+                      <div className="col-span-6 sm:col-span-4 space-y-1">
+                        {idx === 0 && <label className="text-xs text-muted">内容（品目マスタから選択 or 直接入力）</label>}
+                        <div className="relative">
+                          <input
+                            type="text"
+                            className="input-field"
+                            list={`menu-item-list-${idx}`}
+                            placeholder="施工内容を入力 or 選択"
+                            value={item.description}
+                            onChange={(e) => {
+                              updateItem(idx, "description", e.target.value);
+                              // 品目マスタの名前と一致したら単価も自動入力
+                              const matched = menuItems.find((m) => m.name === e.target.value);
+                              if (matched) {
+                                updateItem(idx, "unit_price", String(matched.unit_price ?? 0));
+                              }
+                            }}
+                          />
+                          <datalist id={`menu-item-list-${idx}`}>
+                            {menuItems.map((m) => (
+                              <option key={m.id} value={m.name}>{m.name} — ¥{(m.unit_price ?? 0).toLocaleString()}</option>
+                            ))}
+                          </datalist>
+                        </div>
                       </div>
                       <div className="col-span-2 sm:col-span-2 space-y-1">
                         {idx === 0 && <label className="text-xs text-muted">数量</label>}
@@ -494,6 +674,21 @@ export default function InvoicesClient() {
                           value={item.quantity}
                           onChange={(e) => updateItem(idx, "quantity", e.target.value)}
                         />
+                      </div>
+                      <div className="col-span-2 sm:col-span-1 space-y-1">
+                        {idx === 0 && <label className="text-xs text-muted">単位</label>}
+                        <input
+                          type="text"
+                          className="input-field"
+                          list="unit-options"
+                          value={item.unit}
+                          onChange={(e) => updateItem(idx, "unit", e.target.value)}
+                        />
+                        {idx === 0 && (
+                          <datalist id="unit-options">
+                            {UNIT_OPTIONS.map((u) => <option key={u} value={u} />)}
+                          </datalist>
+                        )}
                       </div>
                       <div className="col-span-2 sm:col-span-2 space-y-1">
                         {idx === 0 && <label className="text-xs text-muted">単価</label>}
@@ -514,7 +709,7 @@ export default function InvoicesClient() {
                       <div className="col-span-6 sm:col-span-1">
                         <button
                           type="button"
-                          className="btn-ghost !px-2 !py-1 !text-xs text-red-500"
+                          className="btn-ghost px-2 py-1 text-xs text-red-500"
                           onClick={() => removeItem(idx)}
                           disabled={formItems.length <= 1}
                         >
@@ -524,7 +719,7 @@ export default function InvoicesClient() {
                     </div>
                   </div>
                 ))}
-                <button type="button" className="btn-ghost !text-xs" onClick={addItem}>
+                <button type="button" className="btn-ghost text-xs" onClick={addItem}>
                   + 明細を追加
                 </button>
                 {formCustomerId && certificates.length === 0 && (
@@ -617,7 +812,7 @@ export default function InvoicesClient() {
           {/* Payment Dialog */}
           {paymentTarget && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={() => setPaymentTarget(null)}>
-              <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <div className="mx-4 w-full max-w-sm rounded-2xl bg-surface p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
                 <h3 className="text-base font-semibold text-primary mb-3">入金を記録</h3>
                 <div className="space-y-3">
                   <div className="space-y-1">
@@ -681,7 +876,7 @@ export default function InvoicesClient() {
                       <td className="px-5 py-3.5">
                         <Link
                           href={`/admin/invoices/${inv.id}`}
-                          className="font-mono text-[#0071e3] hover:text-[#0077ED] underline"
+                          className="font-mono text-accent hover:text-accent/90 underline"
                         >
                           {inv.invoice_number}
                         </Link>
@@ -705,14 +900,14 @@ export default function InvoicesClient() {
                         <div className="flex gap-2">
                           <Link
                             href={`/admin/invoices/${inv.id}`}
-                            className="btn-ghost !px-3 !py-1 !text-xs"
+                            className="btn-ghost px-3 py-1 text-xs"
                           >
                             詳細
                           </Link>
                           {(inv.status === "sent" || inv.status === "overdue") && (
                             <button
                               type="button"
-                              className="btn-primary !px-3 !py-1 !text-xs"
+                              className="btn-primary px-3 py-1 text-xs"
                               onClick={() => { setPaymentTarget(inv.id); setPaymentDate(new Date().toISOString().slice(0, 10)); }}
                             >
                               入金
@@ -721,7 +916,7 @@ export default function InvoicesClient() {
                           {inv.status === "draft" && (
                             <button
                               type="button"
-                              className="btn-danger !px-3 !py-1 !text-xs"
+                              className="btn-danger px-3 py-1 text-xs"
                               disabled={deletingId === inv.id}
                               onClick={() => handleDelete(inv.id)}
                             >

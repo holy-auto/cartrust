@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { priceIdToPlanTier } from "@/lib/stripe/plan";
 import { insurerPriceIdToPlanTier } from "@/lib/stripe/insurerPlan";
 import { isTemplateOptionEvent } from "@/lib/template-options/stripe";
@@ -83,10 +83,23 @@ async function sendPaymentFailureEmail(
         お支払いが確認できない場合、一部機能がご利用いただけなくなる場合がございます。
       </p>
       <div style="border-top: 1px solid #e5e5e5; margin-top: 24px; padding-top: 12px; font-size: 12px; color: #86868b;">
-        CARTRUST
+        CARTRUST — 株式会社HOLY AUTO
       </div>
     </div>
   `;
+
+  const text = `お支払いに失敗しました
+
+ご利用中のCARTRUSTプランのお支払いを処理できませんでした。
+カード情報をご確認のうえ、更新をお願いいたします。
+
+カード情報の更新はこちら: ${billingPortalUrl}
+
+お支払いが確認できない場合、一部機能がご利用いただけなくなる場合がございます。
+
+---
+CARTRUST — 株式会社HOLY AUTO
+`;
 
   try {
     const res = await fetch(RESEND_API, {
@@ -95,8 +108,10 @@ async function sendPaymentFailureEmail(
       body: JSON.stringify({
         from,
         to: email,
-        subject: "【CARTRUST】お支払いに失敗しました — カード情報をご確認ください",
+        reply_to: "support@cartrust.co.jp",
+        subject: "【CARTRUST】お支払いについてのご連絡",
         html,
+        text,
       }),
     });
     const resBody = await res.text();
@@ -114,13 +129,6 @@ function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error("Missing STRIPE_SECRET_KEY");
   return new Stripe(key, { apiVersion: "2025-02-24.acacia" as any });
-}
-
-function getSupabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
-  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
 type TenantSelector = { by: "id"; value: string } | { by: "slug"; value: string };
@@ -403,8 +411,20 @@ export async function POST(req: NextRequest) {
       case "invoice.paid":
       case "invoice.payment_failed": {
         const inv = event.data.object as any;
-        const subscriptionId = asStringId(inv.subscription ?? inv.subscription_id);
-        if (!subscriptionId) break;
+        // Stripe API v2025+ moved subscription reference:
+        //   legacy: inv.subscription (string)
+        //   new:    inv.parent?.subscription_details?.subscription (string)
+        //   fallback: inv.lines?.data?.[0]?.parent?.subscription_item_details?.subscription (string)
+        const rawSubId = inv.subscription
+          ?? inv.subscription_id
+          ?? inv.parent?.subscription_details?.subscription
+          ?? inv.lines?.data?.[0]?.parent?.subscription_item_details?.subscription
+          ?? inv.lines?.data?.[0]?.subscription;
+        const subscriptionId = asStringId(rawSubId);
+        if (!subscriptionId) {
+          console.warn("webhook: invoice has no subscription ID, skipping", { eventType: event.type, invId: inv.id });
+          break;
+        }
 
         const sub = await stripe.subscriptions.retrieve(subscriptionId);
 

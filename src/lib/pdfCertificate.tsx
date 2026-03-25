@@ -16,6 +16,9 @@ Font.register({
 });
 import { createSignedAssetUrl } from "@/lib/signedUrl";
 import QRCode from "qrcode";
+import { getPanelLabel, getCoverageLabel, getFilmTypeLabel } from "@/lib/ppf/constants";
+import { getWorkTypeLabel } from "@/lib/maintenance/constants";
+import { getRepairTypeLabel, getRepairPanelLabel, getPaintTypeLabel, getRepairMethodLabel } from "@/lib/bodyRepair/constants";
 
 type FieldType = "text" | "textarea" | "number" | "date" | "select" | "multiselect" | "checkbox";
 
@@ -34,10 +37,18 @@ export type CertRow = {
   vehicle_info_json: any;
   content_free_text: string | null;
   content_preset_json: any;
+  coating_products_json?: any[] | null;
+  ppf_coverage_json?: any[] | null;
+  maintenance_json?: any | null;
+  body_repair_json?: any | null;
+  service_type?: string | null;
   expiry_type: string | null;
   expiry_value: string | null;
+  warranty_period_end?: string | null;
+  warranty_exclusions?: string | null;
   logo_asset_path: string | null;
   created_at: string;
+  current_version?: number | null;
 };
 
 const styles = StyleSheet.create({
@@ -109,10 +120,16 @@ export async function renderCertificatePdf(row: CertRow, publicUrl: string) {
   const vehicle = row.vehicle_info_json ?? {};
   const model = String(vehicle.model ?? "").trim();
   const plate = String(vehicle.plate ?? "").trim();
+  const color = String(vehicle.color ?? "").trim();
+  const isPpf = row.service_type === "ppf";
+  const isMaintenance = row.service_type === "maintenance";
+  const isBodyRepair = row.service_type === "body_repair";
+  const ppfCoverage: any[] = Array.isArray(row.ppf_coverage_json) ? row.ppf_coverage_json : [];
+  const maintenanceData: Record<string, any> = (typeof row.maintenance_json === "object" && row.maintenance_json) ? row.maintenance_json : {};
+  const bodyRepairData: Record<string, any> = (typeof row.body_repair_json === "object" && row.body_repair_json) ? row.body_repair_json : {};
 
   const presetLines = buildPresetLines(schema, values);
 
-  // ✅ ロゴは失敗しても落とさない
   let logoUrl: string | null = null;
   try {
     logoUrl = row.logo_asset_path ? await createSignedAssetUrl(row.logo_asset_path, 3600) : null;
@@ -121,24 +138,56 @@ export async function renderCertificatePdf(row: CertRow, publicUrl: string) {
   }
 
   const qrDataUrl = await QRCode.toDataURL(publicUrl, { margin: 1, width: 220 });
+  const certTitle = isPpf ? "PPF施工証明書"
+    : isMaintenance ? "整備証明書"
+    : isBodyRepair ? "鈑金塗装証明書"
+    : "施工証明書";
+  const productsTitle = isPpf ? "使用フィルム" : "コーティング剤";
 
   const doc = (
     <Document>
+      {/* ── ページ1: 証明書本体 ── */}
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <View>
             <View style={styles.titleRow}>
               {logoUrl ? <Image src={logoUrl} style={{ height: 26, width: 120 }} /> : null}
-              <Text style={styles.title}>施工証明書</Text>
+              <Text style={styles.title}>{certTitle}</Text>
             </View>
-            <Text style={styles.meta}>公開ID: {row.public_id}</Text>
-            <Text style={styles.meta}>発行日: {new Date(row.created_at).toLocaleString("ja-JP")}</Text>
+            <Text style={styles.meta}>証明書番号: {row.public_id}</Text>
+            <Text style={styles.meta}>発行日: {new Date(row.created_at).toLocaleDateString("ja-JP")}</Text>
+            {(row.current_version ?? 1) > 1 && (
+              <Text style={[styles.meta, { color: "#c00" }]}>再発行版（第{row.current_version}版）</Text>
+            )}
           </View>
           <View>
             <Image src={qrDataUrl} style={styles.qr} />
-            <Text style={styles.small}>QRで表示</Text>
+            <Text style={styles.small}>QRで確認</Text>
           </View>
         </View>
+
+        {/* 証明文 */}
+        {isPpf && (
+          <View style={{ marginTop: 10 }}>
+            <Text style={{ fontSize: 9, color: "#444", lineHeight: 1.6 }}>
+              本証明書は、下記車両に対してペイントプロテクションフィルム（PPF）の施工が完了した事実を証明するものです。
+            </Text>
+          </View>
+        )}
+        {isMaintenance && (
+          <View style={{ marginTop: 10 }}>
+            <Text style={{ fontSize: 9, color: "#444", lineHeight: 1.6 }}>
+              本証明書は、下記車両に対して整備作業が実施された事実を証明するものです。
+            </Text>
+          </View>
+        )}
+        {isBodyRepair && (
+          <View style={{ marginTop: 10 }}>
+            <Text style={{ fontSize: 9, color: "#444", lineHeight: 1.6 }}>
+              本証明書は、下記車両に対して鈑金塗装作業が実施された事実を証明するものです。
+            </Text>
+          </View>
+        )}
 
         <View style={styles.box}>
           <Text style={styles.label}>お客様名</Text>
@@ -147,7 +196,7 @@ export async function renderCertificatePdf(row: CertRow, publicUrl: string) {
 
         {(model || plate) ? (
           <View style={styles.box}>
-            <Text style={styles.label}>車両情報</Text>
+            <Text style={styles.sectionTitle}>車両情報</Text>
             {model ? (
               <View style={styles.itemRow}>
                 <Text style={styles.itemLabel}>車種</Text>
@@ -160,12 +209,153 @@ export async function renderCertificatePdf(row: CertRow, publicUrl: string) {
                 <Text style={styles.itemValue}>{plate}</Text>
               </View>
             ) : null}
+            {color ? (
+              <View style={styles.itemRow}>
+                <Text style={styles.itemLabel}>ボディカラー</Text>
+                <Text style={styles.itemValue}>{color}</Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        {/* 使用フィルム / コーティング剤 */}
+        {Array.isArray(row.coating_products_json) && row.coating_products_json.length > 0 ? (
+          <View style={styles.box}>
+            <Text style={styles.sectionTitle}>{productsTitle}</Text>
+            {row.coating_products_json.map((cp: any, idx: number) => (
+              <View key={idx} style={styles.itemRow}>
+                <Text style={styles.itemLabel}>{cp.location || "-"}</Text>
+                <Text style={styles.itemValue}>
+                  {[cp.brand_name, cp.product_name, cp.film_type ? getFilmTypeLabel(cp.film_type) : null].filter(Boolean).join(" / ") || "-"}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {/* PPF施工範囲 */}
+        {isPpf && ppfCoverage.length > 0 ? (
+          <View style={styles.box}>
+            <Text style={styles.sectionTitle}>施工範囲</Text>
+            {ppfCoverage.map((entry: any, idx: number) => (
+              <View key={idx} style={styles.itemRow}>
+                <Text style={styles.itemLabel}>{getPanelLabel(entry.panel)}</Text>
+                <Text style={styles.itemValue}>
+                  {getCoverageLabel(entry.coverage)}
+                  {entry.partial_note ? ` — ${entry.partial_note}` : ""}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {/* 整備内容 */}
+        {isMaintenance && Object.keys(maintenanceData).length > 0 ? (
+          <View style={styles.box}>
+            <Text style={styles.sectionTitle}>整備内容</Text>
+            {Array.isArray(maintenanceData.work_types) && maintenanceData.work_types.length > 0 ? (
+              <View style={styles.itemRow}>
+                <Text style={styles.itemLabel}>作業種別</Text>
+                <Text style={styles.itemValue}>
+                  {maintenanceData.work_types.map((wt: string) => getWorkTypeLabel(wt)).join("、")}
+                </Text>
+              </View>
+            ) : null}
+            {maintenanceData.mileage ? (
+              <View style={styles.itemRow}>
+                <Text style={styles.itemLabel}>走行距離</Text>
+                <Text style={styles.itemValue}>{maintenanceData.mileage} km</Text>
+              </View>
+            ) : null}
+            {maintenanceData.parts_replaced ? (
+              <View style={styles.itemRow}>
+                <Text style={styles.itemLabel}>交換部品</Text>
+                <Text style={styles.itemValue}>{maintenanceData.parts_replaced}</Text>
+              </View>
+            ) : null}
+            {maintenanceData.next_service_date ? (
+              <View style={styles.itemRow}>
+                <Text style={styles.itemLabel}>次回点検日</Text>
+                <Text style={styles.itemValue}>{maintenanceData.next_service_date}</Text>
+              </View>
+            ) : null}
+            {maintenanceData.findings ? (
+              <View style={styles.itemRow}>
+                <Text style={styles.itemLabel}>点検結果・所見</Text>
+                <Text style={styles.itemValue}>{maintenanceData.findings}</Text>
+              </View>
+            ) : null}
+            {maintenanceData.mechanic_name ? (
+              <View style={styles.itemRow}>
+                <Text style={styles.itemLabel}>担当整備士</Text>
+                <Text style={styles.itemValue}>{maintenanceData.mechanic_name}</Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        {/* 鈑金塗装内容 */}
+        {isBodyRepair && Object.keys(bodyRepairData).length > 0 ? (
+          <View style={styles.box}>
+            <Text style={styles.sectionTitle}>鈑金塗装内容</Text>
+            {bodyRepairData.repair_type ? (
+              <View style={styles.itemRow}>
+                <Text style={styles.itemLabel}>修理種別</Text>
+                <Text style={styles.itemValue}>{getRepairTypeLabel(bodyRepairData.repair_type)}</Text>
+              </View>
+            ) : null}
+            {Array.isArray(bodyRepairData.affected_panels) && bodyRepairData.affected_panels.length > 0 ? (
+              <View style={styles.itemRow}>
+                <Text style={styles.itemLabel}>修理箇所</Text>
+                <Text style={styles.itemValue}>
+                  {bodyRepairData.affected_panels.map((p: string) => getRepairPanelLabel(p)).join("、")}
+                </Text>
+              </View>
+            ) : null}
+            {bodyRepairData.paint_color_code ? (
+              <View style={styles.itemRow}>
+                <Text style={styles.itemLabel}>塗装色・カラーコード</Text>
+                <Text style={styles.itemValue}>{bodyRepairData.paint_color_code}</Text>
+              </View>
+            ) : null}
+            {bodyRepairData.paint_type ? (
+              <View style={styles.itemRow}>
+                <Text style={styles.itemLabel}>塗装タイプ</Text>
+                <Text style={styles.itemValue}>{getPaintTypeLabel(bodyRepairData.paint_type)}</Text>
+              </View>
+            ) : null}
+            {Array.isArray(bodyRepairData.repair_methods) && bodyRepairData.repair_methods.length > 0 ? (
+              <View style={styles.itemRow}>
+                <Text style={styles.itemLabel}>修理方法</Text>
+                <Text style={styles.itemValue}>
+                  {bodyRepairData.repair_methods.map((m: string) => getRepairMethodLabel(m)).join("、")}
+                </Text>
+              </View>
+            ) : null}
+            {bodyRepairData.before_notes ? (
+              <View style={styles.itemRow}>
+                <Text style={styles.itemLabel}>修理前の状態</Text>
+                <Text style={styles.itemValue}>{bodyRepairData.before_notes}</Text>
+              </View>
+            ) : null}
+            {bodyRepairData.after_notes ? (
+              <View style={styles.itemRow}>
+                <Text style={styles.itemLabel}>修理後の状態</Text>
+                <Text style={styles.itemValue}>{bodyRepairData.after_notes}</Text>
+              </View>
+            ) : null}
+            {bodyRepairData.warranty_info ? (
+              <View style={styles.itemRow}>
+                <Text style={styles.itemLabel}>修理保証</Text>
+                <Text style={styles.itemValue}>{bodyRepairData.warranty_info}</Text>
+              </View>
+            ) : null}
           </View>
         ) : null}
 
         {presetLines.length > 0 ? (
           <View style={styles.box}>
-            <Text style={styles.sectionTitle}>テンプレ項目</Text>
+            <Text style={styles.sectionTitle}>施工内容</Text>
             {presetLines.map((it, idx) => (
               <View key={idx} style={styles.itemRow}>
                 <Text style={styles.itemLabel}>[{it.section}] {it.label}</Text>
@@ -188,10 +378,233 @@ export async function renderCertificatePdf(row: CertRow, publicUrl: string) {
         </View>
 
         <View style={styles.footer}>
-          <Text>公開URL: {publicUrl}</Text>
-          <Text>HOLY監修フッター（信頼担保）</Text>
+          <Text>証明書URL: {publicUrl}</Text>
+          <Text style={{ fontSize: 7, color: "#999", marginTop: 2 }}>Powered by CARTRUST</Text>
         </View>
       </Page>
+
+      {/* ── ページ2: 保証・注意事項（PPFの場合のみ） ── */}
+      {isPpf && (
+        <Page size="A4" style={styles.page}>
+          <View>
+            <Text style={styles.title}>{certTitle} — 保証・注意事項</Text>
+            <Text style={styles.meta}>証明書番号: {row.public_id}</Text>
+          </View>
+
+          {/* 保証情報 */}
+          {row.warranty_period_end && (
+            <View style={styles.box}>
+              <Text style={styles.sectionTitle}>保証情報</Text>
+              <View style={styles.itemRow}>
+                <Text style={styles.itemLabel}>保証期間終了日</Text>
+                <Text style={styles.itemValue}>{row.warranty_period_end}</Text>
+              </View>
+            </View>
+          )}
+
+          {/* 保証対象外事項 */}
+          {row.warranty_exclusions && (
+            <View style={styles.box}>
+              <Text style={styles.sectionTitle}>保証対象外事項</Text>
+              <Text style={{ fontSize: 9, lineHeight: 1.6 }}>{row.warranty_exclusions}</Text>
+            </View>
+          )}
+
+          {/* 注意事項 */}
+          <View style={styles.box}>
+            <Text style={styles.sectionTitle}>フィルムのお取り扱いについて</Text>
+            <Text style={{ fontSize: 8, lineHeight: 1.7, color: "#444" }}>
+              {[
+                "・施工後48時間は洗車およびフィルム端部への接触をお控えください。",
+                "・洗車は中性洗剤を使用した手洗いを推奨します。",
+                "・高圧洗浄機をご使用の際は、フィルム端部から30cm以上離してください。",
+                "・ワックスやコンパウンドをフィルム面に使用しないでください。",
+                "・フィルムの端部が浮いた場合は、ご自身で処置せず施工店にご連絡ください。",
+              ].join("\n")}
+            </Text>
+          </View>
+
+          {/* 免責事項 */}
+          <View style={styles.box}>
+            <Text style={styles.sectionTitle}>免責事項</Text>
+            <Text style={{ fontSize: 8, lineHeight: 1.7, color: "#444" }}>
+              {[
+                "本証明書は施工事実を証明するものであり、車両の状態や性能を保証するものではありません。",
+                "以下の事項については保証の対象外となります。",
+                "",
+                "・飛び石、事故その他の外的要因による物理的損傷",
+                "・不適切なメンテナンスに起因する劣化・損傷",
+                "・お客様ご自身による剥離、補修、改変",
+                "・当店以外での施工、修理、改造後に生じた不具合",
+                "・自然災害（台風、雹、洪水等）による損傷",
+                "・フィルムの経年による通常の劣化",
+                "・車両の製造上の塗装不良に起因する問題",
+                "",
+                "保証の適用にあたっては、施工店による現車確認が必要となる場合があります。",
+              ].join("\n")}
+            </Text>
+          </View>
+
+          {/* QR照会案内 */}
+          <View style={styles.box}>
+            <Text style={styles.sectionTitle}>オンライン照会について</Text>
+            <Text style={{ fontSize: 8, lineHeight: 1.7, color: "#444" }}>
+              本証明書に記載のQRコードをスマートフォンで読み取ると、CARTRUST認証プラットフォーム上で本証明書の最新情報をリアルタイムに確認できます。
+            </Text>
+          </View>
+
+          <View style={styles.footer}>
+            <Text style={{ fontSize: 7, color: "#999" }}>Powered by CARTRUST</Text>
+          </View>
+        </Page>
+      )}
+
+      {/* ── ページ2: 注意事項（整備の場合） ── */}
+      {isMaintenance && (
+        <Page size="A4" style={styles.page}>
+          <View>
+            <Text style={styles.title}>{certTitle} — 注意事項</Text>
+            <Text style={styles.meta}>証明書番号: {row.public_id}</Text>
+          </View>
+
+          {row.warranty_period_end && (
+            <View style={styles.box}>
+              <Text style={styles.sectionTitle}>保証情報</Text>
+              <View style={styles.itemRow}>
+                <Text style={styles.itemLabel}>保証期間終了日</Text>
+                <Text style={styles.itemValue}>{row.warranty_period_end}</Text>
+              </View>
+            </View>
+          )}
+
+          {row.warranty_exclusions && (
+            <View style={styles.box}>
+              <Text style={styles.sectionTitle}>保証対象外事項</Text>
+              <Text style={{ fontSize: 9, lineHeight: 1.6 }}>{row.warranty_exclusions}</Text>
+            </View>
+          )}
+
+          <View style={styles.box}>
+            <Text style={styles.sectionTitle}>整備後のご注意</Text>
+            <Text style={{ fontSize: 8, lineHeight: 1.7, color: "#444" }}>
+              {[
+                "・整備後は慣らし運転を推奨します。急加速・急ブレーキはお控えください。",
+                "・オイル交換後は100km走行後にオイル量を再確認してください。",
+                "・異音、振動、警告灯の点灯等の異常が発生した場合は速やかにご連絡ください。",
+                "・定期的な点検・メンテナンスが車両の長寿命化につながります。",
+                "・次回点検日が記載されている場合は、期日までの点検をお勧めします。",
+              ].join("\n")}
+            </Text>
+          </View>
+
+          <View style={styles.box}>
+            <Text style={styles.sectionTitle}>免責事項</Text>
+            <Text style={{ fontSize: 8, lineHeight: 1.7, color: "#444" }}>
+              {[
+                "本証明書は整備作業が実施された事実を証明するものであり、車両の状態や性能を保証するものではありません。",
+                "以下の事項については保証の対象外となります。",
+                "",
+                "・整備箇所以外の部品・装置の不具合",
+                "・お客様の使用方法に起因する故障・損傷",
+                "・事故、災害等の外的要因による損傷",
+                "・当店以外での整備・修理・改造後に生じた不具合",
+                "・消耗品の通常摩耗",
+                "",
+                "保証の適用にあたっては、当店による現車確認が必要となる場合があります。",
+              ].join("\n")}
+            </Text>
+          </View>
+
+          <View style={styles.box}>
+            <Text style={styles.sectionTitle}>オンライン照会について</Text>
+            <Text style={{ fontSize: 8, lineHeight: 1.7, color: "#444" }}>
+              本証明書に記載のQRコードをスマートフォンで読み取ると、CARTRUST認証プラットフォーム上で本証明書の最新情報をリアルタイムに確認できます。
+            </Text>
+          </View>
+
+          <View style={styles.footer}>
+            <Text style={{ fontSize: 7, color: "#999" }}>Powered by CARTRUST</Text>
+          </View>
+        </Page>
+      )}
+
+      {/* ── ページ2: 保証・注意事項（鈑金塗装の場合） ── */}
+      {isBodyRepair && (
+        <Page size="A4" style={styles.page}>
+          <View>
+            <Text style={styles.title}>{certTitle} — 保証・注意事項</Text>
+            <Text style={styles.meta}>証明書番号: {row.public_id}</Text>
+          </View>
+
+          {row.warranty_period_end && (
+            <View style={styles.box}>
+              <Text style={styles.sectionTitle}>保証情報</Text>
+              <View style={styles.itemRow}>
+                <Text style={styles.itemLabel}>保証期間終了日</Text>
+                <Text style={styles.itemValue}>{row.warranty_period_end}</Text>
+              </View>
+            </View>
+          )}
+
+          {bodyRepairData.warranty_info && (
+            <View style={styles.box}>
+              <Text style={styles.sectionTitle}>修理保証内容</Text>
+              <Text style={{ fontSize: 9, lineHeight: 1.6 }}>{bodyRepairData.warranty_info}</Text>
+            </View>
+          )}
+
+          {row.warranty_exclusions && (
+            <View style={styles.box}>
+              <Text style={styles.sectionTitle}>保証対象外事項</Text>
+              <Text style={{ fontSize: 9, lineHeight: 1.6 }}>{row.warranty_exclusions}</Text>
+            </View>
+          )}
+
+          <View style={styles.box}>
+            <Text style={styles.sectionTitle}>塗装後のご注意</Text>
+            <Text style={{ fontSize: 8, lineHeight: 1.7, color: "#444" }}>
+              {[
+                "・塗装後1週間は洗車をお控えください。",
+                "・塗装後1ヶ月間はワックスがけをお控えください。",
+                "・高圧洗浄機のご使用は塗装面から30cm以上離してください。",
+                "・鳥の糞、樹液等の付着物は速やかに除去してください。",
+                "・塗装面の異常（剥がれ、膨れ、変色等）を発見した場合は速やかにご連絡ください。",
+                "・研磨剤入りのワックスやコンパウンドの使用はお控えください。",
+              ].join("\n")}
+            </Text>
+          </View>
+
+          <View style={styles.box}>
+            <Text style={styles.sectionTitle}>免責事項</Text>
+            <Text style={{ fontSize: 8, lineHeight: 1.7, color: "#444" }}>
+              {[
+                "本証明書は鈑金塗装作業が実施された事実を証明するものであり、車両の状態や性能を保証するものではありません。",
+                "以下の事項については保証の対象外となります。",
+                "",
+                "・飛び石、事故その他の外的要因による損傷",
+                "・不適切なメンテナンスに起因する劣化・損傷",
+                "・当店以外での施工、修理、改造後に生じた不具合",
+                "・自然災害（台風、雹、洪水等）による損傷",
+                "・経年による通常の劣化・退色",
+                "・車両の製造上の塗装不良に起因する問題",
+                "",
+                "保証の適用にあたっては、当店による現車確認が必要となる場合があります。",
+              ].join("\n")}
+            </Text>
+          </View>
+
+          <View style={styles.box}>
+            <Text style={styles.sectionTitle}>オンライン照会について</Text>
+            <Text style={{ fontSize: 8, lineHeight: 1.7, color: "#444" }}>
+              本証明書に記載のQRコードをスマートフォンで読み取ると、CARTRUST認証プラットフォーム上で本証明書の最新情報をリアルタイムに確認できます。
+            </Text>
+          </View>
+
+          <View style={styles.footer}>
+            <Text style={{ fontSize: 7, color: "#999" }}>Powered by CARTRUST</Text>
+          </View>
+        </Page>
+      )}
     </Document>
   );
 

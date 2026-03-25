@@ -6,7 +6,12 @@ import Link from "next/link";
 import { createCertAction } from "./actions";
 import VehiclePickerSection from "./VehiclePickerSection";
 import FilmThicknessSection from "./FilmThicknessSection";
+import CoatingProductsSection from "./CoatingProductsSection";
+import PpfCoverageSection from "./PpfCoverageSection";
+import MaintenanceDetailsSection from "./MaintenanceDetailsSection";
+import BodyRepairDetailsSection from "./BodyRepairDetailsSection";
 import PhotoUploadSection, { type PhotoUploadHandle } from "./PhotoUploadSection";
+import Button from "@/components/ui/Button";
 import type { PlanTier } from "@/lib/billing/planFeatures";
 import { PHOTO_LIMITS } from "@/lib/billing/planFeatures";
 
@@ -16,7 +21,9 @@ type Vehicle = {
   model: string | null;
   year: number | null;
   plate_display: string | null;
-  customer_name: string | null;
+  vin_code?: string | null;
+  customer_id?: string | null;
+  customer?: { id: string; name: string } | null;
 };
 
 type FieldType = "text" | "textarea" | "number" | "date" | "select" | "multiselect" | "checkbox";
@@ -44,17 +51,22 @@ type Template = {
 type Props = {
   vehicles: Vehicle[];
   defaultVehicleId?: string;
+  defaultCustomerId?: string;
   templates: Template[];
   selectedTemplate: Template | null;
   tenantLogoPath: string | null;
   planTier: PlanTier;
   tid: string;
+  serviceType?: string; // "ppf" | "coating" | etc — derived from template category
 };
 
 const inputCls =
-  "w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400";
+  "w-full rounded-xl border border-border-default bg-surface px-3 py-2.5 text-sm text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent";
 const labelCls = "block space-y-1.5";
-const labelTextCls = "text-sm font-medium text-neutral-700";
+const labelTextCls = "text-sm font-medium text-secondary";
+const sectionHeaderCls = "mb-4";
+const sectionTagCls = "text-xs font-semibold tracking-[0.18em] text-muted";
+const sectionTitleCls = "mt-0.5 text-base font-semibold text-primary";
 
 const PLAN_LABELS: Record<PlanTier, string> = {
   free: "FREE",
@@ -66,12 +78,18 @@ const PLAN_LABELS: Record<PlanTier, string> = {
 export default function CertNewFormWrapper({
   vehicles,
   defaultVehicleId,
+  defaultCustomerId,
   templates,
   selectedTemplate,
   tenantLogoPath,
   planTier,
   tid,
+  serviceType,
 }: Props) {
+  const isPpf = serviceType === "ppf";
+  const isMaintenance = serviceType === "maintenance";
+  const isBodyRepair = serviceType === "body_repair";
+  const isCoatingOrPpf = !isMaintenance && !isBodyRepair;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [submitStatus, setSubmitStatus] = useState<"active" | "draft">("active");
@@ -90,9 +108,6 @@ export default function CertNewFormWrapper({
 
     const form = e.currentTarget;
     const formData = new FormData(form);
-
-    // Client-side validation: vehicle required
-    // Inject current submit status
     formData.set("status", submitStatus);
 
     const vehicleId = String(formData.get("vehicle_id") ?? "").trim();
@@ -108,7 +123,6 @@ export default function CertNewFormWrapper({
     const files = photoRef.current?.getFiles() ?? [];
 
     startTransition(async () => {
-      // Step 1: Create certificate
       const result = await createCertAction(formData);
       if (!result.ok) {
         setError(
@@ -123,7 +137,6 @@ export default function CertNewFormWrapper({
 
       const { public_id } = result;
 
-      // Step 2: Upload photos (if any)
       if (files.length > 0) {
         setUploadProgress(`写真をアップロード中 (0/${files.length})…`);
         try {
@@ -137,7 +150,6 @@ export default function CertNewFormWrapper({
           const uploadJson = await uploadRes.json();
           if (!uploadRes.ok) {
             console.warn("photo upload failed", uploadJson);
-            // Don't block — cert was created, just skip photos
           } else {
             setUploadProgress(`写真 ${uploadJson.uploaded} 枚をアップロードしました`);
           }
@@ -146,170 +158,103 @@ export default function CertNewFormWrapper({
         }
       }
 
-      // Step 3: Navigate to success
       router.push(`/admin/certificates/new/success?pid=${encodeURIComponent(public_id)}`);
     });
   };
 
   return (
     <>
-      {/* Template selector */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+      {/* ── テンプレート選択 ── */}
+      <div className="glass-card p-5">
         <div className="mb-3">
-          <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">TEMPLATE</div>
-          <div className="mt-1 text-base font-semibold text-neutral-900">テンプレートを選択</div>
+          <div className={sectionTagCls}>TEMPLATE</div>
+          <div className="mt-1 text-base font-semibold text-primary">テンプレートを選択</div>
         </div>
         <form action="/admin/certificates/new" method="get" className="flex gap-3 items-center">
           <select
             name="tid"
             defaultValue={tid}
-            className="flex-1 rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+            className={`flex-1 ${inputCls}`}
           >
             {templates.length === 0 ? (
               <option value="">テンプレートがありません</option>
             ) : (
               templates.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
+                <option key={t.id} value={t.id}>{t.name}</option>
               ))
             )}
           </select>
           <button
             type="submit"
-            className="rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 whitespace-nowrap"
+            className="rounded-xl border border-border-default bg-surface px-4 py-2.5 text-sm font-medium text-primary hover:bg-surface-hover whitespace-nowrap"
           >
             選択
           </button>
         </form>
-        {!tenantLogoPath ? (
+        {!tenantLogoPath && (
           <p className="mt-2 text-xs text-amber-600">
             ロゴ未設定 —{" "}
-            <Link href="/admin/logo" className="underline">
-              ロゴを設定する
-            </Link>
+            <Link href="/admin/logo" className="underline">ロゴを設定する</Link>
           </p>
-        ) : null}
+        )}
       </div>
 
-      {/* Main form */}
+      {/* ── メインフォーム ── */}
       <form
         ref={formRef}
         onSubmit={handleSubmit}
-        className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm space-y-6"
+        className="glass-card p-6 space-y-0"
       >
         <input type="hidden" name="template_id" value={selectedTemplate?.id ?? ""} />
         <input type="hidden" name="template_name" value={selectedTemplate?.name ?? ""} />
+        {defaultCustomerId && <input type="hidden" name="customer_id" value={defaultCustomerId} />}
+        {serviceType && <input type="hidden" name="service_type" value={serviceType} />}
 
-        {/* Vehicle picker + basic info */}
-        <div data-vehicle-picker>
+        {/* ━━━ 1. 車種選択 ━━━ */}
+        <section data-vehicle-picker className="pb-6">
           <VehiclePickerSection
-            vehicles={vehicles}
+            vehicles={defaultCustomerId
+              ? vehicles.filter((v) => (v as Record<string, unknown>).customer_id === defaultCustomerId || !defaultVehicleId)
+              : vehicles
+            }
             defaultVehicleId={defaultVehicleId}
           />
-        </div>
+        </section>
 
-        {/* Template fields */}
-        {schema ? (
-          <div className="border-t border-neutral-100 pt-6 space-y-5">
-            <div>
-              <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">TEMPLATE FIELDS</div>
-              <div className="mt-1 text-base font-semibold text-neutral-900">テンプレート項目</div>
-            </div>
+        {/* ━━━ 2. PPF施工範囲（PPFテンプレート時のみ） ━━━ */}
+        {isPpf && (
+          <section className="border-t border-border-subtle py-6">
+            <PpfCoverageSection />
+          </section>
+        )}
 
-            {schema.sections.map((sec) => (
-              <div key={sec.title} className="rounded-xl border border-neutral-200 p-4 space-y-4">
-                <div className="text-sm font-semibold text-neutral-800">{sec.title}</div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {sec.fields.map((f) => {
-                    const name = `f__${f.key}`;
+        {/* ━━━ 2b. 整備内容（整備テンプレート時のみ） ━━━ */}
+        {isMaintenance && (
+          <section className="border-t border-border-subtle py-6">
+            <MaintenanceDetailsSection />
+          </section>
+        )}
 
-                    if (f.type === "checkbox") {
-                      return (
-                        <label key={f.key} className="flex items-center gap-2.5 text-sm text-neutral-700">
-                          <input type="checkbox" name={name} className="h-4 w-4 rounded border-neutral-300" />
-                          <span>{f.label}</span>
-                        </label>
-                      );
-                    }
-                    if (f.type === "select") {
-                      return (
-                        <div key={f.key} className={labelCls}>
-                          <span className={labelTextCls}>{f.label}{f.required ? " *" : ""}</span>
-                          <select name={name} className={inputCls} required={!!f.required}>
-                            <option value="">選択してください</option>
-                            {(f.options ?? []).map((opt) => (
-                              <option key={opt} value={opt}>{opt}</option>
-                            ))}
-                          </select>
-                        </div>
-                      );
-                    }
-                    if (f.type === "multiselect") {
-                      return (
-                        <div key={f.key} className={`${labelCls} sm:col-span-2`}>
-                          <span className={labelTextCls}>{f.label}{f.required ? " *" : ""}</span>
-                          <select name={name} multiple className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm h-28 focus:outline-none focus:ring-2 focus:ring-neutral-400" required={!!f.required}>
-                            {(f.options ?? []).map((opt) => (
-                              <option key={opt} value={opt}>{opt}</option>
-                            ))}
-                          </select>
-                          <p className="text-[11px] text-neutral-500">Ctrl / Shift で複数選択</p>
-                        </div>
-                      );
-                    }
-                    if (f.type === "textarea") {
-                      return (
-                        <div key={f.key} className={`${labelCls} sm:col-span-2`}>
-                          <span className={labelTextCls}>{f.label}{f.required ? " *" : ""}</span>
-                          <textarea name={name} className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400" rows={3} required={!!f.required} />
-                        </div>
-                      );
-                    }
-                    if (f.type === "number") {
-                      return (
-                        <div key={f.key} className={labelCls}>
-                          <span className={labelTextCls}>{f.label}{f.required ? " *" : ""}</span>
-                          <input type="number" name={name} className={inputCls} required={!!f.required} />
-                        </div>
-                      );
-                    }
-                    if (f.type === "date") {
-                      return (
-                        <div key={f.key} className={labelCls}>
-                          <span className={labelTextCls}>{f.label}{f.required ? " *" : ""}</span>
-                          <input type="date" name={name} className={inputCls} required={!!f.required} />
-                        </div>
-                      );
-                    }
-                    return (
-                      <div key={f.key} className={labelCls}>
-                        <span className={labelTextCls}>{f.label}{f.required ? " *" : ""}</span>
-                        <input name={name} className={inputCls} required={!!f.required} />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+        {/* ━━━ 2c. 鈑金塗装内容（鈑金塗装テンプレート時のみ） ━━━ */}
+        {isBodyRepair && (
+          <section className="border-t border-border-subtle py-6">
+            <BodyRepairDetailsSection />
+          </section>
+        )}
+
+        {/* ━━━ 3. コーティング剤 / 使用フィルム（コーティング・PPF時のみ） ━━━ */}
+        {isCoatingOrPpf && (
+          <section className="border-t border-border-subtle py-6">
+            <CoatingProductsSection serviceType={serviceType} />
+          </section>
+        )}
+
+        {/* ━━━ 3. 有効期限・保証期間 ━━━ */}
+        <section className="border-t border-border-subtle py-6 space-y-4">
+          <div className={sectionHeaderCls}>
+            <div className={sectionTagCls}>EXPIRY & WARRANTY</div>
+            <div className={sectionTitleCls}>有効期限・保証期間</div>
           </div>
-        ) : null}
-
-        {/* Free text & conditions */}
-        <div className="border-t border-neutral-100 pt-6 space-y-4">
-          <div>
-            <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">CONTENT</div>
-            <div className="mt-1 text-base font-semibold text-neutral-900">自由記述・条件</div>
-          </div>
-          <label className={`${labelCls} block`}>
-            <span className={labelTextCls}>施工内容（自由記述）</span>
-            <textarea
-              name="content_free_text"
-              className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
-              rows={4}
-              placeholder="施工内容の詳細を記入してください"
-            />
-          </label>
           <label className={labelCls}>
             <span className={labelTextCls}>有効条件（テキスト）</span>
             <input
@@ -318,58 +263,138 @@ export default function CertNewFormWrapper({
               placeholder="半年ごとにメンテ推奨 など"
             />
           </label>
-        </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className={labelCls}>
+              <span className={labelTextCls}>有効期限</span>
+              <input type="date" name="expiry_date" className={inputCls} />
+            </label>
+            <label className={labelCls}>
+              <span className={labelTextCls}>保証期間（終了日）</span>
+              <input type="date" name="warranty_period_end" className={inputCls} />
+            </label>
+          </div>
+        </section>
 
-        {/* Film thickness */}
-        <FilmThicknessSection />
+        {/* ━━━ 4. 施工写真 ━━━ */}
+        <section className="border-t border-border-subtle py-6">
+          <PhotoUploadSection
+            ref={photoRef}
+            maxPhotos={maxPhotos}
+            planLabel={planLabel}
+          />
+        </section>
 
-        {/* Photo upload */}
-        <PhotoUploadSection
-          ref={photoRef}
-          maxPhotos={maxPhotos}
-          planLabel={planLabel}
-        />
+        {/* ━━━ 5. 詳細な施工内容 ━━━ */}
+        <section className="border-t border-border-subtle py-6 space-y-4">
+          <div className={sectionHeaderCls}>
+            <div className={sectionTagCls}>WORK DETAILS</div>
+            <div className={sectionTitleCls}>詳細な施工内容</div>
+          </div>
+          <label className={`${labelCls} block`}>
+            <span className={labelTextCls}>施工内容（自由記述）</span>
+            <textarea
+              name="content_free_text"
+              className={inputCls}
+              rows={5}
+              placeholder="施工内容の詳細を記入してください（下地処理、コーティング工程、仕上げ等）"
+            />
+          </label>
+        </section>
 
-        {/* Error */}
+        {/* ━━━ 6. 膜厚計測 ━━━ */}
+        <section className="border-t border-border-subtle py-6">
+          <FilmThicknessSection />
+        </section>
+
+        {/* ━━━ 7. メンテナンス実施日 ━━━ */}
+        <section className="border-t border-border-subtle py-6 space-y-4">
+          <div className={sectionHeaderCls}>
+            <div className={sectionTagCls}>MAINTENANCE</div>
+            <div className={sectionTitleCls}>メンテナンス実施日</div>
+          </div>
+          <label className={labelCls}>
+            <span className={labelTextCls}>実施日</span>
+            <input type="date" name="maintenance_date" className={inputCls} />
+          </label>
+        </section>
+
+        {/* ━━━ 8. 保証除外内容 ━━━ */}
+        <section className="border-t border-border-subtle py-6 space-y-4">
+          <div className={sectionHeaderCls}>
+            <div className={sectionTagCls}>WARRANTY EXCLUSIONS</div>
+            <div className={sectionTitleCls}>保証除外内容</div>
+          </div>
+          <label className={`${labelCls} block`}>
+            <span className={labelTextCls}>保証対象外となる条件・注意事項</span>
+            <textarea
+              name="warranty_exclusions"
+              className={inputCls}
+              rows={4}
+              placeholder="例: 飛び石による損傷、経年劣化、不適切な洗車方法による損傷等"
+            />
+          </label>
+        </section>
+
+        {/* ━━━ 9. 備考欄 ━━━ */}
+        <section className="border-t border-border-subtle py-6 space-y-4">
+          <div className={sectionHeaderCls}>
+            <div className={sectionTagCls}>REMARKS</div>
+            <div className={sectionTitleCls}>備考</div>
+          </div>
+          <label className={`${labelCls} block`}>
+            <span className={labelTextCls}>備考・特記事項</span>
+            <textarea
+              name="remarks"
+              className={inputCls}
+              rows={3}
+              placeholder="その他の特記事項があれば記入してください"
+            />
+          </label>
+        </section>
+
+        {/* テンプレート追加項目は廃止 — テンプレート選択のみ上部で行う */}
+
+        {/* ── エラー ── */}
         {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-danger">
             {error}
           </div>
         )}
 
-        {/* Upload progress */}
+        {/* ── アップロード進捗 ── */}
         {uploadProgress && (
-          <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+          <div className="rounded-xl border border-accent/20 bg-accent-dim px-4 py-3 text-sm text-accent">
             {uploadProgress}
           </div>
         )}
 
-        {/* Actions */}
-        <div className="border-t border-neutral-100 pt-6 flex flex-wrap gap-3 items-center">
-          <button
+        {/* ── アクション ── */}
+        <div className="border-t border-border-subtle pt-6 flex flex-wrap gap-3 items-center">
+          <Button
             type="submit"
+            loading={isPending && submitStatus === "active"}
             disabled={isPending}
             onClick={() => setSubmitStatus("active")}
-            className="btn-primary disabled:opacity-50"
           >
-            {isPending && submitStatus === "active" ? "処理中…" : "証明書を発行する"}
-          </button>
-          <button
+            証明書を発行する
+          </Button>
+          <Button
             type="submit"
+            variant="secondary"
+            loading={isPending && submitStatus === "draft"}
             disabled={isPending}
             onClick={() => setSubmitStatus("draft")}
-            className="rounded-xl border border-neutral-300 bg-white px-5 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 disabled:opacity-50"
           >
-            {isPending && submitStatus === "draft" ? "保存中…" : "下書き保存"}
-          </button>
+            下書き保存
+          </Button>
           <Link
             href="/admin/certificates"
-            className="rounded-xl border border-neutral-300 bg-white px-5 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+            className="rounded-xl border border-border-default bg-surface px-5 py-2.5 text-sm font-medium text-primary hover:bg-surface-hover"
           >
             キャンセル
           </Link>
           {isPending && (
-            <span className="text-xs text-neutral-500">
+            <span className="text-xs text-muted">
               写真がある場合はアップロード完了までお待ちください
             </span>
           )}

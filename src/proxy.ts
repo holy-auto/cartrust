@@ -25,16 +25,8 @@ const MARKETING_PATHS = [
 
 /** Unreleased feature routes — redirect to /admin until ready for launch */
 const HIDDEN_ADMIN_PREFIXES = [
-  "/admin/reservations",
-  "/admin/btob",
-  "/admin/orders",
   "/admin/price-stats",
-  "/admin/news",
-  "/admin/inquiries",
   "/admin/insurers",
-  "/admin/nfc",
-  "/admin/market-vehicles",
-  "/admin/deals",
 ];
 
 /**
@@ -46,6 +38,15 @@ function csrfCheck(request: NextRequest): NextResponse | null {
 
   if (!nextUrl.pathname.startsWith("/api/")) return null;
   if (["GET", "HEAD", "OPTIONS"].includes(method)) return null;
+
+  // モバイルアプリは Bearer Token 認証のため CSRF チェック不要
+  if (nextUrl.pathname.startsWith("/api/mobile/")) return null;
+
+  // Webhook は外部サービスからの server-to-server コールのため CSRF チェック不要
+  if (nextUrl.pathname.startsWith("/api/webhooks/")) return null;
+
+  // Cron は外部スケジューラからの server-to-server コールのため CSRF チェック不要
+  if (nextUrl.pathname.startsWith("/api/cron/")) return null;
 
   const origin = request.headers.get("origin");
   const host = request.headers.get("host");
@@ -117,9 +118,22 @@ export function proxy(request: NextRequest) {
 
 export default proxy;
 
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization)
+     * - favicon.ico, robots.txt, sitemap.xml (metadata)
+     * - Public assets (images, fonts, etc.)
+     */
+    "/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|sitemap\\.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|eot)$).*)",
+  ],
+};
+
 /** Refresh Supabase session cookies on every request */
 function refreshSession(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  const response = NextResponse.next({ request });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -148,7 +162,7 @@ function refreshSession(request: NextRequest) {
 /** Refresh session + redirect unauthenticated users */
 async function refreshSessionAndProtect(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  let response = NextResponse.next({ request });
+  const response = NextResponse.next({ request });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

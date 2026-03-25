@@ -22,16 +22,29 @@ export async function POST(req: Request) {
     }
     const b = parsed.data;
 
+    // size_classが未指定ならマスタから自動判定
+    let sizeClass = b.size_class ?? null;
+    if (!sizeClass && b.maker && b.model) {
+      const { data: sizeRow } = await supabase
+        .from("vehicle_size_master")
+        .select("size_class")
+        .eq("maker", b.maker)
+        .eq("model", b.model)
+        .limit(1)
+        .maybeSingle();
+      if (sizeRow?.size_class) sizeClass = sizeRow.size_class;
+    }
+
     const insertRow = {
       tenant_id: caller.tenantId,
       maker: b.maker,
       model: b.model,
       year: b.year ?? null,
       plate_display: b.plate_display ?? null,
-      customer_name: b.customer_name ?? null,
-      customer_email: b.customer_email ?? null,
-      customer_phone_masked: b.customer_phone_masked ?? null,
+      vin_code: b.vin_code ?? null,
       notes: b.notes ?? null,
+      customer_id: b.customer_id ?? null,
+      size_class: sizeClass,
     };
 
     const { data: vehicle, error } = await supabase

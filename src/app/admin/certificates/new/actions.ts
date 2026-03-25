@@ -51,6 +51,13 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
   const content_free_text = String(formData.get("content_free_text") || "").trim();
   const expiry_value = String(formData.get("expiry_value") || "").trim();
 
+  const customer_id = String(formData.get("customer_id") || "").trim() || null;
+  const expiry_date = String(formData.get("expiry_date") || "").trim() || null;
+  const warranty_period_end = String(formData.get("warranty_period_end") || "").trim() || null;
+  const maintenance_date = String(formData.get("maintenance_date") || "").trim() || null;
+  const warranty_exclusions = String(formData.get("warranty_exclusions") || "").trim() || null;
+  const remarks = String(formData.get("remarks") || "").trim() || null;
+
   // Film thickness JSON (optional)
   let film_thickness: any[] = [];
   try {
@@ -60,6 +67,49 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
   } catch {
     // ignore parse errors — field is optional
   }
+
+  // Coating products JSON (optional)
+  let coating_products: any[] = [];
+  try {
+    const raw = String(formData.get("coating_products_json") || "[]");
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) coating_products = parsed;
+  } catch {
+    // ignore parse errors — field is optional
+  }
+
+  // PPF coverage JSON (optional — PPF templates only)
+  let ppf_coverage: any[] = [];
+  try {
+    const raw = String(formData.get("ppf_coverage_json") || "[]");
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) ppf_coverage = parsed;
+  } catch {
+    // ignore parse errors — field is optional
+  }
+
+  // Maintenance JSON (optional — maintenance templates only)
+  let maintenance_data: Record<string, any> = {};
+  try {
+    const raw = String(formData.get("maintenance_json") || "{}");
+    const parsed = JSON.parse(raw);
+    if (typeof parsed === "object" && parsed !== null) maintenance_data = parsed;
+  } catch {
+    // ignore parse errors — field is optional
+  }
+
+  // Body repair JSON (optional — body_repair templates only)
+  let body_repair_data: Record<string, any> = {};
+  try {
+    const raw = String(formData.get("body_repair_json") || "{}");
+    const parsed = JSON.parse(raw);
+    if (typeof parsed === "object" && parsed !== null) body_repair_data = parsed;
+  } catch {
+    // ignore parse errors — field is optional
+  }
+
+  // Service type (ppf | coating | maintenance | body_repair | etc)
+  const service_type = String(formData.get("service_type") || "").trim() || null;
 
   if (!customer_name) return { ok: false, error: "customer_name_required" };
   if (!vehicle_id) return { ok: false, error: "vehicle_required" };
@@ -88,6 +138,7 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
     public_id,
     status: certStatus,
     customer_name,
+    customer_id: customer_id ?? undefined,
     vehicle_id: vehicle_id ?? undefined,
     vehicle_info_json: { model, plate },
     content_free_text,
@@ -98,8 +149,18 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
       values,
       ...(film_thickness.length > 0 ? { film_thickness } : {}),
     },
+    coating_products_json: coating_products.length > 0 ? coating_products : [],
+    ppf_coverage_json: ppf_coverage.length > 0 ? ppf_coverage : [],
+    maintenance_json: Object.keys(maintenance_data).length > 0 ? maintenance_data : {},
+    body_repair_json: Object.keys(body_repair_data).length > 0 ? body_repair_data : {},
+    service_type: service_type || null,
     expiry_type: "text",
     expiry_value,
+    expiry_date: expiry_date || null,
+    warranty_period_end: warranty_period_end || null,
+    maintenance_date: maintenance_date || null,
+    warranty_exclusions: warranty_exclusions || null,
+    remarks: remarks || null,
     footer_variant: "holy",
     logo_asset_path: tenantLogoPath,
     created_by: userId,

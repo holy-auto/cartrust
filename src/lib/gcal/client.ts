@@ -106,6 +106,12 @@ type ReservationData = {
   vehicle_label?: string | null;
 };
 
+/** HH:MM or HH:MM:SS → HH:MM:SS に正規化 */
+function normalizeTime(t: string): string {
+  // "10:00" → "10:00:00", "10:00:00" → "10:00:00"
+  return t.length === 5 ? `${t}:00` : t;
+}
+
 function buildEvent(r: ReservationData): calendar_v3.Schema$Event {
   const date = r.scheduled_date; // YYYY-MM-DD
 
@@ -119,11 +125,13 @@ function buildEvent(r: ReservationData): calendar_v3.Schema$Event {
     .join("\n");
 
   if (r.start_time && r.end_time) {
+    const startTime = normalizeTime(r.start_time);
+    const endTime = normalizeTime(r.end_time);
     return {
       summary: r.title,
       description,
-      start: { dateTime: `${date}T${r.start_time}`, timeZone: "Asia/Tokyo" },
-      end: { dateTime: `${date}T${r.end_time}`, timeZone: "Asia/Tokyo" },
+      start: { dateTime: `${date}T${startTime}`, timeZone: "Asia/Tokyo" },
+      end: { dateTime: `${date}T${endTime}`, timeZone: "Asia/Tokyo" },
     };
   }
 
@@ -215,16 +223,23 @@ export async function syncDeleteEvent(
 
 /**
  * Google Calendar → 予約テーブルへ pull 同期
- * 新規イベント（gcal_event_id がまだない）を予約として取り込む
+ * - 新規イベント（gcal_event_id がまだない）を予約として取り込む
+ * - 既存イベント（gcal_event_id 一致）は更新されていれば反映する
  */
 export async function pullEventsFromCalendar(
   tenantId: string,
   dateFrom: string,
   dateTo: string,
-): Promise<number> {
+): Promise<{ imported: number; updated: number; skipped: number }> {
+  const result = { imported: 0, updated: 0, skipped: 0 };
   try {
     const client = await getCalendarClient(tenantId);
-    if (!client) return 0;
+    if (!client) {
+      console.log("[gcal] pull: no calendar client for tenant", tenantId);
+      return result;
+    }
+
+    console.log(`[gcal] pull: fetching events from ${dateFrom} to ${dateTo} for tenant ${tenantId}`);
 
     const res = await client.calendar.events.list({
       calendarId: client.calendarId,
@@ -232,26 +247,35 @@ export async function pullEventsFromCalendar(
       timeMax: `${dateTo}T23:59:59+09:00`,
       singleEvents: true,
       orderBy: "startTime",
-      maxResults: 200,
+      maxResults: 500,
     });
 
     const events = res.data.items ?? [];
+    console.log(`[gcal] pull: found ${events.length} events in Google Calendar`);
 
-    // 既存の gcal_event_id を取得
+    if (events.length === 0) return result;
+
+    // 既存の gcal_event_id → 予約データを取得（更新判定用）
     const admin = getAdminClient();
     const { data: existing } = await admin
       .from("reservations")
-      .select("gcal_event_id")
+      .select("id, gcal_event_id, title, note, scheduled_date, start_time, end_time")
       .eq("tenant_id", tenantId)
       .not("gcal_event_id", "is", null);
 
-    const existingIds = new Set((existing ?? []).map((r: any) => r.gcal_event_id));
-    let imported = 0;
+    const existingMap = new Map(
+      (existing ?? []).map((r: any) => [r.gcal_event_id, r]),
+    );
 
     for (const event of events) {
-      if (!event.id || existingIds.has(event.id)) continue;
-      if (!event.summary) continue;
+      if (!event.id) continue;
+      // cancelled イベントはスキップ
+      if (event.status === "cancelled") {
+        result.skipped++;
+        continue;
+      }
 
+      const summary = event.summary || "(無題)";
       const startDate = event.start?.date || event.start?.dateTime?.slice(0, 10);
       const startTime = event.start?.dateTime
         ? event.start.dateTime.slice(11, 19)
@@ -260,27 +284,178 @@ export async function pullEventsFromCalendar(
         ? event.end.dateTime.slice(11, 19)
         : null;
 
-      if (!startDate) continue;
+      if (!startDate) {
+        console.warn(`[gcal] pull: skipping event ${event.id} — no start date`);
+        result.skipped++;
+        continue;
+      }
 
-      await admin.from("reservations").insert({
-        tenant_id: tenantId,
-        title: event.summary,
-        note: event.description || null,
-        scheduled_date: startDate,
-        start_time: startTime,
-        end_time: endTime,
-        gcal_event_id: event.id,
-        source: "google_maps",
-        status: "confirmed",
-      });
+      const existingReservation = existingMap.get(event.id);
 
-      imported++;
+      if (existingReservation) {
+        // 既存予約: 変更があれば更新
+        const needsUpdate =
+          existingReservation.title !== summary ||
+          existingReservation.scheduled_date !== startDate ||
+          existingReservation.start_time !== startTime ||
+          existingReservation.end_time !== endTime ||
+          existingReservation.note !== (event.description || null);
+
+        if (needsUpdate) {
+          const { error } = await admin
+            .from("reservations")
+            .update({
+              title: summary,
+              note: event.description || null,
+              scheduled_date: startDate,
+              start_time: startTime,
+              end_time: endTime,
+            })
+            .eq("id", existingReservation.id);
+
+          if (error) {
+            console.error(`[gcal] pull: failed to update reservation ${existingReservation.id}:`, error.message);
+          } else {
+            result.updated++;
+            await logSync(tenantId, existingReservation.id, "pull_update", event.id, "success");
+          }
+        } else {
+          result.skipped++;
+        }
+      } else {
+        // 新規予約として取り込み
+        const { data: inserted, error } = await admin
+          .from("reservations")
+          .insert({
+            tenant_id: tenantId,
+            title: summary,
+            note: event.description || null,
+            scheduled_date: startDate,
+            start_time: startTime,
+            end_time: endTime,
+            gcal_event_id: event.id,
+            source: "gcal",
+            status: "confirmed",
+          })
+          .select("id")
+          .single();
+
+        if (error) {
+          console.error(`[gcal] pull: failed to insert event ${event.id}:`, error.message);
+          await logSync(tenantId, null, "pull_create", event.id, "error", error.message);
+        } else {
+          result.imported++;
+          await logSync(tenantId, inserted?.id ?? null, "pull_create", event.id, "success");
+        }
+      }
     }
 
-    await logSync(tenantId, null, "pull", null, "success");
-    return imported;
+    console.log(`[gcal] pull: imported=${result.imported}, updated=${result.updated}, skipped=${result.skipped}`);
+    await logSync(tenantId, null, "pull", null, "success",
+      `imported=${result.imported}, updated=${result.updated}, skipped=${result.skipped}`);
+    return result;
   } catch (e) {
+    console.error("[gcal] pull: error:", e);
     await logSync(tenantId, null, "pull", null, "error", String(e));
+    return result;
+  }
+}
+
+/** テナントのGoogleカレンダー一覧を取得 */
+export async function listCalendars(
+  tenantId: string,
+): Promise<{ id: string; summary: string; primary?: boolean }[]> {
+  try {
+    const client = await getCalendarClient(tenantId);
+    if (!client) return [];
+
+    const res = await client.calendar.calendarList.list({ minAccessRole: "writer" });
+    return (res.data.items ?? [])
+      .map((c) => ({ id: c.id ?? "", summary: c.summary ?? "", primary: c.primary ?? false }))
+      .filter((c) => c.id);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * 既存予約を一括で Google Calendar に push 同期
+ * gcal_event_id が未設定の予約のみ対象
+ */
+export async function pushReservationsToCalendar(
+  tenantId: string,
+  dateFrom: string,
+  dateTo: string,
+): Promise<number> {
+  try {
+    const client = await getCalendarClient(tenantId);
+    if (!client) return 0;
+
+    const admin = getAdminClient();
+    const { data: reservations } = await admin
+      .from("reservations")
+      .select("id, title, scheduled_date, start_time, end_time, note, customer_id")
+      .eq("tenant_id", tenantId)
+      .is("gcal_event_id", null)
+      .neq("status", "cancelled")
+      .gte("scheduled_date", dateFrom)
+      .lte("scheduled_date", dateTo)
+      .order("scheduled_date")
+      .limit(200);
+
+    if (!reservations || reservations.length === 0) return 0;
+
+    // 顧客名を一括取得
+    const customerIds = [...new Set(reservations.map((r: any) => r.customer_id).filter(Boolean))];
+    const customerMap: Record<string, string> = {};
+    if (customerIds.length > 0) {
+      const { data: customers } = await admin
+        .from("customers")
+        .select("id, name")
+        .in("id", customerIds);
+      (customers ?? []).forEach((c: any) => {
+        customerMap[c.id] = c.name;
+      });
+    }
+
+    let pushed = 0;
+
+    for (const r of reservations) {
+      try {
+        const event = buildEvent({
+          id: r.id,
+          title: r.title,
+          scheduled_date: r.scheduled_date,
+          start_time: r.start_time,
+          end_time: r.end_time,
+          note: r.note,
+          customer_name: r.customer_id ? customerMap[r.customer_id] ?? null : null,
+        });
+
+        const res = await client.calendar.events.insert({
+          calendarId: client.calendarId,
+          requestBody: event,
+        });
+
+        const eventId = res.data.id ?? null;
+        if (eventId) {
+          await admin
+            .from("reservations")
+            .update({ gcal_event_id: eventId })
+            .eq("id", r.id);
+        }
+
+        await logSync(tenantId, r.id, "create", eventId, "success");
+        pushed++;
+      } catch (e) {
+        await logSync(tenantId, r.id, "create", null, "error", String(e));
+        // 個別エラーはスキップして続行
+      }
+    }
+
+    return pushed;
+  } catch (e) {
+    await logSync(tenantId, null, "push", null, "error", String(e));
     return 0;
   }
 }
