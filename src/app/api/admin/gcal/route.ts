@@ -149,6 +149,7 @@ export async function POST(req: NextRequest) {
         pushed,
         imported: pullResult.imported,
         updated: pullResult.updated,
+        cancelled: pullResult.cancelled,
         skipped: pullResult.skipped,
         synced_at: new Date().toISOString(),
       });
