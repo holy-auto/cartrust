@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createAdminClient as getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
