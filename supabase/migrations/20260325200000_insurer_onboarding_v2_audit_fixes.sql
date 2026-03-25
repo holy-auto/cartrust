@@ -138,12 +138,9 @@ $$;
 -- RLS for platform_config: read-only for authenticated, no public writes
 alter table platform_config enable row level security;
 
-do $$
-begin
-  if not exists (select 1 from pg_policies where policyname = 'platform_config_select' and tablename = 'platform_config') then
-    create policy "platform_config_select" on platform_config for select using (true);
-  end if;
-end $$;
+drop policy if exists "platform_config_select" on platform_config;
+create policy "platform_config_select" on platform_config
+  for select using (true);
 
 -- Fix admin_audit_logs RLS only if the table exists
 -- (table is created in 20260325000000_insurer_onboarding_v2.sql)
