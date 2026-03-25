@@ -43,7 +43,7 @@ export async function POST(req: Request) {
   try {
     // Rate limit: 5 OTP requests per IP per 5 minutes
     const ip = getClientIp(req);
-    const rl = checkRateLimit(`otp:${ip}`, { limit: 5, windowSec: 300 });
+    const rl = await checkRateLimit(`otp:${ip}`, { limit: 5, windowSec: 300 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: "rate_limited", message: "リクエストが多すぎます。しばらくしてから再度お試しください。" },
