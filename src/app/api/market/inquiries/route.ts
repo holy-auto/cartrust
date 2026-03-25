@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   try {
     // Rate limit: 5 inquiries per 15 minutes per IP
     const ip = getClientIp(req);
-    const rl = checkRateLimit(`market-inquiry:${ip}`, { limit: 5, windowSec: 900 });
+    const rl = await checkRateLimit(`market-inquiry:${ip}`, { limit: 5, windowSec: 900 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: "rate_limited", message: "送信回数の上限に達しました。しばらくしてからお試しください。" },
