@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { verifyCronRequest } from "@/lib/cronAuth";
 
 export const runtime = "nodejs";
 
@@ -13,11 +14,9 @@ export const runtime = "nodejs";
  * Protected by CRON_SECRET header.
  */
 export async function POST(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  const authHeader = req.headers.get("authorization");
-
-  if (!secret || authHeader !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const cronCheck = verifyCronRequest(req);
+  if (!cronCheck.authorized) {
+    return NextResponse.json({ error: cronCheck.error ?? "unauthorized" }, { status: 401 });
   }
 
   const supabase = createAdminClient();

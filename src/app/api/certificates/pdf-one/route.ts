@@ -3,6 +3,7 @@ import { enforceBilling } from "@/lib/billing/guard";
 import { apiValidationError, apiUnauthorized } from "@/lib/api/response";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -75,6 +76,9 @@ async function proxyToCertificatePdf(req: NextRequest, id: string) {
 }
 
 export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   // ── 認証チェック ──
   const supabase = await createSupabaseServerClient();
   const caller = await resolveCallerWithRole(supabase);
@@ -97,6 +101,9 @@ export async function POST(req: NextRequest) {
 }
 
 // A: GETは案内を出さず 405 に統一
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   return NextResponse.json({ error: "Method Not Allowed" }, { status: 405 });
 }

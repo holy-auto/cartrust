@@ -1,10 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logCertificateAction, getRequestMeta } from "@/lib/audit/certificateLog";
 import { certificateVoidSchema } from "@/lib/validations/certificate";
-import { resolveCallerBasic } from "@/lib/api/auth";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiOk, apiInternalError, apiUnauthorized, apiValidationError, apiNotFound, apiForbidden } from "@/lib/api/response";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 /**
  * POST /api/certificates/void
@@ -12,7 +13,10 @@ import { apiOk, apiInternalError, apiUnauthorized, apiValidationError, apiNotFou
  * Kept at this path for backward compatibility; the canonical endpoint is
  * /api/admin/certificates/void.
  */
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   const json = await req.json().catch(() => null);
   const parsed = certificateVoidSchema.safeParse(json);
   if (!parsed.success) {
@@ -22,7 +26,7 @@ export async function POST(req: Request) {
   const supabase = await createSupabaseServerClient();
 
   // Auth check
-  const caller = await resolveCallerBasic(supabase);
+  const caller = await resolveCallerWithRole(supabase);
   if (!caller) {
     return apiUnauthorized();
   }

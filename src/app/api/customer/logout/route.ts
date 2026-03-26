@@ -1,8 +1,12 @@
-﻿import { NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { CUSTOMER_COOKIE, revokeSessionByToken } from "@/lib/customerPortalServer";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   const c = await cookies();
   const token = c.get(CUSTOMER_COOKIE)?.value;
 

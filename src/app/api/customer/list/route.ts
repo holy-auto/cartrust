@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import {
   CUSTOMER_COOKIE,
@@ -9,10 +9,14 @@ import {
   getCustomerProfile,
   validateSession,
 } from "@/lib/customerPortalServer";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 const LAST4_COOKIE = "hc_l4";
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const { searchParams } = new URL(req.url);
     const tenant_slug = (searchParams.get("tenant") ?? "").trim();
