@@ -3,9 +3,10 @@ import Stripe from "stripe";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveBaseUrl } from "@/lib/url";
-import { resolveCallerBasic } from "@/lib/api/auth";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiOk, apiInternalError, apiUnauthorized, apiNotFound, apiValidationError, apiForbidden } from "@/lib/api/response";
 import { z } from "zod";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
@@ -23,9 +24,12 @@ function getStripe() {
  * - CARTRUST が決済を仲介し、テナントに売上を入金
  */
 export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
     const body = await req.json().catch(() => ({}));

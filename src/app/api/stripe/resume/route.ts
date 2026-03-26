@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { type PlanTier, planTierToPriceId } from "@/lib/stripe/plan";
 import { resumeSchema } from "@/lib/validations/stripe";
 import { apiOk, apiInternalError, apiUnauthorized, apiValidationError, apiNotFound } from "@/lib/api/response";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,6 +23,9 @@ function baseUrl(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const limited = await checkRateLimit(req, "auth");
+    if (limited) return limited;
+
     const stripe = getStripe();
     const admin = getSupabaseAdmin();
 

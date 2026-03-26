@@ -4,12 +4,16 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveCallerFull } from "@/lib/api/auth";
 import { apiOk, apiUnauthorized, apiValidationError, apiInternalError, apiForbidden } from "@/lib/api/response";
 import { getTemplateOptionStatus } from "@/lib/template-options/templateOptionFeatures";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/svg+xml", "image/webp"];
 
 /** POST: テンプレート用ロゴアップロード */
 export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createClient();
     const caller = await resolveCallerFull(supabase);

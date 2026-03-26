@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveCallerFull } from "@/lib/api/auth";
 import { apiOk, apiUnauthorized, apiValidationError, apiInternalError, apiError } from "@/lib/api/response";
 import { createTemplateOptionCheckout } from "@/lib/template-options/stripe";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 const subscribeSchema = z.object({
   option_type: z.enum(["preset", "custom"]),
@@ -13,6 +14,9 @@ const subscribeSchema = z.object({
 
 /** POST: テンプレートオプション申込（Stripe Checkout作成） */
 export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const body = await req.json();
     const parsed = subscribeSchema.safeParse(body);

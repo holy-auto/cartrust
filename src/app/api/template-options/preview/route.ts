@@ -9,6 +9,7 @@ import { getTemplateOptionStatus, TEST_ISSUE_LIMITS } from "@/lib/template-optio
 import { renderBrandedCertificatePdf } from "@/lib/template-options/renderBrandedCertificate";
 import type { CertRow } from "@/lib/pdfCertificate";
 import type { TemplateConfig } from "@/types/templateOption";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 const previewSchema = z.object({
   config: templateConfigSchema,
@@ -46,6 +47,9 @@ const PREVIEW_CERT: CertRow = {
 
 /** POST: テンプレート設定でプレビューPDFを生成 */
 export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const body = await req.json();
     const parsed = previewSchema.safeParse(body);

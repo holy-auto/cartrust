@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { vehicleUpdateSchema } from "@/lib/validations/vehicle";
-import { resolveCallerBasic } from "@/lib/api/auth";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import {
   apiOk,
   apiInternalError,
@@ -9,18 +9,22 @@ import {
   apiNotFound,
   apiValidationError,
 } from "@/lib/api/response";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _req: Request,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const limited = await checkRateLimit(_req, "general");
+  if (limited) return limited;
+
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
 
-    const caller = await resolveCallerBasic(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
     const { data: vehicle, error } = await supabase
@@ -39,14 +43,17 @@ export async function GET(
 }
 
 export async function PUT(
-  req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
 
-    const caller = await resolveCallerBasic(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
     const body = await req.json();

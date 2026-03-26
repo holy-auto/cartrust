@@ -10,6 +10,7 @@ import {
 import { templateConfigSchema, sanitizeConfig } from "@/lib/template-options/configSchema";
 import { getTemplateOptionStatus } from "@/lib/template-options/templateOptionFeatures";
 import type { TemplateOptionType } from "@/types/templateOption";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 const saveConfigSchema = z.object({
   platform_template_id: z.string().uuid().optional(),
@@ -19,6 +20,9 @@ const saveConfigSchema = z.object({
 
 /** GET: 現在のテンプレート設定を取得 */
 export async function GET(_req: NextRequest) {
+  const limited = await checkRateLimit(_req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createClient();
     const caller = await resolveCallerFull(supabase);
@@ -38,6 +42,9 @@ export async function GET(_req: NextRequest) {
 
 /** POST: テンプレート設定を保存/更新 */
 export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const body = await req.json();
     const parsed = saveConfigSchema.safeParse(body);
@@ -116,6 +123,9 @@ export async function POST(req: NextRequest) {
 
 /** PUT: テンプレートを公開/非公開切替 */
 export async function PUT(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const body = await req.json();
     const { config_id, is_active } = body;

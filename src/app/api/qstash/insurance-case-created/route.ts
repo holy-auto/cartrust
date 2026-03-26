@@ -1,5 +1,7 @@
+import { NextRequest } from "next/server";
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 /**
  * QStash handler: insurance-case-created
@@ -10,7 +12,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * 2. Record notification_logs entry
  * 3. Future: notify relevant insurers via email
  */
-async function handler(request: Request) {
+async function handler(request: NextRequest) {
+  const limited = await checkRateLimit(request, "webhook");
+  if (limited) return limited;
+
   const body = await request.json().catch(() => null);
 
   if (!body) {

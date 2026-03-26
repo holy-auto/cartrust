@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveCallerFull } from "@/lib/api/auth";
 import { apiOk, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 import { hearingSchema } from "@/lib/template-options/configSchema";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 const createOrderSchema = z.object({
   order_type: z.enum(["preset_setup", "custom_production", "modification", "additional"]),
@@ -14,6 +15,9 @@ const createOrderSchema = z.object({
 
 /** GET: オーダー一覧 */
 export async function GET(_req: NextRequest) {
+  const limited = await checkRateLimit(_req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createClient();
     const caller = await resolveCallerFull(supabase);
@@ -35,6 +39,9 @@ export async function GET(_req: NextRequest) {
 
 /** POST: 制作オーダー作成（B: custom_production 用） */
 export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const body = await req.json();
     const parsed = createOrderSchema.safeParse(body);

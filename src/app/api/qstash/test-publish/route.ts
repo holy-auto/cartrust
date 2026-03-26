@@ -1,7 +1,15 @@
 import { NextRequest } from "next/server";
 import { enqueueInsuranceCaseCreated } from "@/lib/qstash/publish";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "webhook");
+  if (limited) return limited;
+
+  if (process.env.NODE_ENV === "production") {
+    return Response.json({ error: "not_available" }, { status: 404 });
+  }
+
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {

@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveCallerFull } from "@/lib/api/auth";
 import { apiOk, apiUnauthorized, apiValidationError, apiInternalError, apiForbidden } from "@/lib/api/response";
 import { getTemplateOptionStatus, MAINTENANCE_URL_LIMITS } from "@/lib/template-options/templateOptionFeatures";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 const maintenanceUrlSchema = z.object({
   config_id: z.string().uuid(),
@@ -15,6 +16,9 @@ const maintenanceUrlSchema = z.object({
 
 /** POST: メンテナンスURL設定 */
 export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const body = await req.json();
     const parsed = maintenanceUrlSchema.safeParse(body);

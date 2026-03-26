@@ -8,11 +8,15 @@ import {
   apiValidationError,
   apiInternalError,
 } from "@/lib/api/response";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
 // ─── GET: List reservations for tenant ───
 export async function GET(request: NextRequest) {
+  const limited = await checkRateLimit(request, "general");
+  if (limited) return limited;
+
   try {
     const caller = await resolveMobileCaller(request);
     if (!caller) return apiUnauthorized();
@@ -49,6 +53,9 @@ export async function GET(request: NextRequest) {
 
 // ─── POST: Create reservation ───
 export async function POST(request: NextRequest) {
+  const limited = await checkRateLimit(request, "general");
+  if (limited) return limited;
+
   try {
     const caller = await resolveMobileCaller(request);
     if (!caller) return apiUnauthorized();

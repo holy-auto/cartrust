@@ -1,18 +1,20 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { vehicleCreateSchema } from "@/lib/validations/vehicle";
-import { resolveCallerBasic } from "@/lib/api/auth";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiOk, apiInternalError, apiUnauthorized, apiValidationError } from "@/lib/api/response";
-import { calcSizeClass } from "@/lib/ocr/shakensho";
-import type { VehicleSizeClass } from "@/lib/validations/vehicle";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
 
-    const caller = await resolveCallerBasic(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) {
       return apiUnauthorized();
     }
@@ -26,13 +28,6 @@ export async function POST(req: Request) {
 
     // size_classが未指定ならマスタから自動判定
     let sizeClass = b.size_class ?? null;
-
-    // 寸法が全て揃っていれば体積から直接判定（マスタより優先）
-    if (!sizeClass && b.full_length_mm && b.full_width_mm && b.full_height_mm) {
-      sizeClass = calcSizeClass(b.full_length_mm, b.full_width_mm, b.full_height_mm) as VehicleSizeClass;
-    }
-
-    // 寸法がなければマスタから判定
     if (!sizeClass && b.maker && b.model) {
       const { data: sizeRow } = await supabase
         .from("vehicle_size_master")
@@ -44,7 +39,7 @@ export async function POST(req: Request) {
       if (sizeRow?.size_class) sizeClass = sizeRow.size_class;
     }
 
-    const insertRow: Record<string, unknown> = {
+    const insertRow = {
       tenant_id: caller.tenantId,
       maker: b.maker,
       model: b.model,
@@ -55,11 +50,6 @@ export async function POST(req: Request) {
       customer_id: b.customer_id ?? null,
       size_class: sizeClass,
     };
-
-    // Store dimensions if provided
-    if (b.full_length_mm) insertRow.full_length_mm = b.full_length_mm;
-    if (b.full_width_mm) insertRow.full_width_mm = b.full_width_mm;
-    if (b.full_height_mm) insertRow.full_height_mm = b.full_height_mm;
 
     const { data: vehicle, error } = await supabase
       .from("vehicles")

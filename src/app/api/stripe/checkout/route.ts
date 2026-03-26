@@ -5,6 +5,7 @@ import { checkoutSchema } from "@/lib/validations/stripe";
 import { apiOk, apiInternalError, apiValidationError, apiNotFound, apiUnauthorized } from "@/lib/api/response";
 import { resolveCampaign } from "@/lib/billing/campaign";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +18,9 @@ function getStripe() {
 
 export async function POST(req: NextRequest) {
   try {
+    const limited = await checkRateLimit(req, "auth");
+    if (limited) return limited;
+
     const body = await req.json();
     const parsed = checkoutSchema.safeParse(body);
     if (!parsed.success) {
