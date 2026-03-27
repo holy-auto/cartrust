@@ -20,6 +20,19 @@ DECLARE
   b_schild       uuid := gen_random_uuid();
   b_kubebond     uuid := gen_random_uuid();
   b_fireball     uuid := gen_random_uuid();
+  b_luminus      uuid := gen_random_uuid();
+  b_bullet       uuid := gen_random_uuid();
+  b_blask        uuid := gen_random_uuid();
+  b_ultracoat    uuid := gen_random_uuid();
+  b_feynlab      uuid := gen_random_uuid();
+  b_system_x     uuid := gen_random_uuid();
+  b_3m           uuid := gen_random_uuid();
+  b_nasiol       uuid := gen_random_uuid();
+  b_g_guard      uuid := gen_random_uuid();
+  b_sensha       uuid := gen_random_uuid();
+  b_g_power      uuid := gen_random_uuid();
+  b_pika_rain    uuid := gen_random_uuid();
+  b_ceramic_pro_ion uuid := gen_random_uuid();
 BEGIN
 
 -- ===== Brands =====
@@ -39,14 +52,28 @@ INSERT INTO brands (id, tenant_id, name, description, website_url) VALUES
   (b_genesis,       NULL, 'Genesis Stella', '日本製の高級ガラスコーティング。独自のナノテクノロジーでプロ向けに展開。', NULL),
   (b_schild,        NULL, 'Schild',         'ドイツ技術を採用した日本向けプロ用コーティング。高硬度ガラス被膜が特徴。', NULL),
   (b_kubebond,      NULL, 'KUBEBOND',       '台湾発。Diamond 9H等の高硬度セラミックコーティング。ナノテクノロジー採用。', 'https://www.kubebond.com'),
-  (b_fireball,      NULL, 'Fireball',       'オーストラリア発。高性能なセラミック＆グラフェンコーティングを展開。', 'https://www.fireballcoatings.com')
+  (b_fireball,      NULL, 'Fireball',       'マレーシア発。世界18カ国展開のプロフェッショナルカーディテイリングブランド。', 'https://www.fireball-japan.com'),
+  (b_luminus,       NULL, 'LUMINUS',        '韓国発。グラフェン・セラミック技術のプロ用コーティング。DIYからプロ施工まで幅広い展開。', NULL),
+  (b_bullet,        NULL, 'BULLET',         'FunCruise運営のプロ用カーディテイリング製品ブランド。高施工性シラン系コーティング。', 'https://www.propolish.net'),
+  (b_blask,         NULL, 'BLASK',          '米国RAYNO社のカーケアブランド。グラフェン+SiO2+カルナバ配合。', 'https://blaskjp.com'),
+  (b_ultracoat,     NULL, 'Ultracoat',      'ポーランド発。ナノテクノロジー活用の高品質セラミックコーティング。', 'https://arinomama.co.jp/collections/ultracoat'),
+  (b_feynlab,       NULL, 'FEYNLAB',        '世界初の自己修復セラミックコーティングを開発。HEAL Seriesが代表製品。認定ディテイラー専用。', 'https://feynlab.jp'),
+  (b_system_x,      NULL, 'System X',       '米国航空宇宙産業由来のセラミックコーティング技術。高い耐薬品性と耐久性。', NULL),
+  (b_3m,            NULL, '3M',             '世界的化学メーカー3Mのセラミックコーティング。4層重ね塗り可能。CBP加盟店で施工。', NULL),
+  (b_nasiol,        NULL, 'NASIOL',         'トルコ発。ナノセラミックコーティング。トルコ政府支援の革新的製品開発。', NULL),
+  (b_g_guard,       NULL, 'G.Guard',        '2002年開発の日本製ガラスコーティング。スプレー工法で均一な被膜形成。モース硬度9-10H。', 'https://www.gguard.net'),
+  (b_sensha,        NULL, 'SENSHA（洗車の王国）', '日本発。フランチャイズ展開のコーティング＆洗車ブランド。', 'https://www.sensha.com.co.jp'),
+  (b_g_power,       NULL, 'G-POWER',        '日本発。G-POWER 88等のプロ用ガラスコーティング。業界注目メーカー。', NULL),
+  (b_pika_rain,     NULL, 'ピカピカレイン',    '日本発。ECサイト中心で展開するセラミック＆ガラスコーティング。DIY～セミプロ向け。', 'https://www.pikapikarain.com'),
+  (b_ceramic_pro_ion, NULL, 'Opti-Coat',    '米国発。パーマネント（永久）セラミックコーティングの先駆者。ディーラー施工専用。', NULL)
 ON CONFLICT (id) DO NOTHING;
 
 -- ===== Coating Products =====
 
 -- Ceramic Pro
 INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
-  (b_ceramic_pro, NULL, 'Ceramic Pro 9H',        '9H',      '多層施工可能なフラッグシップコーティング。最高レベルの硬度と耐久性。'),
+  (b_ceramic_pro, NULL, 'Ceramic Pro ION',        'ION',     '最新フラッグシップ。イオン交換テクノロジー採用。2液構造（BASE+TOP）で9Hを超える硬度。'),
+  (b_ceramic_pro, NULL, 'Ceramic Pro 9H',         '9H',      '最大10層重ね塗り可能。4層以上で最高硬度9H。世界80カ国以上で施工。'),
   (b_ceramic_pro, NULL, 'Ceramic Pro Light',      'Light',   '1層仕上げのエントリーモデル。ツヤと撥水を手軽に実現。'),
   (b_ceramic_pro, NULL, 'Ceramic Pro Sport',      'Sport',   'メンテナンス用トップコート。撥水性の維持に最適。'),
   (b_ceramic_pro, NULL, 'Ceramic Pro Rain',       'Rain',    'ウィンドウ用撥水コーティング。視界確保と安全性向上。'),
@@ -73,18 +100,21 @@ INSERT INTO coating_products (brand_id, tenant_id, name, product_code, descripti
 
 -- Gtechniq
 INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
-  (b_gtechniq, NULL, 'Crystal Serum Ultra',  'CSU',  'プロ専用フラッグシップ。10H硬度、最大9年耐久。'),
-  (b_gtechniq, NULL, 'Crystal Serum Light',  'CSL',  'プロシューマー向け。CSUの80%の性能。最大5年耐久。'),
-  (b_gtechniq, NULL, 'EXO v5',              'EXOv5', '超撥水トップコート。CSLとのコンボが人気。'),
-  (b_gtechniq, NULL, 'HALO',                'HALO',  'フレキシブルフィルムコーティング。PPF保護に最適。'),
-  (b_gtechniq, NULL, 'G1 ClearVision',      'G1',    'ガラス用撥水コーティング。');
+  (b_gtechniq, NULL, 'Crystal Serum Ultra',  'CSU',   'プロ専用フラッグシップ。デュアルレイヤー（7nm+20nm）構造。10H硬度、最大9年保証。'),
+  (b_gtechniq, NULL, 'Crystal Serum Light',  'CSL',   'プロシューマー向け。9H硬度、CSUの80%の性能。最大5年耐久。'),
+  (b_gtechniq, NULL, 'C1 Crystal Lacquer',   'C1',    'エントリーレベル。7H硬度のセラミックコーティング。'),
+  (b_gtechniq, NULL, 'EXO v5',              'EXOv5',  '超撥水トップコート。CSL/CSUとのコンボで最高の防汚性。18-24ヶ月耐久。'),
+  (b_gtechniq, NULL, 'HALO',                'HALO',   'フレキシブルフィルムコーティング。PPF保護に最適。'),
+  (b_gtechniq, NULL, 'G1 ClearVision',      'G1',     'ガラス用撥水コーティング。');
 
 -- IGL Coatings
 INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
-  (b_igl, NULL, 'Ecocoat Kenzo',    'Kenzo',    'フラッグシップ。グラフェン配合10H硬度。1.0μm膜厚。最大5年耐久。'),
-  (b_igl, NULL, 'Ecocoat Quartz+',  'Quartz+',  'プロ向け。3年保証のセラミックコーティング。'),
+  (b_igl, NULL, 'Ecocoat Kenzo',    'Kenzo',    'フラッグシップ。グラフェンナノプレートレット配合2液式（Base+Top）。10H硬度、最大5年耐久。'),
+  (b_igl, NULL, 'Ecocoat Eclipse',   'Eclipse',  'プロ向けハイパフォーマンス。10H硬度、極めて高い耐薬品性。REACH準拠。'),
+  (b_igl, NULL, 'Ecocoat Premier',   'Premier',  'プレミアムセラミックコーティング。高光沢＋防汚性。'),
+  (b_igl, NULL, 'Ecocoat Quartz+',  'Quartz+',  'Quartz+Polyの組合せ。3年保証のセラミックコーティング。'),
   (b_igl, NULL, 'Ecocoat Quartz',   'Quartz',   'エントリープロ向け。2年保証のセラミックコーティング。'),
-  (b_igl, NULL, 'Ecocoat Poly',     'Poly',     '1年耐久のエントリーモデル。手軽な施工。'),
+  (b_igl, NULL, 'Ecocoat Poly',     'Poly',     '1年耐久のエントリーモデル。驚異的な光沢。施工が容易。'),
   (b_igl, NULL, 'Ecocoat Wheel',    'Wheel',    'ホイール専用コーティング。耐熱・防汚。');
 
 -- Modesta
@@ -108,24 +138,31 @@ INSERT INTO coating_products (brand_id, tenant_id, name, product_code, descripti
 
 -- KeePer
 INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
-  (b_keeper, NULL, 'EXキーパー',          'EX',       '最高級。ガラス被膜+レジン2層。深い艶と最大6年耐久。'),
-  (b_keeper, NULL, 'ダイヤモンドキーパー',  'DK',       'ガラス被膜+レジン層。深いツヤと3年耐久。'),
-  (b_keeper, NULL, 'クリスタルキーパー',    'CK',       'ガラス被膜の1年コーティング。最もポピュラー。'),
-  (b_keeper, NULL, 'フレッシュキーパー',    'FK',       'ポリマーコーティング。手軽なエントリーモデル。');
+  (b_keeper, NULL, 'EXキーパー',            'EX',       '最高級。VP326被膜+プライマーガラス。有機質被膜で水シミ根本防止。3年ノーメンテ。'),
+  (b_keeper, NULL, 'Wダイヤモンドキーパー',  'WDK',      'ガラス2層+レジン1層の3層構造。ノーメンテ3年、メンテ有で5年耐久。'),
+  (b_keeper, NULL, 'ダイヤモンドキーパー',   'DK',       'ガラス+レジン2層構造。約1ミクロンの厚い被膜。ノーメンテ3年、メンテ有で5年。'),
+  (b_keeper, NULL, 'エコダイヤキーパー',     'EDK',      'ダイヤモンドキーパーの簡易版。コストパフォーマンスに優れる。'),
+  (b_keeper, NULL, 'クリスタルキーパー',     'CK',       'ガラス被膜の1年コーティング。最もポピュラー。年1回の施工。'),
+  (b_keeper, NULL, 'フレッシュキーパー',     'FK',       'ポリマーコーティング。手軽なエントリーモデル。');
 
 -- ECHELON
 INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
-  (b_echelon, NULL, 'Zen-Xero',           'ZX',       'プレミアムガラスコーティング。超撥水・高硬度。'),
-  (b_echelon, NULL, 'Zen-Xero MUSE',      'ZX-MUSE',  '最高級ライン。究極のツヤと耐久性。'),
-  (b_echelon, NULL, 'New Version',         'NV',       'スタンダードガラスコーティング。安定した品質。'),
-  (b_echelon, NULL, 'Nano-Fil',            'NF',       'ナノフィラー配合。傷埋め効果＋コーティング。');
+  (b_echelon, NULL, 'Zen-Xero DYNAMIX',   'ZX-DX',    '最上位モデル。ナノハイブリッドガラス被膜+専用フッ素撥水剤。接触角110°。'),
+  (b_echelon, NULL, 'Zen-Xero',           'ZX',       'プレミアムガラスコーティング。無機と有機のハイレベル融合。超撥水・高硬度。'),
+  (b_echelon, NULL, '1043 NANO-FIL',      'NF',       'ロングセラー。3Dネットワーク構造被膜で高硬度+しなやかさ。超滑水性。'),
+  (b_echelon, NULL, 'FE-1043',            'FE-1043',  '元祖モデル。単層固化能力を持つ革新的素材。卓越した膜厚感。'),
+  (b_echelon, NULL, 'CS-1',               'CS-1',     '親水性重視。コーティング性能と施工のしやすさを両立。'),
+  (b_echelon, NULL, 'New Version',         'NV',       '19年ぶりリニューアル。使いやすさと高性能を両立。');
 
--- G'zox
+-- G'zox (ソフト99)
 INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
-  (b_gzox, NULL, 'リアルガラスコート classH',  'RGC-H',   'フラッグシップ。高硬度ガラス被膜。プロ専用。'),
-  (b_gzox, NULL, 'リアルガラスコート classR',  'RGC-R',   '撥水タイプのガラスコーティング。'),
-  (b_gzox, NULL, 'リアルガラスコート classM',  'RGC-M',   'メンテナンスしやすい親水タイプ。'),
-  (b_gzox, NULL, 'ハイドロフィニッシュ',       'HF',      '親水系コーティング。ウォータースポット防止。');
+  (b_gzox, NULL, 'ハイモースコート ジ・エッジ',  'HM-EDGE',  'G''ZOX史上最高品質。2層構造の撥水タイプ。圧倒的な撥水力と防汚性能。'),
+  (b_gzox, NULL, 'ハイモースコート ザ・グロウ',  'HM-GLOW',  '2層構造の疎水タイプ。膜厚ガラス系被膜トップコートで深い艶。'),
+  (b_gzox, NULL, 'リアルガラスコート classM',   'RGC-M',    'リアルガラスコート最上位。強力な撥水性+深い艶感。'),
+  (b_gzox, NULL, 'リアルガラスコート classH',   'RGC-H',    '疎水タイプ。素早い水キレ性能で雨ジミ防止。'),
+  (b_gzox, NULL, 'リアルガラスコート classR',   'RGC-R',    '撥水タイプ。高耐熱性で汚れ固着を防止。'),
+  (b_gzox, NULL, 'ハイパービュー',              'HV',       'ウインドウガラス用耐久撥水システム。'),
+  (b_gzox, NULL, 'ホイールコート',              'WC',       'ホイール表面にガラス系コーティング被膜を形成。');
 
 -- CrystalGuard
 INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
@@ -144,14 +181,101 @@ INSERT INTO coating_products (brand_id, tenant_id, name, product_code, descripti
 
 -- KUBEBOND
 INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
-  (b_kubebond, NULL, 'Diamond 9H',         'D9H',     'フラッグシップ。9H硬度の超高硬度コーティング。'),
-  (b_kubebond, NULL, 'Diamond 9H Sapphire','D9HS',    '最高級ライン。サファイア技術採用。'),
-  (b_kubebond, NULL, 'Diamond 9H Wheel',   'D9HW',    'ホイール専用。耐熱・防汚。');
+  (b_kubebond, NULL, 'KUBEBOND ION',       'ION',     '最上位。イオン交換技術採用のナノセラミック。強化ガラス級硬度。'),
+  (b_kubebond, NULL, 'Diamond 9H',         'D9H',     '第6世代。SGS認定9H硬度、接触角125°。3層（D9H×2+NanoX×1）標準施工。'),
+  (b_kubebond, NULL, 'Diamond 9H 5層',     'D9H-5',   'Diamond 9H×4層+NanoX×1層の5層プレミアム施工。'),
+  (b_kubebond, NULL, 'Nano X',             'NanoX',   'Diamond 9Hのトップコート。防汚性とスリック感を付与。');
 
 -- Fireball
 INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
-  (b_fireball, NULL, 'Fireball Fusion',     'FF',    'フラッグシップ。グラフェン配合セラミックコーティング。'),
-  (b_fireball, NULL, 'Fireball Ultimate',   'FU',    '超高硬度プロ専用コーティング。'),
-  (b_fireball, NULL, 'Fireball Phoenix',    'FP',    'セルフヒーリング機能付きコーティング。');
+  (b_fireball, NULL, 'Fireball Fusion',     'FF',      'フラッグシップ。グラフェン配合セラミックコーティング。'),
+  (b_fireball, NULL, 'Fireball Ultimate',   'FU',      '超高硬度プロ専用コーティング。'),
+  (b_fireball, NULL, 'Fireball Phoenix',    'FP',      'セルフヒーリング機能付きコーティング。'),
+  (b_fireball, NULL, 'Fireball Pirouette',  'PIR',     'セラミックコーティング上塗り用。滑沢性・ビーディング回復。');
+
+-- LUMINUS
+INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
+  (b_luminus, NULL, 'LUMINUS Diamond Pro',    'LM-DP',   'フラッグシップ。ダイヤモンド配合のプロ用セラミックコーティング。'),
+  (b_luminus, NULL, 'LUMINUS Ceramic Pro',    'LM-CP',   'プロ用セラミックコーティング。高耐久・高硬度。'),
+  (b_luminus, NULL, 'LUMINUS Graphene Pro',   'LM-GP',   'グラフェン配合プロ用コーティング。極めて高い耐薬品性。'),
+  (b_luminus, NULL, 'LUMINUS Slick Pro',      'LM-SP',   'プロ用滑水コーティング。超滑水性能。'),
+  (b_luminus, NULL, 'LM Graphene Spray Pro',  'LM-GSP',  'DIY/メンテナンス用グラフェンスプレー。高い耐薬品性で話題。');
+
+-- BULLET (FunCruise)
+INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
+  (b_bullet, NULL, 'kaiserjp フロンティア',     'KJ-FR',    '高施工性シラン系浸透型コーティング剤。'),
+  (b_bullet, NULL, '3D HYBRID コンディションキーパー', '3D-CK', '3D HYBRID COAT施工面の撥水効果・滑走性メンテナンス。'),
+  (b_bullet, NULL, '3D HYBRID COAT',          '3D-HC',    'ハイブリッドコーティング。3D分子構造で高耐久。');
+
+-- BLASK
+INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
+  (b_blask, NULL, 'No.12 Graphene Water',    'BL-12',    '一番人気。グラフェン+SiO2+カルナバ配合。圧倒的撥水力と深い艶。'),
+  (b_blask, NULL, 'No.13 Sleek Perfect',     'BL-13',    'チタン+グラフェン+カルナバ+SiO2含有。美しい光沢と滑らかさ。'),
+  (b_blask, NULL, 'BLASK Pro Ceramic',       'BL-PC',    'プロ施工店専用セラミックコーティング。認定店のみ施工可。'),
+  (b_blask, NULL, 'BLASK Body Prep',         'BL-BP',    'コーティング前の脱脂剤。'),
+  (b_blask, NULL, 'BLASK Iron Cleanse',      'BL-IC',    '鉄粉除去剤。');
+
+-- Ultracoat
+INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
+  (b_ultracoat, NULL, 'Ultracoat Graphene Pro',  'UC-GP',   'プロ用グラフェンセラミックコーティング。最新ナノテクノロジー。'),
+  (b_ultracoat, NULL, 'Ultracoat Ceramic Pro',   'UC-CP',   'プロ用セラミックコーティング。紫外線・酸化から保護。'),
+  (b_ultracoat, NULL, 'Ultracoat Si Reload',     'UC-SR',   'SiO2配合のメンテナンス用スプレーコーティング。');
+
+-- FEYNLAB
+INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
+  (b_feynlab, NULL, 'HEAL PLUS',              'HEAL+',    '最上位。4層10μm膜厚。セラミック含有50%超。自己修復性最高。約7年耐久。'),
+  (b_feynlab, NULL, 'HEAL LITE',              'HEAL-L',   '2層5μm膜厚。50℃の熱で小キズ自己修復。約5年耐久。疎水タイプ。'),
+  (b_feynlab, NULL, 'CERAMIC ULTRA V2',       'CUV2',     'セラミックシリーズ最上位。5μm膜厚。5年耐久。'),
+  (b_feynlab, NULL, 'CERAMIC',                'CER',      'スタンダードセラミック。耐久3年。耐薬品pH2-13。'),
+  (b_feynlab, NULL, 'The Original CERAMIC',   'OC',       'エントリー。1年耐久。コストパフォーマンス重視。'),
+  (b_feynlab, NULL, 'MATTE CERAMIC',          'MC',       'マット塗装専用セラミックコーティング。質感を変えず保護。');
+
+-- System X
+INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
+  (b_system_x, NULL, 'System X Max',          'SX-MAX',   'フラッグシップ。航空宇宙技術由来の最高耐久コーティング。'),
+  (b_system_x, NULL, 'System X Pro',          'SX-PRO',   'プロ向けセラミックコーティング。高い耐薬品性。'),
+  (b_system_x, NULL, 'System X Crystal',      'SX-CRY',   'スタンダードセラミックコーティング。'),
+  (b_system_x, NULL, 'System X Glass',        'SX-GL',    'ガラス用撥水コーティング。');
+
+-- 3M
+INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
+  (b_3m, NULL, '3M セラミックコーティング',        '3M-CC',    '10nmの極薄層で傷を埋め平滑化。最大4層重ね塗り可能。硬度3Hのフレキシブル被膜。'),
+  (b_3m, NULL, '3M スコッチガード ペイントプロテクション', '3M-PPF', 'PPF（ペイントプロテクションフィルム）。');
+
+-- NASIOL
+INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
+  (b_nasiol, NULL, 'NASIOL ZR53',         'NAS-ZR53',  'フラッグシップセラミックコーティング。36ヶ月耐久。'),
+  (b_nasiol, NULL, 'NASIOL MetalCoat',    'NAS-MC',    'ホイール・金属パーツ用セラミックコーティング。'),
+  (b_nasiol, NULL, 'NASIOL GlasShield',   'NAS-GS',    'ガラス用撥水コーティング。');
+
+-- G.Guard
+INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
+  (b_g_guard, NULL, 'G.Guard Slide',         'GG-SL',    '滑水タイプ。スプレー工法で均一な被膜。モース硬度9-10H。'),
+  (b_g_guard, NULL, 'G.Guard Hydro',         'GG-HY',    '親水タイプ。水シミになりにくい仕上がり。'),
+  (b_g_guard, NULL, 'G.Guard マット',         'GG-MT',    'マットカラー塗装対応。質感を変えず保護。');
+
+-- SENSHA（洗車の王国）
+INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
+  (b_sensha, NULL, 'Crystal Glow',           'SEN-CG',   '高光沢ガラスコーティング。フランチャイズ店舗で施工。'),
+  (b_sensha, NULL, 'Mirror Coat',            'SEN-MC',   '鏡面仕上げコーティング。'),
+  (b_sensha, NULL, 'Hydro Flash',            'SEN-HF',   '撥水コーティング。');
+
+-- G-POWER
+INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
+  (b_g_power, NULL, 'G-POWER 88',            'GP-88',    '業界注目のガラスコーティング。高い防汚性と耐久性。'),
+  (b_g_power, NULL, 'G-POWER FX',            'GP-FX',    'プロ用ガラスコーティング。');
+
+-- ピカピカレイン
+INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
+  (b_pika_rain, NULL, 'ピカピカレイン PREMIUM',    'PPR-PM',   'プレミアムセラミックコーティング。3年耐久。'),
+  (b_pika_rain, NULL, 'ピカピカレイン CERAMIC',    'PPR-CE',   'セラミックコーティング。DIY向け高品質。'),
+  (b_pika_rain, NULL, 'ピカピカレイン 滑水性',     'PPR-SL',   '滑水タイプのガラスコーティング。'),
+  (b_pika_rain, NULL, 'ピカピカレイン for Wheels', 'PPR-WH',   'ホイール専用コーティング。');
+
+-- Opti-Coat
+INSERT INTO coating_products (brand_id, tenant_id, name, product_code, description) VALUES
+  (b_ceramic_pro_ion, NULL, 'Opti-Coat Pro+',    'OCP+',    'パーマネントセラミックコーティング。一度の施工で半永久的な保護。'),
+  (b_ceramic_pro_ion, NULL, 'Opti-Coat Pro 3',   'OCP3',    '第3世代パーマネントコーティング。'),
+  (b_ceramic_pro_ion, NULL, 'Opti-Coat Pro',     'OCP',     'オリジナルパーマネントコーティング。認定ディーラー専用。');
 
 END $$;
