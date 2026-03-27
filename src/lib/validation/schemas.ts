@@ -83,6 +83,25 @@ export const requestCodeSchema = z.object({
   { message: "last4 or phone_last4 is required" },
 );
 
+/** Agent application form */
+export const agentApplicationSchema = z.object({
+  company_name: z.string().trim().min(1, "会社名は必須です"),
+  contact_name: z.string().trim().min(1, "担当者名は必須です"),
+  email: emailSchema,
+  phone: z.string().trim().min(1, "電話番号は必須です"),
+  address: z.string().trim().min(1, "住所は必須です"),
+  industry: z.string().trim().optional().default(""),
+  qualifications: z.string().trim().optional().default(""),
+  track_record: z.string().trim().optional().default(""),
+  documents: z.array(z.object({
+    name: z.string(),
+    storage_path: z.string(),
+    content_type: z.string(),
+    file_size: z.number(),
+  })).default([]),
+  terms_accepted: z.boolean({ error: "利用規約への同意が必要です" }),
+});
+
 /**
  * Parse and validate request body with a Zod schema.
  * Returns { success: true, data } or { success: false, errors: string[] }

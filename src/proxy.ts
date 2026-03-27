@@ -16,6 +16,7 @@ const PUBLIC_PREFIXES = [
   "/market/p/",
   "/api/",
   "/probe",
+  "/agent/apply",
 ];
 
 const MARKETING_PATHS = [

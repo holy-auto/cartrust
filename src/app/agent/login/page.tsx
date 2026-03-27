@@ -71,11 +71,10 @@ export default function AgentLoginPage() {
         </div>
 
         <p className="text-center text-sm text-muted">
-          パートナー登録については{" "}
-          <a href="/contact" className="text-accent hover:underline">
-            お問い合わせ
+          パートナー登録は{" "}
+          <a href="/agent/apply" className="text-accent hover:underline">
+            こちらから申請
           </a>
-          {" "}ください
         </p>
       </div>
     </main>

@@ -88,6 +88,14 @@ export const AGENT_STATUS_MAP: Record<string, StatusEntry> = {
   suspended:             { variant: "danger",  label: "停止" },
 };
 
+/* ── Agent Application ── */
+export const AGENT_APPLICATION_STATUS_MAP: Record<string, StatusEntry> = {
+  submitted:    { variant: "default", label: "申請済み" },
+  under_review: { variant: "info",    label: "審査中" },
+  approved:     { variant: "success", label: "承認済み" },
+  rejected:     { variant: "danger",  label: "却下" },
+};
+
 /* ── Utility: get status entry safely ── */
 export function getStatusEntry(
   map: Record<string, StatusEntry>,
