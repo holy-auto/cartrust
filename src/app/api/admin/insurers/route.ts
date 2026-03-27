@@ -62,14 +62,14 @@ async function sendInsurerNotification(params: {
     return;
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.cartrust.co.jp";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.linclaft.co.jp";
 
   let subject: string;
   let body: string;
 
   switch (params.action) {
     case "approved":
-      subject = "【CARTRUST】加盟店登録が承認されました";
+      subject = "【Linclaft】加盟店登録が承認されました";
       body = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
           <div style="border-bottom: 2px solid #34c759; padding-bottom: 12px; margin-bottom: 20px;">
@@ -77,7 +77,7 @@ async function sendInsurerNotification(params: {
           </div>
           <p style="color: #1d1d1f; line-height: 1.6;">
             ${params.companyName} 様<br><br>
-            CARTRUSTへの加盟店登録が承認されました。<br>
+            Linclaftへの加盟店登録が承認されました。<br>
             以下のリンクからログインし、ご利用を開始いただけます。
           </p>
           <p style="margin: 24px 0;">
@@ -86,12 +86,12 @@ async function sendInsurerNotification(params: {
             </a>
           </p>
           <div style="border-top: 1px solid #e5e5e5; margin-top: 24px; padding-top: 12px; font-size: 12px; color: #86868b;">
-            CARTRUST — 株式会社HOLY AUTO
+            Linclaft — 株式会社HOLY AUTO
           </div>
         </div>`;
       break;
     case "rejected":
-      subject = "【CARTRUST】加盟店登録について";
+      subject = "【Linclaft】加盟店登録について";
       body = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
           <div style="border-bottom: 2px solid #ff9500; padding-bottom: 12px; margin-bottom: 20px;">
@@ -99,19 +99,19 @@ async function sendInsurerNotification(params: {
           </div>
           <p style="color: #1d1d1f; line-height: 1.6;">
             ${params.companyName} 様<br><br>
-            CARTRUSTへの加盟店登録を審査いたしましたが、今回は承認に至りませんでした。
+            Linclaftへの加盟店登録を審査いたしましたが、今回は承認に至りませんでした。
           </p>
           ${params.reason ? `<p style="color: #1d1d1f; line-height: 1.6; background: #f5f5f7; border-radius: 8px; padding: 12px;"><strong>理由:</strong> ${params.reason}</p>` : ""}
           <p style="color: #86868b; font-size: 13px;">
             ご不明な点がございましたら、サポートまでお問い合わせください。
           </p>
           <div style="border-top: 1px solid #e5e5e5; margin-top: 24px; padding-top: 12px; font-size: 12px; color: #86868b;">
-            CARTRUST — 株式会社HOLY AUTO
+            Linclaft — 株式会社HOLY AUTO
           </div>
         </div>`;
       break;
     case "suspended":
-      subject = "【CARTRUST】アカウント停止のご連絡";
+      subject = "【Linclaft】アカウント停止のご連絡";
       body = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
           <div style="border-bottom: 2px solid #ff3b30; padding-bottom: 12px; margin-bottom: 20px;">
@@ -119,14 +119,14 @@ async function sendInsurerNotification(params: {
           </div>
           <p style="color: #1d1d1f; line-height: 1.6;">
             ${params.companyName} 様<br><br>
-            CARTRUSTのアカウントが停止されました。
+            Linclaftのアカウントが停止されました。
           </p>
           ${params.reason ? `<p style="color: #1d1d1f; line-height: 1.6; background: #f5f5f7; border-radius: 8px; padding: 12px;"><strong>理由:</strong> ${params.reason}</p>` : ""}
           <p style="color: #86868b; font-size: 13px;">
             ご不明な点がございましたら、サポートまでお問い合わせください。
           </p>
           <div style="border-top: 1px solid #e5e5e5; margin-top: 24px; padding-top: 12px; font-size: 12px; color: #86868b;">
-            CARTRUST — 株式会社HOLY AUTO
+            Linclaft — 株式会社HOLY AUTO
           </div>
         </div>`;
       break;
@@ -142,7 +142,7 @@ async function sendInsurerNotification(params: {
       body: JSON.stringify({
         from,
         to: params.email,
-        reply_to: "support@cartrust.co.jp",
+        reply_to: "support@linclaft.co.jp",
         subject,
         html: body,
       }),

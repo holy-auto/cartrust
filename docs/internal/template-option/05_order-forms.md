@@ -96,7 +96,7 @@ A はセルフサービスのため、申込フォームは最小限。テンプ
 5. → Stripe Checkout（one_time ¥88,000）
    ※ 月額（¥4,400/月）は制作完了・公開時に別途Stripe Subscriptionを作成
 6. 決済完了 → `/admin/template-options/order/[orderId]` にリダイレクト
-7. ステータス: `paid` → CARTRUST運営にSlack/メール通知
+7. ステータス: `paid` → Linclaft運営にSlack/メール通知
 
 ### 決済完了後に自動作成されるレコード
 - `template_orders`: order_type=custom_production, status=paid
@@ -128,5 +128,5 @@ A はセルフサービスのため、申込フォームは最小限。テンプ
 | 5 | 希望納期 | preferred_due_date | date | - | 希望する完了日 |
 
 ### 追加作業の決済
-- フォーム送信 → CARTRUST運営が見積 → Stripe Invoice発行 → テナントが支払い → 着手
+- フォーム送信 → Linclaft運営が見積 → Stripe Invoice発行 → テナントが支払い → 着手
 - 見積金額は管理者がA3画面で設定 → Stripe Invoice APIで請求

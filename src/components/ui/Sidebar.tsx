@@ -654,7 +654,7 @@ export default function Sidebar() {
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-[#5856d6]">
             <span className="text-xs font-bold text-white">C</span>
           </div>
-          <span className="text-[13px] font-semibold tracking-wide text-primary">CARTRUST</span>
+          <span className="text-[13px] font-semibold tracking-wide text-primary">Linclaft</span>
         </div>
 
         {/* Store Selector */}

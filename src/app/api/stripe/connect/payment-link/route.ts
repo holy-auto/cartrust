@@ -20,7 +20,7 @@ function getStripe() {
 /**
  * POST: 請求書に対してStripe Connect経由の決済リンクを作成
  * - テナントのConnectアカウントを利用
- * - CARTRUST が決済を仲介し、テナントに売上を入金
+ * - Linclaft が決済を仲介し、テナントに売上を入金
  */
 export async function POST(req: NextRequest) {
   try {
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
       metadata: {
         tenant_id: caller.tenantId,
         invoice_id,
-        source: "cartrust_connect",
+        source: "linclaft_connect",
       },
     });
 

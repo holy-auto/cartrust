@@ -105,8 +105,8 @@ export default function AgentInvoicesPage() {
               <div className="mt-1 text-sm text-neutral-500">INVOICE</div>
             </div>
             <div className="text-right">
-              <div className="text-sm font-semibold text-neutral-900">CARTRUST</div>
-              <div className="mt-1 text-xs text-neutral-500">株式会社CARTRUST</div>
+              <div className="text-sm font-semibold text-neutral-900">Linclaft</div>
+              <div className="mt-1 text-xs text-neutral-500">株式会社Linclaft</div>
             </div>
           </div>
 

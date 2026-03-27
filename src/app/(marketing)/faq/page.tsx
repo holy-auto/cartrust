@@ -8,7 +8,7 @@ import { PLANS, ANNUAL_DISCOUNT_PERCENT } from "@/lib/marketing/pricing";
 
 export const metadata = {
   title: "よくあるご質問",
-  description: "CARTRUSTに関するよくあるご質問と回答をまとめました。",
+  description: "Linclaftに関するよくあるご質問と回答をまとめました。",
 };
 
 export default function FAQPage() {
@@ -17,7 +17,7 @@ export default function FAQPage() {
       <PageHero
         badge="FAQ"
         title="よくあるご質問"
-        subtitle="CARTRUSTに関するご質問をカテゴリ別にまとめました。"
+        subtitle="Linclaftに関するご質問をカテゴリ別にまとめました。"
       />
 
       {/* サービス全般 */}
@@ -25,8 +25,8 @@ export default function FAQPage() {
         <SectionHeading title="サービス全般" />
         <FAQList>
           <FAQItem
-            question="CARTRUSTとは何ですか？"
-            answer="CARTRUSTは、自動車の施工記録をデジタル証明書として発行・管理できるクラウドプラットフォームです。施工店と保険会社の双方に、業務効率化と信頼性の向上を提供します。"
+            question="Linclaftとは何ですか？"
+            answer="Linclaftは、自動車の施工記録をデジタル証明書として発行・管理できるクラウドプラットフォームです。施工店と保険会社の双方に、業務効率化と信頼性の向上を提供します。"
           />
           <FAQItem
             question="どのような施工に対応していますか？"
@@ -34,7 +34,7 @@ export default function FAQPage() {
           />
           <FAQItem
             question="導入にあたって特別な設備やソフトウェアは必要ですか？"
-            answer="いいえ、CARTRUSTはWebブラウザのみで利用できます。特別なソフトウェアのインストールは不要で、インターネット環境があればすぐにご利用開始いただけます。スマートフォンからのアクセスにも対応しています。"
+            answer="いいえ、LinclaftはWebブラウザのみで利用できます。特別なソフトウェアのインストールは不要で、インターネット環境があればすぐにご利用開始いただけます。スマートフォンからのアクセスにも対応しています。"
           />
           <FAQItem
             question="データのセキュリティは大丈夫ですか？"
@@ -80,7 +80,7 @@ export default function FAQPage() {
           />
           <FAQItem
             question="証明書データの信頼性はどう担保されていますか？"
-            answer="CARTRUSTでは、証明書発行後のデータ改ざんを防止する仕組みを実装しています。発行日時、施工内容、施工店情報などすべての情報が固定され、不正な変更ができない設計になっています。"
+            answer="Linclaftでは、証明書発行後のデータ改ざんを防止する仕組みを実装しています。発行日時、施工内容、施工店情報などすべての情報が固定され、不正な変更ができない設計になっています。"
           />
           <FAQItem
             question="大量の証明書データを一括で取得できますか？"

@@ -379,7 +379,7 @@ export async function renderCertificatePdf(row: CertRow, publicUrl: string) {
 
         <View style={styles.footer}>
           <Text>証明書URL: {publicUrl}</Text>
-          <Text style={{ fontSize: 7, color: "#999", marginTop: 2 }}>Powered by CARTRUST</Text>
+          <Text style={{ fontSize: 7, color: "#999", marginTop: 2 }}>Powered by Linclaft</Text>
         </View>
       </Page>
 
@@ -449,12 +449,12 @@ export async function renderCertificatePdf(row: CertRow, publicUrl: string) {
           <View style={styles.box}>
             <Text style={styles.sectionTitle}>オンライン照会について</Text>
             <Text style={{ fontSize: 8, lineHeight: 1.7, color: "#444" }}>
-              本証明書に記載のQRコードをスマートフォンで読み取ると、CARTRUST認証プラットフォーム上で本証明書の最新情報をリアルタイムに確認できます。
+              本証明書に記載のQRコードをスマートフォンで読み取ると、Linclaft認証プラットフォーム上で本証明書の最新情報をリアルタイムに確認できます。
             </Text>
           </View>
 
           <View style={styles.footer}>
-            <Text style={{ fontSize: 7, color: "#999" }}>Powered by CARTRUST</Text>
+            <Text style={{ fontSize: 7, color: "#999" }}>Powered by Linclaft</Text>
           </View>
         </Page>
       )}
@@ -518,12 +518,12 @@ export async function renderCertificatePdf(row: CertRow, publicUrl: string) {
           <View style={styles.box}>
             <Text style={styles.sectionTitle}>オンライン照会について</Text>
             <Text style={{ fontSize: 8, lineHeight: 1.7, color: "#444" }}>
-              本証明書に記載のQRコードをスマートフォンで読み取ると、CARTRUST認証プラットフォーム上で本証明書の最新情報をリアルタイムに確認できます。
+              本証明書に記載のQRコードをスマートフォンで読み取ると、Linclaft認証プラットフォーム上で本証明書の最新情報をリアルタイムに確認できます。
             </Text>
           </View>
 
           <View style={styles.footer}>
-            <Text style={{ fontSize: 7, color: "#999" }}>Powered by CARTRUST</Text>
+            <Text style={{ fontSize: 7, color: "#999" }}>Powered by Linclaft</Text>
           </View>
         </Page>
       )}
@@ -596,12 +596,12 @@ export async function renderCertificatePdf(row: CertRow, publicUrl: string) {
           <View style={styles.box}>
             <Text style={styles.sectionTitle}>オンライン照会について</Text>
             <Text style={{ fontSize: 8, lineHeight: 1.7, color: "#444" }}>
-              本証明書に記載のQRコードをスマートフォンで読み取ると、CARTRUST認証プラットフォーム上で本証明書の最新情報をリアルタイムに確認できます。
+              本証明書に記載のQRコードをスマートフォンで読み取ると、Linclaft認証プラットフォーム上で本証明書の最新情報をリアルタイムに確認できます。
             </Text>
           </View>
 
           <View style={styles.footer}>
-            <Text style={{ fontSize: 7, color: "#999" }}>Powered by CARTRUST</Text>
+            <Text style={{ fontSize: 7, color: "#999" }}>Powered by Linclaft</Text>
           </View>
         </Page>
       )}

@@ -76,7 +76,7 @@
 \src\app\layout.tsx
 \src\app\page.tsx
 \src\app\admin\billing
-\src\app\admin\cartrust-search
+\src\app\admin\linclaft-search
 \src\app\admin\certificates
 \src\app\admin\logo
 \src\app\admin\nfc
@@ -116,11 +116,11 @@
 \src\app\admin\billing\page.tsx.bak_20260304_200616
 \src\app\admin\billing\page.tsx.bak_20260304_201104
 \src\app\admin\billing\page.tsx.bak_20260304_225015
-\src\app\admin\cartrust-search\page.tsx.bak_20260308_234234
-\src\app\admin\cartrust-search\page.tsx.bak_20260308_235609
-\src\app\admin\cartrust-search\page.tsx.bak_20260310_183742
-\src\app\admin\cartrust-search\page.tsx.bak_20260310_184030
-\src\app\admin\cartrust-search\page.tsx.bak_ui_20260309_000151
+\src\app\admin\linclaft-search\page.tsx.bak_20260308_234234
+\src\app\admin\linclaft-search\page.tsx.bak_20260308_235609
+\src\app\admin\linclaft-search\page.tsx.bak_20260310_183742
+\src\app\admin\linclaft-search\page.tsx.bak_20260310_184030
+\src\app\admin\linclaft-search\page.tsx.bak_ui_20260309_000151
 \src\app\admin\certificates\[public_id]
 \src\app\admin\certificates\export
 \src\app\admin\certificates\export-one

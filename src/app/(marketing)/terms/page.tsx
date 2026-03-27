@@ -38,7 +38,7 @@ export default function TermsPage() {
 
       <P>
         本利用規約（以下「本規約」）は、{siteConfig.siteName}（以下「当社」）が提供する
-        施工証明プラットフォーム「CARTRUST」（以下「本サービス」）の利用条件を定めるものです。
+        施工証明プラットフォーム「Linclaft」（以下「本サービス」）の利用条件を定めるものです。
         本サービスをご利用の前に、必ずお読みください。
       </P>
 
@@ -80,7 +80,7 @@ export default function TermsPage() {
 
       <H2>第5条（証明書の効力）</H2>
       <P>
-        CARTRUSTが発行する施工証明書は、施工店が入力した情報に基づく記録です。
+        Linclaftが発行する施工証明書は、施工店が入力した情報に基づく記録です。
         当社は証明書に記載された施工の品質・正確性について保証しません。
         証明書の利用に際しては、関係者が適切に判断してください。
       </P>
@@ -140,10 +140,10 @@ export default function TermsPage() {
 
 export const metadata: Metadata = {
   title: `利用規約 | ${siteConfig.siteName}`,
-  description: "CARTRUSTの利用規約です。",
+  description: "Linclaftの利用規約です。",
   openGraph: {
     title: `利用規約 | ${siteConfig.siteName}`,
-    description: "CARTRUSTの利用規約です。",
+    description: "Linclaftの利用規約です。",
     url: `${siteConfig.siteUrl}/terms`,
   },
   robots: { index: true, follow: false },

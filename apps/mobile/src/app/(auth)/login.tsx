@@ -62,7 +62,7 @@ export default function LoginScreen() {
       >
         <View style={styles.header}>
           <Text variant="headlineLarge" style={styles.title}>
-            CARTRUST
+            Linclaft
           </Text>
           <Text variant="bodyLarge" style={styles.subtitle}>
             業務管理アプリ

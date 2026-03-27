@@ -59,7 +59,7 @@ export default function TokushoPage() {
         />
         <Row
           label="サービス名"
-          value="CARTRUST（施工証明プラットフォーム）"
+          value="Linclaft（施工証明プラットフォーム）"
         />
         <Row
           label="販売価格"
@@ -108,10 +108,10 @@ export default function TokushoPage() {
 
 export const metadata: Metadata = {
   title: `特定商取引法に基づく表記 | ${siteConfig.siteName}`,
-  description: "CARTRUSTの特定商取引法に基づく表記です。",
+  description: "Linclaftの特定商取引法に基づく表記です。",
   openGraph: {
     title: `特定商取引法に基づく表記 | ${siteConfig.siteName}`,
-    description: "CARTRUSTの特定商取引法に基づく表記です。",
+    description: "Linclaftの特定商取引法に基づく表記です。",
     url: `${siteConfig.siteUrl}/tokusho`,
   },
   robots: { index: true, follow: false },

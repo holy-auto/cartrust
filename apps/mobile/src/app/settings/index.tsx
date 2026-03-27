@@ -70,7 +70,7 @@ export default function SettingsIndexScreen() {
             アプリ情報
           </Text>
           <Divider style={styles.divider} />
-          <InfoRow label="アプリ名" value="CARTRUST Mobile" />
+          <InfoRow label="アプリ名" value="Linclaft Mobile" />
           <InfoRow label="バージョン" value={appVersion} />
         </Card.Content>
       </Card>

@@ -198,7 +198,7 @@ export default function MaterialsManager() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="input-field w-full"
-                placeholder="例: CARTRUST加盟店向け提案書"
+                placeholder="例: Linclaft加盟店向け提案書"
               />
             </div>
             <div>

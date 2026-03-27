@@ -130,10 +130,10 @@ export default function PrivacyPage() {
 
 export const metadata: Metadata = {
   title: `プライバシーポリシー | ${siteConfig.siteName}`,
-  description: "CARTRUSTのプライバシーポリシーです。",
+  description: "Linclaftのプライバシーポリシーです。",
   openGraph: {
     title: `プライバシーポリシー | ${siteConfig.siteName}`,
-    description: "CARTRUSTのプライバシーポリシーです。",
+    description: "Linclaftのプライバシーポリシーです。",
     url: `${siteConfig.siteUrl}/privacy`,
   },
   robots: { index: true, follow: false },

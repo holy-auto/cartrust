@@ -15,11 +15,11 @@ export const revalidate = 3600;
 
 export const metadata = {
   title: {
-    default: "CARTRUST | WEB施工証明書SaaS",
-    template: "%s | CARTRUST",
+    default: "Linclaft | WEB施工証明書SaaS",
+    template: "%s | Linclaft",
   },
   description:
-    "施工証明をデジタルで。CARTRUSTは、施工店と保険会社をつなぐWEB施工証明書プラットフォームです。",
+    "施工証明をデジタルで。Linclaftは、施工店と保険会社をつなぐWEB施工証明書プラットフォームです。",
 };
 
 export default function MarketingLayout({

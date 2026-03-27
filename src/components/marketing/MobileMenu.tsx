@@ -42,7 +42,7 @@ export function MobileMenu({
               className="text-xl font-bold tracking-tight text-white"
               onClick={() => setOpen(false)}
             >
-              CARTRUST
+              Linclaft
             </Link>
             <button
               onClick={() => setOpen(false)}

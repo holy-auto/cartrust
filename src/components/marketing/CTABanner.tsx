@@ -5,7 +5,7 @@ import { CTAButton } from "./CTAButton";
 import { ScrollReveal } from "./ScrollReveal";
 
 export function CTABanner({
-  title = "CARTRUSTを始めましょう",
+  title = "Linclaftを始めましょう",
   subtitle = "まずはお気軽にお問い合わせください。導入のご相談も承ります。",
   primaryLabel = "無料で始める",
   primaryHref = "/signup",

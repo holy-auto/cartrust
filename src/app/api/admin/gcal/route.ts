@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "sync") {
-      // 双方向同期: push（CARTRUST→GCal）+ pull（GCal→CARTRUST）
+      // 双方向同期: push（Linclaft→GCal）+ pull（GCal→Linclaft）
       const from = body?.from;
       const to = body?.to;
       if (!from || !to) return apiValidationError("from / to (YYYY-MM-DD) が必要です");
@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "push") {
-      // CARTRUST → Google Calendar に一括 push のみ
+      // Linclaft → Google Calendar に一括 push のみ
       const from = body?.from;
       const to = body?.to;
       if (!from || !to) return apiValidationError("from / to (YYYY-MM-DD) が必要です");

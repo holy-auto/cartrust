@@ -8,7 +8,7 @@ import { CTABanner } from "@/components/marketing/CTABanner";
 
 export const metadata = {
   title: "保険会社の方へ",
-  description: "CARTRUSTで施工証明書の確認・査定業務を効率化。データの信頼性向上と業務コスト削減を実現します。",
+  description: "Linclaftで施工証明書の確認・査定業務を効率化。データの信頼性向上と業務コスト削減を実現します。",
 };
 
 export default function ForInsurersPage() {
@@ -23,7 +23,7 @@ export default function ForInsurersPage() {
       {/* 主要メリット */}
       <Section>
         <SectionHeading
-          title="CARTRUSTが保険会社にもたらす価値"
+          title="Linclaftが保険会社にもたらす価値"
           subtitle="施工証明書の確認から査定まで、業務全体を効率化します"
         />
         <FeatureGrid>
@@ -64,7 +64,7 @@ export default function ForInsurersPage() {
       <Section bg="alt">
         <SectionHeading
           title="導入による効果"
-          subtitle="数字で見るCARTRUSTの導入効果"
+          subtitle="数字で見るLinclaftの導入効果"
         />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
           {[

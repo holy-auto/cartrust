@@ -53,7 +53,7 @@ export function Header() {
           href="/"
           className="text-[1.375rem] font-bold tracking-tight text-white hover:opacity-80 transition-opacity"
         >
-          CARTRUST
+          Linclaft
         </Link>
 
         {/* Desktop nav */}

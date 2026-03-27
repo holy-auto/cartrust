@@ -19,7 +19,7 @@ async function sendEmailResend(to: string, code: string) {
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
       <div style="border-bottom: 2px solid #0071e3; padding-bottom: 12px; margin-bottom: 20px;">
-        <h2 style="margin: 0; color: #1d1d1f; font-size: 18px;">CARTRUST 加盟店登録 - メール確認</h2>
+        <h2 style="margin: 0; color: #1d1d1f; font-size: 18px;">Linclaft 加盟店登録 - メール確認</h2>
       </div>
       <p style="color: #1d1d1f; line-height: 1.6;">
         加盟店登録のメール確認コードをお送りします。<br>
@@ -33,7 +33,7 @@ async function sendEmailResend(to: string, code: string) {
         心当たりのない場合は、このメールを無視してください。
       </p>
       <div style="border-top: 1px solid #e5e5e5; margin-top: 24px; padding-top: 12px; font-size: 12px; color: #86868b;">
-        CARTRUST — 株式会社HOLY AUTO
+        Linclaft — 株式会社HOLY AUTO
       </div>
     </div>
   `;
@@ -47,7 +47,7 @@ async function sendEmailResend(to: string, code: string) {
     body: JSON.stringify({
       from,
       to,
-      subject: "【CARTRUST】メール確認コード",
+      subject: "【Linclaft】メール確認コード",
       html,
     }),
   });

@@ -9,26 +9,26 @@
  */
 
 export const siteConfig = {
-  siteName: "CARTRUST",
+  siteName: "Linclaft",
   siteDescription:
     "車の施工証明をデジタルで。施工店と保険会社をつなぐSaaSプラットフォームです。",
 
-  /** マーケティングサイトのベースURL（cartrust.co.jp 移行後に更新） */
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "https://cartrust.co.jp",
+  /** マーケティングサイトのベースURL（linclaft.co.jp 移行後に更新） */
+  siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "https://linclaft.co.jp",
 
-  /** アプリ本体のベースURL（app.cartrust.co.jp 移行後に更新） */
-  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://app.cartrust.co.jp",
+  /** アプリ本体のベースURL（app.linclaft.co.jp 移行後に更新） */
+  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://app.linclaft.co.jp",
 
   /**
    * ログインリンク先。
    * - 同一ドメイン運用中は "/login" のまま
-   * - ドメイン分離後は NEXT_PUBLIC_LOGIN_URL に "https://app.cartrust.co.jp/login" を設定
+   * - ドメイン分離後は NEXT_PUBLIC_LOGIN_URL に "https://app.linclaft.co.jp/login" を設定
    */
   loginUrl: process.env.NEXT_PUBLIC_LOGIN_URL ?? "/login",
 
   /** 問い合わせ先メール */
   contactEmail:
-    process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "info@cartrust.co.jp",
+    process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "info@linclaft.co.jp",
 } as const;
 
 /** ヘッダー・フッターで使うナビゲーションリンク */

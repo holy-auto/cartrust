@@ -1,7 +1,7 @@
 import type { Role } from "./roles";
 
 /**
- * Centralized permission system for CARTRUST.
+ * Centralized permission system for Linclaft.
  * Each permission maps to a specific action in the app.
  */
 export type Permission =

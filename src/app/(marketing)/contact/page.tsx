@@ -5,7 +5,7 @@ import { ContactForm } from "@/components/marketing/ContactForm";
 
 export const metadata = {
   title: "お問い合わせ",
-  description: "CARTRUSTへのお問い合わせ。導入のご相談、資料請求、デモのご依頼など、お気軽にご連絡ください。",
+  description: "Linclaftへのお問い合わせ。導入のご相談、資料請求、デモのご依頼など、お気軽にご連絡ください。",
 };
 
 export default function ContactPage() {
@@ -32,7 +32,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <div className="text-sm font-medium text-white">メール</div>
-                    <div className="mt-1 text-sm text-white/50">info@cartrust.co.jp</div>
+                    <div className="mt-1 text-sm text-white/50">info@linclaft.co.jp</div>
                   </div>
                 </div>
                 <div className="flex gap-4 items-start">

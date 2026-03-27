@@ -86,7 +86,7 @@ export default function SignupPage() {
             <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg" style={{ background: "linear-gradient(135deg, var(--accent-blue), #5856d6)" }}>
               C
             </div>
-            <span className="text-xl font-bold text-primary tracking-wide">CARTRUST</span>
+            <span className="text-xl font-bold text-primary tracking-wide">Linclaft</span>
           </div>
           <div className="text-success">
             <svg className="mx-auto w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -111,7 +111,7 @@ export default function SignupPage() {
           <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg" style={{ background: "linear-gradient(135deg, var(--accent-blue), #5856d6)" }}>
             C
           </div>
-          <span className="text-xl font-bold text-primary tracking-wide">CARTRUST</span>
+          <span className="text-xl font-bold text-primary tracking-wide">Linclaft</span>
         </div>
 
         <div className="text-center">

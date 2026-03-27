@@ -421,7 +421,7 @@ export default async function AdminHome() {
         <div className="space-y-1">
           <div className="text-sm font-semibold text-primary">はじめての方へ</div>
           <p className="text-xs text-muted leading-relaxed">
-            CARTRUSTへようこそ！まずは<Link href="/admin/settings" className="text-accent hover:underline">店舗設定</Link>を完了し、
+            Linclaftへようこそ！まずは<Link href="/admin/settings" className="text-accent hover:underline">店舗設定</Link>を完了し、
             <Link href="/admin/certificates/new" className="text-accent hover:underline">最初の証明書を発行</Link>してみましょう。
             ご不明な点は<Link href="/admin/support" className="text-accent hover:underline">サポート</Link>または
             <Link href="/admin/support" className="text-accent hover:underline">お問い合わせ</Link>をご利用ください。

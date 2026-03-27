@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     // ないならStripe Customerを作る（テナント単位）
     if (!customerId) {
       const c = await stripe.customers.create({
-        name: tenant.name ?? "CARTRUST Tenant",
+        name: tenant.name ?? "Linclaft Tenant",
         metadata: { tenant_id },
       });
       customerId = c.id;

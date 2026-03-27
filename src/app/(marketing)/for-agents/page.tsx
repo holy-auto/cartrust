@@ -8,7 +8,7 @@ import { CTABanner } from "@/components/marketing/CTABanner";
 
 export const metadata = {
   title: "代理店の方へ",
-  description: "CARTRUSTパートナープログラムで安定した収益を実現。紹介・コミッション管理を一元化し、効率的な代理店ビジネスを支援します。",
+  description: "Linclaftパートナープログラムで安定した収益を実現。紹介・コミッション管理を一元化し、効率的な代理店ビジネスを支援します。",
 };
 
 const commissionSteps = [
@@ -23,7 +23,7 @@ export default function ForAgentsPage() {
       <PageHero
         badge="FOR AGENTS"
         title="パートナープログラムで、安定した収益を"
-        subtitle="CARTRUSTの代理店として施工店をご紹介いただくことで、継続的なコミッション収入を得られます。"
+        subtitle="Linclaftの代理店として施工店をご紹介いただくことで、継続的なコミッション収入を得られます。"
       />
 
       {/* 主要メリット */}
@@ -41,7 +41,7 @@ export default function ForAgentsPage() {
               </svg>
             }
             title="継続的なコミッション報酬"
-            description="紹介先の施工店がCARTRUSTを利用し続ける限り、毎月のコミッションが発生。ストック型の安定収益を構築できます。"
+            description="紹介先の施工店がLinclaftを利用し続ける限り、毎月のコミッションが発生。ストック型の安定収益を構築できます。"
           />
           <FeatureCard
             delay={100}
@@ -106,7 +106,7 @@ export default function ForAgentsPage() {
             {
               step: "02",
               title: "施工店をご紹介",
-              description: "代理店ポータルで発行される紹介リンクや営業資料を活用して、施工店にCARTRUSTをご紹介ください。",
+              description: "代理店ポータルで発行される紹介リンクや営業資料を活用して、施工店にLinclaftをご紹介ください。",
             },
             {
               step: "03",

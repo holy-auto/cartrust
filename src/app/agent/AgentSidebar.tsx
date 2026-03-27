@@ -275,7 +275,7 @@ export default function AgentSidebar() {
             <span className="text-xs font-bold text-white">C</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-[13px] font-semibold tracking-wide text-primary">CARTRUST</span>
+            <span className="text-[13px] font-semibold tracking-wide text-primary">Linclaft</span>
             <span className="text-[10px] font-medium uppercase tracking-widest text-muted">Agent Portal</span>
           </div>
         </div>

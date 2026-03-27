@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://cartrust.jp/schemas/template-config/v1",
-  "title": "CARTRUST Template Config",
+  "$id": "https://linclaft.jp/schemas/template-config/v1",
+  "title": "Linclaft Template Config",
   "description": "施工証明書テンプレートの構造化カスタム設定。証明書の信頼性を担保しつつ、ブランドカスタマイズを許可する。readOnly=true の項目はテナント側では変更不可（証明書の必須表示項目）。",
   "type": "object",
   "required": ["version", "branding"],
@@ -234,11 +234,11 @@
           "default": true,
           "description": "証明書確認用QRコード（public_id URL）の表示。"
         },
-        "show_cartrust_badge": {
+        "show_linclaft_badge": {
           "type": "boolean",
           "default": true,
           "readOnly": true,
-          "description": "CARTRUST認証マークの表示。必須表示のため変更不可。"
+          "description": "Linclaft認証マークの表示。必須表示のため変更不可。"
         },
         "show_company_seal": {
           "type": "boolean",

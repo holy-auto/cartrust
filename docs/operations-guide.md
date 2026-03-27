@@ -1,4 +1,4 @@
-# CARTRUST 総合オペレーションガイド
+# Linclaft 総合オペレーションガイド
 
 > 対象: 運営チーム・開発者・カスタマーサポート
 > 最終更新: 2026-03-27
@@ -36,7 +36,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                    CARTRUST SaaS                     │
+│                    Linclaft SaaS                     │
 ├──────────┬──────────┬──────────┬──────────┬─────────┤
 │  Admin   │ Insurer  │  Agent   │ Customer │ Market  │
 │ Portal   │ Portal   │ Portal   │ Portal   │         │
@@ -61,7 +61,7 @@
 | 代理店（エージェント） | `/agent/*` | 加盟店の紹介・コミッション管理 |
 | エンドユーザー（顧客） | `/customer/*` | 自分の証明書を閲覧 |
 | マーケット利用者 | `/market/*` | 中古車売買 |
-| プラットフォーム管理者 | `/admin/platform/*` | CARTRUST運営。テンプレート管理・全体統計 |
+| プラットフォーム管理者 | `/admin/platform/*` | Linclaft運営。テンプレート管理・全体統計 |
 
 ---
 
@@ -244,7 +244,7 @@
 ### 3.3 代理店（Agent）アカウント発行
 
 ```
-[CARTRUST運営]
+[Linclaft運営]
   │
   ├→ プラットフォーム管理画面から代理店を作成
   │   ├ agents レコード作成 (status: "active_pending_review")
@@ -1067,7 +1067,7 @@ job_orders
 | action | 操作種別: status_changed, amount_set, payment_confirmed, cancelled 等 |
 | old_value / new_value | 変更前後のJSON |
 
-### 12.5 CARTRUSTの差別化
+### 12.5 Linclaftの差別化
 
 **施工証明書 + 受発注 + 車両履歴のトレーサビリティチェーン:**
 
@@ -1238,7 +1238,7 @@ NFC読み取り → 公開証明書ページ表示 → 施工履歴確認
 
 | ロール | ランク | 説明 |
 |---|---|---|
-| `super_admin` | 5 | プラットフォーム管理者（CARTRUST運営のみ） |
+| `super_admin` | 5 | プラットフォーム管理者（Linclaft運営のみ） |
 | `owner` | 4 | テナントオーナー。全権限 |
 | `admin` | 3 | テナント管理者。課金・ロゴ以外の全権限 |
 | `staff` | 2 | スタッフ。閲覧+作成+編集（削除・設定変更不可） |
@@ -1391,7 +1391,7 @@ DELETE:  tenant_id IN (SELECT my_tenant_ids()) AND my_tenant_role(tenant_id) IN 
 
 | 状況 | エスカレーション先 | 対応 |
 |---|---|---|
-| テナントが法的証明書を要求 | PM/経営 | CARTRUSTは法的効力を保証しない旨を再説明 |
+| テナントが法的証明書を要求 | PM/経営 | Linclaftは法的効力を保証しない旨を再説明 |
 | 自由デザイン要求 | PM | B契約の範囲を説明。逸脱は別見積 |
 | PDF出力崩れ | 開発 | layout_key / config_json 不具合調査 |
 | Stripe課金トラブル | 開発 | Stripe Dashboard確認 + 手動処理 |

@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json().catch(() => ({}));
     const label = ((body.label as string) ?? "").trim();
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://cartrust.jp";
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://linclaft.jp";
     const code = `AL-${agent.agent_id.substring(0, 4).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
     const url = `${baseUrl}/ref/${code}`;
 

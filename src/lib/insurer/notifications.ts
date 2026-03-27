@@ -14,7 +14,7 @@ function wrap(title: string, body: string) {
       </div>
       ${body}
       <div style="border-top: 1px solid #e5e5e5; margin-top: 24px; padding-top: 12px; font-size: 12px; color: #86868b;">
-        CARTRUST — 株式会社HOLY AUTO
+        Linclaft — 株式会社HOLY AUTO
       </div>
     </div>
   `;
@@ -31,7 +31,7 @@ async function send(to: string, subject: string, html: string): Promise<boolean>
     const res = await fetch(RESEND_API, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to, reply_to: "support@cartrust.co.jp", subject, html }),
+      body: JSON.stringify({ from, to, reply_to: "support@linclaft.co.jp", subject, html }),
     });
     if (!res.ok) {
       const resBody = await res.text().catch(() => "");
@@ -75,14 +75,14 @@ export async function sendCaseStatusNotification(params: {
         更新者: ${updatedBy}
       </div>
       <p style="font-size: 13px; color: #86868b;">
-        詳細はCARTRUST保険会社ポータルよりご確認ください。
+        詳細はLinclaft保険会社ポータルよりご確認ください。
       </p>
     `,
   );
 
   return send(
     params.recipientEmail,
-    `【CARTRUST】案件 ${params.caseNumber} のステータスが更新されました`,
+    `【Linclaft】案件 ${params.caseNumber} のステータスが更新されました`,
     html,
   );
 }
@@ -122,14 +122,14 @@ export async function sendCaseMessageNotification(params: {
         "${preview}"
       </div>
       <p style="font-size: 13px; color: #86868b;">
-        詳細はCARTRUSTポータルよりご確認ください。
+        詳細はLinclaftポータルよりご確認ください。
       </p>
     `,
   );
 
   return send(
     params.recipientEmail,
-    `【CARTRUST】案件 ${params.caseNumber} に新しいメッセージ`,
+    `【Linclaft】案件 ${params.caseNumber} に新しいメッセージ`,
     html,
   );
 }
@@ -162,14 +162,14 @@ export async function sendCaseCreatedNotification(params: {
         優先度: <strong>${pri}</strong>
       </div>
       <p style="font-size: 13px; color: #86868b;">
-        詳細はCARTRUST管理画面よりご確認ください。
+        詳細はLinclaft管理画面よりご確認ください。
       </p>
     `,
   );
 
   return send(
     params.recipientEmail,
-    `【CARTRUST】${insurer} から新規案件: ${params.caseNumber}`,
+    `【Linclaft】${insurer} から新規案件: ${params.caseNumber}`,
     html,
   );
 }

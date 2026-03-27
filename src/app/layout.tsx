@@ -19,7 +19,7 @@ const notoSansJP = Noto_Sans_JP({
 });
 
 export const metadata = {
-  title: "CARTRUST",
+  title: "Linclaft",
   description: "WEB施工証明書SaaS",
 };
 

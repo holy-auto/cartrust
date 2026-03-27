@@ -341,7 +341,7 @@ export default function PosClient() {
             pollingRef.current = null;
             setQrStep("paid");
 
-            // 4. CARTRUST DB \u306B\u8A18\u9332
+            // 4. Linclaft DB \u306B\u8A18\u9332
             setQrStep("recording");
             const checkoutRes = await fetch("/api/admin/pos/checkout", {
               method: "POST",

@@ -194,7 +194,7 @@ export default async function CertificatePublicPage({ params, searchParams }: Pa
   return (
     <main className="mx-auto max-w-[980px] p-4">
       <div className="glass-card mb-4 p-5">
-        <div className="text-[28px] font-extrabold tracking-wide text-primary">CARTRUST CERT</div>
+        <div className="text-[28px] font-extrabold tracking-wide text-primary">Linclaft CERT</div>
         <div className="mt-1 text-sm text-muted">施工証明書</div>
         <div className="mt-3 flex flex-wrap gap-2">
           <span

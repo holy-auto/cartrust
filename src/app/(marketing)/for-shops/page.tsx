@@ -8,7 +8,7 @@ import { CTABanner } from "@/components/marketing/CTABanner";
 
 export const metadata = {
   title: "施工店の方へ",
-  description: "CARTRUSTで施工証明書の作成・管理を効率化。顧客満足度と保険会社との連携を同時に向上させます。",
+  description: "Linclaftで施工証明書の作成・管理を効率化。顧客満足度と保険会社との連携を同時に向上させます。",
 };
 
 export default function ForShopsPage() {
@@ -23,7 +23,7 @@ export default function ForShopsPage() {
       {/* 主要メリット */}
       <Section>
         <SectionHeading
-          title="CARTRUSTが施工店にもたらす価値"
+          title="Linclaftが施工店にもたらす価値"
           subtitle="証明書発行から管理まで、施工店の業務をワンストップで支援します"
         />
         <FeatureGrid>

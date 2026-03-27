@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       .select("name")
       .eq("id", caller.tenantId)
       .single();
-    const senderName = tenant?.name ?? "CARTRUST";
+    const senderName = tenant?.name ?? "Linclaft";
 
     // Fetch customer name
     let recipientName = doc.recipient_name ?? "";

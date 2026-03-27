@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "CARTRUST — 施工証明をデジタルで";
+export const alt = "Linclaft — 施工証明をデジタルで";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -49,7 +49,7 @@ export default function OgImage() {
             marginBottom: 20,
           }}
         >
-          CARTRUST
+          Linclaft
         </div>
 
         {/* Tagline */}
@@ -74,7 +74,7 @@ export default function OgImage() {
             fontSize: 22,
           }}
         >
-          cartrust.co.jp
+          linclaft.co.jp
         </div>
       </div>
     ),

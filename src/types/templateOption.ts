@@ -93,7 +93,7 @@ export type TemplateConfigFooter = {
   warranty_text?: string;
   notice_text?: string;
   show_qr?: boolean;
-  show_cartrust_badge?: boolean;
+  show_linclaft_badge?: boolean;
   maintenance_url?: string;
   maintenance_label?: string;
   show_maintenance_qr?: boolean;

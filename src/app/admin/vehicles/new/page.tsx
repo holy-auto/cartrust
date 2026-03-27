@@ -132,7 +132,7 @@ export default function AdminVehicleNewPage() {
       <div className="mx-auto max-w-3xl space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-primary">車両を登録</h1>
-          <p className="text-sm text-muted">CARTRUST RECORD の車両マスターを登録します。</p>
+          <p className="text-sm text-muted">Linclaft RECORD の車両マスターを登録します。</p>
         </div>
 
         {/* 車検証 OCR */}

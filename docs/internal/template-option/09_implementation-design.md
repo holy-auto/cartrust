@@ -28,7 +28,7 @@ src/
 │   │   │   └── maintenance-url/
 │   │   │       └── page.tsx                      # T7: メンテナンスURL設定
 │   │   │
-│   │   └── platform/                             # CARTRUST運営向け画面群
+│   │   └── platform/                             # Linclaft運営向け画面群
 │   │       ├── templates/
 │   │       │   └── page.tsx                      # A1: 既製テンプレート管理
 │   │       ├── template-orders/
@@ -272,7 +272,7 @@ export interface TemplateConfig {
     warranty_text?: string;
     notice_text?: string;
     show_qr?: boolean;
-    show_cartrust_badge?: boolean;
+    show_linclaft_badge?: boolean;
     show_company_seal?: boolean;
     maintenance_urls?: Array<{
       url: string;
@@ -384,7 +384,7 @@ export const templateConfigSchema = z.object({
     warranty_text: z.string().max(500).optional(),
     notice_text: z.string().max(500).optional(),
     show_qr: z.boolean().default(true),
-    show_cartrust_badge: z.literal(true).default(true),  // 必須: 常にtrue
+    show_linclaft_badge: z.literal(true).default(true),  // 必須: 常にtrue
     show_company_seal: z.boolean().default(false),
     maintenance_urls: z.array(maintenanceUrlSchema).max(3).optional(),
     footer_text: z.string().max(200).optional(),
@@ -471,7 +471,7 @@ const FIELD_ACCESS: Record<string, 'all' | 'custom_only' | 'admin_only' | 'reado
   'footer.warranty_text': 'all',
   'footer.notice_text': 'all',
   'footer.show_qr': 'all',
-  'footer.show_cartrust_badge': 'readonly',
+  'footer.show_linclaft_badge': 'readonly',
   'footer.show_company_seal': 'all',
   'footer.maintenance_urls': 'all',
   'footer.footer_text': 'all',
@@ -533,7 +533,7 @@ export function mergeConfigs(
     merged.body.show_vehicle_info = true;
     merged.body.show_service_details = true;
   }
-  if (merged.footer) merged.footer.show_cartrust_badge = true;
+  if (merged.footer) merged.footer.show_linclaft_badge = true;
 
   return merged;
 }
@@ -584,7 +584,7 @@ function deepMerge(base: any, override: any): any {
 - 直接的なStripeサブスク操作
 - `platform_templates` の変更
 
-### 管理者（CARTRUST運営）ができること
+### 管理者（Linclaft運営）ができること
 
 | 操作 | API | 備考 |
 |---|---|---|

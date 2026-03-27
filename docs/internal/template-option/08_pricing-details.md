@@ -62,7 +62,7 @@ const invoice = await stripe.invoices.create({
   customer: tenant.stripe_customer_id,
   collection_method: 'send_invoice',
   days_until_due: 7,
-  description: 'CARTRUST ブランド証明書 追加作業',
+  description: 'Linclaft ブランド証明書 追加作業',
 });
 
 await stripe.invoiceItems.create({
