@@ -1,7 +1,7 @@
 /**
  * POS 共有定数
  *
- * CARTRUST Web と React Native POS アプリの両方で使用する定数。
+ * Ledra Web と React Native POS アプリの両方で使用する定数。
  * RN アプリへはこのファイルをコピーして共有する。
  */
 

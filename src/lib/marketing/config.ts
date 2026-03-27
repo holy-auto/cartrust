@@ -9,26 +9,26 @@
  */
 
 export const siteConfig = {
-  siteName: "CARTRUST",
+  siteName: "Ledra",
   siteDescription:
     "車の施工証明をデジタルで。施工店と保険会社をつなぐSaaSプラットフォームです。",
 
-  /** マーケティングサイトのベースURL（cartrust.co.jp 移行後に更新） */
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "https://cartrust.co.jp",
+  /** マーケティングサイトのベースURL（ledra.co.jp 移行後に更新） */
+  siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "https://ledra.co.jp",
 
-  /** アプリ本体のベースURL（app.cartrust.co.jp 移行後に更新） */
-  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://app.cartrust.co.jp",
+  /** アプリ本体のベースURL（app.ledra.co.jp 移行後に更新） */
+  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://app.ledra.co.jp",
 
   /**
    * ログインリンク先。
    * - 同一ドメイン運用中は "/login" のまま
-   * - ドメイン分離後は NEXT_PUBLIC_LOGIN_URL に "https://app.cartrust.co.jp/login" を設定
+   * - ドメイン分離後は NEXT_PUBLIC_LOGIN_URL に "https://app.ledra.co.jp/login" を設定
    */
   loginUrl: process.env.NEXT_PUBLIC_LOGIN_URL ?? "/login",
 
   /** 問い合わせ先メール */
   contactEmail:
-    process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "info@cartrust.co.jp",
+    process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "info@ledra.co.jp",
 } as const;
 
 /** ヘッダー・フッターで使うナビゲーションリンク */

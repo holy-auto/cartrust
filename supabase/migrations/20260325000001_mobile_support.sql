@@ -1,7 +1,7 @@
 -- =============================================================================
 -- Mobile App Support Migration
 -- Adds audit_logs, push_tokens tables and extends existing tables
--- for CARTRUST mobile app (Expo/React Native)
+-- for Ledra mobile app (Expo/React Native)
 -- =============================================================================
 
 -- 1. 監査ログテーブル

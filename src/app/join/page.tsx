@@ -252,7 +252,7 @@ export default function InsurerRegisterPage() {
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center text-white font-bold text-lg">
             C
           </div>
-          <span className="text-xl font-bold text-primary tracking-wide">CARTRUST</span>
+          <span className="text-xl font-bold text-primary tracking-wide">Ledra</span>
         </div>
 
         <div className="text-center">

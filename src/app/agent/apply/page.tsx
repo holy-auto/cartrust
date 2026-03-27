@@ -122,7 +122,7 @@ export default function AgentApplyPage() {
             <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center text-white font-bold text-lg">
               C
             </div>
-            <span className="text-xl font-bold text-primary tracking-wide">CARTRUST</span>
+            <span className="text-xl font-bold text-primary tracking-wide">Ledra</span>
           </div>
 
           <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
@@ -163,13 +163,13 @@ export default function AgentApplyPage() {
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center text-white font-bold text-lg">
             C
           </div>
-          <span className="text-xl font-bold text-primary tracking-wide">CARTRUST</span>
+          <span className="text-xl font-bold text-primary tracking-wide">Ledra</span>
         </div>
 
         <div className="text-center">
           <h1 className="text-2xl font-bold text-primary">代理店パートナー申請</h1>
           <p className="text-sm text-muted mt-1">
-            CARTRUSTの代理店パートナーとして申請いただけます。審査完了後、ポータルへのアクセス情報をお送りします。
+            Ledraの代理店パートナーとして申請いただけます。審査完了後、ポータルへのアクセス情報をお送りします。
           </p>
         </div>
 

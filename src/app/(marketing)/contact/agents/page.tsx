@@ -5,7 +5,7 @@ import { DocumentRequestForm } from "@/components/marketing/DocumentRequestForm"
 
 export const metadata = {
   title: "代理店向け資料請求",
-  description: "CARTRUSTパートナープログラムの詳細資料を無料でお届けします。コミッション体系・営業支援ツール・登録方法をご紹介。",
+  description: "Ledraパートナープログラムの詳細資料を無料でお届けします。コミッション体系・営業支援ツール・登録方法をご紹介。",
 };
 
 const documentContents = [
@@ -27,7 +27,7 @@ export default function AgentDocumentPage() {
       <PageHero
         badge="FOR AGENTS"
         title="代理店向け資料請求"
-        subtitle="CARTRUSTパートナープログラムの詳細をまとめた資料を無料でお届けします。"
+        subtitle="Ledraパートナープログラムの詳細をまとめた資料を無料でお届けします。"
       />
 
       <Section>

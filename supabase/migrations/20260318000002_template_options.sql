@@ -174,7 +174,7 @@ VALUES
       "branding": { "company_name": "" },
       "header": { "title": "施工証明書", "show_issue_date": true, "show_certificate_no": true },
       "body": { "show_customer_name": true, "show_vehicle_info": true, "show_service_details": true, "show_photos": true },
-      "footer": { "show_qr": true, "show_cartrust_badge": true, "maintenance_label": "メンテナンス情報" },
+      "footer": { "show_qr": true, "show_ledra_badge": true, "maintenance_label": "メンテナンス情報" },
       "style": { "font_family": "noto-sans-jp", "border_style": "elegant", "background_variant": "white" }
     }'::jsonb,
     1
@@ -189,7 +189,7 @@ VALUES
       "branding": { "company_name": "" },
       "header": { "title": "施工証明書", "show_issue_date": true, "show_certificate_no": true },
       "body": { "show_customer_name": true, "show_vehicle_info": true, "show_service_details": true, "show_photos": true },
-      "footer": { "show_qr": true, "show_cartrust_badge": true, "maintenance_label": "メンテナンス情報" },
+      "footer": { "show_qr": true, "show_ledra_badge": true, "maintenance_label": "メンテナンス情報" },
       "style": { "font_family": "noto-sans-jp", "border_style": "simple", "background_variant": "white" }
     }'::jsonb,
     2
@@ -204,7 +204,7 @@ VALUES
       "branding": { "company_name": "" },
       "header": { "title": "施工証明書", "show_issue_date": true, "show_certificate_no": true },
       "body": { "show_customer_name": true, "show_vehicle_info": true, "show_service_details": true, "show_photos": true },
-      "footer": { "show_qr": true, "show_cartrust_badge": true, "maintenance_label": "メンテナンス情報" },
+      "footer": { "show_qr": true, "show_ledra_badge": true, "maintenance_label": "メンテナンス情報" },
       "style": { "font_family": "noto-serif-jp", "border_style": "double", "background_variant": "cream" }
     }'::jsonb,
     3

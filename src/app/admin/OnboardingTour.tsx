@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
 
-const TOUR_DONE_KEY = "cartrust_tour_done";
+const TOUR_DONE_KEY = "ledra_tour_done";
 
 export default function OnboardingTour() {
   const [ready, setReady] = useState(false);
@@ -27,7 +27,7 @@ export default function OnboardingTour() {
       overlayColor: "rgba(0, 0, 0, 0.5)",
       stagePadding: 8,
       stageRadius: 12,
-      popoverClass: "cartrust-tour-popover",
+      popoverClass: "ledra-tour-popover",
       nextBtnText: "次へ",
       prevBtnText: "戻る",
       doneBtnText: "完了",
@@ -39,7 +39,7 @@ export default function OnboardingTour() {
       steps: [
         {
           popover: {
-            title: "CARTRUSTへようこそ！",
+            title: "Ledraへようこそ！",
             description: "施工証明書の発行・管理を簡単に行えるプラットフォームです。主な機能をご紹介します。",
           },
         },

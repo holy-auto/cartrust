@@ -7,7 +7,7 @@ import { PLANS } from "@/lib/marketing/pricing";
 
 export const metadata = {
   title: "加盟店向け資料請求",
-  description: "CARTRUSTの加盟店（施工店）向け資料を無料でお届けします。料金プラン・機能一覧・導入事例をまとめた資料をご用意しています。",
+  description: "Ledraの加盟店（施工店）向け資料を無料でお届けします。料金プラン・機能一覧・導入事例をまとめた資料をご用意しています。",
 };
 
 const documentContents = [
@@ -23,7 +23,7 @@ export default function ShopDocumentPage() {
       <PageHero
         badge="FOR SHOPS"
         title="加盟店向け資料請求"
-        subtitle="CARTRUSTの導入をご検討中の施工店様へ。サービス詳細・料金・機能比較をまとめた資料を無料でお届けします。"
+        subtitle="Ledraの導入をご検討中の施工店様へ。サービス詳細・料金・機能比較をまとめた資料を無料でお届けします。"
       />
 
       <Section>

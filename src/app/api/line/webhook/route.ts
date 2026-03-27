@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
  *
  * LINE Platform からの Webhook エンドポイント。
  * テナントごとに LINE Bot を設定し、Webhook URL にテナントIDをクエリパラメータで渡す。
- * 例: https://app.cartrust.co.jp/api/line/webhook?tenant_id=xxxx
+ * 例: https://app.ledra.co.jp/api/line/webhook?tenant_id=xxxx
  */
 export async function POST(req: NextRequest) {
   try {

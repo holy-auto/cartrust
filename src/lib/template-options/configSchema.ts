@@ -43,7 +43,7 @@ const footerSchema = z.object({
   warranty_text: z.string().max(500).optional(),
   notice_text: z.string().max(500).optional(),
   show_qr: z.boolean().default(true),
-  show_cartrust_badge: z.literal(true).default(true),   // 必須固定
+  show_ledra_badge: z.literal(true).default(true),   // 必須固定
   maintenance_url: z.string().url().max(500).optional().or(z.literal("")),
   maintenance_label: z.string().max(50).default("メンテナンス情報"),
   show_maintenance_qr: z.boolean().default(false),
@@ -114,7 +114,7 @@ export function validateCustomConfig(config: TemplateConfigInput): TemplateConfi
     },
     footer: {
       ...config.footer,
-      show_cartrust_badge: true, // 必須固定
+      show_ledra_badge: true, // 必須固定
     },
   } as TemplateConfigInput;
 }

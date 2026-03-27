@@ -454,9 +454,9 @@ export async function renderBrandedCertificatePdf(
               {/* Public URL */}
               <Text style={s.footerText}>証明書URL: {publicUrl}</Text>
 
-              {/* CARTRUST badge */}
-              {config.footer?.show_cartrust_badge !== false && (
-                <Text style={s.badge}>Powered by CARTRUST</Text>
+              {/* Ledra badge */}
+              {config.footer?.show_ledra_badge !== false && (
+                <Text style={s.badge}>Powered by Ledra</Text>
               )}
             </View>
 
@@ -532,13 +532,13 @@ export async function renderBrandedCertificatePdf(
           <View style={s.box}>
             <Text style={s.boxTitle}>オンライン照会について</Text>
             <Text style={s.warrantyText}>
-              本証明書に記載のQRコードをスマートフォンで読み取ると、CARTRUST認証プラットフォーム上で本証明書の最新情報をリアルタイムに確認できます。
+              本証明書に記載のQRコードをスマートフォンで読み取ると、Ledra認証プラットフォーム上で本証明書の最新情報をリアルタイムに確認できます。
             </Text>
           </View>
 
           <View style={s.footer}>
-            {config.footer?.show_cartrust_badge !== false && (
-              <Text style={s.badge}>Powered by CARTRUST</Text>
+            {config.footer?.show_ledra_badge !== false && (
+              <Text style={s.badge}>Powered by Ledra</Text>
             )}
           </View>
         </Page>

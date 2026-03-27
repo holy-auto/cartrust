@@ -41,7 +41,7 @@ function wrap(title: string, body: string) {
       </div>
       ${body}
       <div style="border-top: 1px solid #e5e5e5; margin-top: 24px; padding-top: 12px; font-size: 12px; color: #86868b;">
-        CARTRUST
+        Ledra
       </div>
     </div>
   `;
@@ -74,7 +74,7 @@ export async function notifyApplicationReceived(
       </p>
     `,
   );
-  await sendEmail(email, `[CARTRUST] 代理店申請受付: ${appNum}`, html);
+  await sendEmail(email, `[Ledra] 代理店申請受付: ${appNum}`, html);
 }
 
 /** Notify applicant that application was approved */
@@ -114,7 +114,7 @@ export async function notifyApplicationApproved(
       </p>
     `,
   );
-  await sendEmail(email, "[CARTRUST] 代理店申請承認 - ログイン情報のご案内", html);
+  await sendEmail(email, "[Ledra] 代理店申請承認 - ログイン情報のご案内", html);
 }
 
 /** Notify applicant that application was rejected */
@@ -150,5 +150,5 @@ export async function notifyApplicationRejected(
       </p>
     `,
   );
-  await sendEmail(email, `[CARTRUST] 代理店申請の審査結果: ${appNum}`, html);
+  await sendEmail(email, `[Ledra] 代理店申請の審査結果: ${appNum}`, html);
 }

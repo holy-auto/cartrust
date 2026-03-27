@@ -199,7 +199,7 @@ export default async function Page({
             </div>
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
-                保険会社検索
+                証明書検索
               </h1>
               <p className="mt-2 text-sm text-neutral-600">
                 必ず <span className="font-mono">/api/insurer/search</span> を経由して検索結果を表示します。

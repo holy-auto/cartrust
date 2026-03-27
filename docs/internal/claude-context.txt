@@ -3368,7 +3368,7 @@ export async function renderCertificatePdf(row: CertRow, publicUrl: string) {
           <View>
             <View style={styles.titleRow}>
               {logoUrl ? <Image src={logoUrl} style={{ height: 26, width: 120 }} /> : null}
-              <Text style={styles.title}>CARTRUST CERT</Text>
+              <Text style={styles.title}>Ledra</Text>
             </View>
             <Text style={styles.meta}>公開ID: {row.public_id}</Text>
             <Text style={styles.meta}>発行日: {new Date(row.created_at).toLocaleString("ja-JP")}</Text>
@@ -3683,7 +3683,7 @@ export async function renderCertificatePdf(row: CertRow, publicUrl: string) {
             <View style={styles.titleRow}>
               {logoUrl ? <Image src={logoUrl} style={styles.logo} /> : null}
               <View style={styles.titleBlock}>
-                <Text style={styles.title}>CARTRUST CERT</Text>
+                <Text style={styles.title}>Ledra</Text>
                 <Text style={styles.subtitle}>車両履歴証明書</Text>
                 <Text style={styles.poweredByHead}>powered by certificate.info</Text>
               </View>
@@ -3711,7 +3711,7 @@ export async function renderCertificatePdf(row: CertRow, publicUrl: string) {
           <Text style={styles.cardTitle}>証明書情報</Text>
           <View style={styles.itemRow}>
             <Text style={styles.itemLabel}>証明書名</Text>
-            <Text style={styles.itemValue}>CARTRUST CERT</Text>
+            <Text style={styles.itemValue}>Ledra</Text>
           </View>
           <View style={styles.itemRow}>
             <Text style={styles.itemLabel}>公開ID</Text>
@@ -3756,7 +3756,7 @@ export async function renderCertificatePdf(row: CertRow, publicUrl: string) {
 
         <View style={styles.footer}>
           <Text style={styles.footerLine}>公開URL: {publicUrl}</Text>
-          <Text style={styles.footerLine}>このPDFは CARTRUST の記録出力です。</Text>
+          <Text style={styles.footerLine}>このPDFは Ledra の記録出力です。</Text>
           <Text style={styles.poweredByFoot}>powered by certificate.info</Text>
         </View>
       </Page>
@@ -3990,7 +3990,7 @@ const FONT_REGULAR = path.join(FONT_DIR, "NotoSansJP-Regular.woff");
 const FONT_BOLD = path.join(FONT_DIR, "NotoSansJP-Bold.woff");
 
 const g = globalThis as any;
-if (!g.__cartrust_pdf_font_registered__) {
+if (!g.__ledra_pdf_font_registered__) {
   Font.register({
     family: PDF_FONT_FAMILY,
     fonts: [
@@ -3998,7 +3998,7 @@ if (!g.__cartrust_pdf_font_registered__) {
       { src: FONT_BOLD, fontWeight: 700 },
     ],
   });
-  g.__cartrust_pdf_font_registered__ = true;
+  g.__ledra_pdf_font_registered__ = true;
 }
 
 const styles = StyleSheet.create({
@@ -4215,7 +4215,7 @@ export async function renderCertificatePdf(row: CertRow, publicUrl: string) {
             <View style={styles.titleRow}>
               {logoUrl ? <Image src={logoUrl} style={styles.logo} /> : null}
               <View style={styles.titleBlock}>
-                <Text style={styles.title}>CARTRUST CERT</Text>
+                <Text style={styles.title}>Ledra</Text>
                 <Text style={styles.subtitle}>車両履歴証明書</Text>
                 <Text style={styles.poweredByHead}>powered by certificate.info</Text>
               </View>
@@ -4243,7 +4243,7 @@ export async function renderCertificatePdf(row: CertRow, publicUrl: string) {
           <Text style={styles.cardTitle}>証明書情報</Text>
           <View style={styles.itemRow}>
             <Text style={styles.itemLabel}>証明書名</Text>
-            <Text style={styles.itemValue}>CARTRUST CERT</Text>
+            <Text style={styles.itemValue}>Ledra</Text>
           </View>
           <View style={styles.itemRow}>
             <Text style={styles.itemLabel}>公開ID</Text>
@@ -4288,7 +4288,7 @@ export async function renderCertificatePdf(row: CertRow, publicUrl: string) {
 
         <View style={styles.footer}>
           <Text style={styles.footerLine}>公開URL: {publicUrl}</Text>
-          <Text style={styles.footerLine}>このPDFは CARTRUST の記録出力です。</Text>
+          <Text style={styles.footerLine}>このPDFは Ledra の記録出力です。</Text>
           <Text style={styles.poweredByFoot}>powered by certificate.info</Text>
         </View>
       </Page>

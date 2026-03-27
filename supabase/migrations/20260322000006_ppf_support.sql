@@ -52,7 +52,7 @@ VALUES (
     },
     "footer": {
       "show_qr": true,
-      "show_cartrust_badge": true,
+      "show_ledra_badge": true,
       "warranty_text": "",
       "notice_text": ""
     },

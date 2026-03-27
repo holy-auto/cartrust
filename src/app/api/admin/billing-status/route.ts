@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         tenant_id: caller.tenantId,
-        tenant_name: "CARTRUST Platform",
+        tenant_name: "Ledra Platform",
         plan_tier: "pro",
         is_active: true,
       },

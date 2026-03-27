@@ -1,0 +1,49 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { getAdminClient } from "@/lib/api/auth";
+import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { apiUnauthorized, apiForbidden, apiInternalError, apiNotFound } from "@/lib/api/response";
+
+type RouteContext = { params: Promise<{ id: string }> };
+
+/**
+ * DELETE /api/admin/agent-shared-files/[id]
+ * Admin deletes a shared file.
+ */
+export async function DELETE(_request: NextRequest, ctx: RouteContext) {
+  try {
+    const { id } = await ctx.params;
+    const supabase = await createClient();
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller) return apiUnauthorized();
+    if (!requireMinRole(caller, "admin")) return apiForbidden();
+
+    const admin = getAdminClient();
+
+    // Fetch file record
+    const { data: file, error: fetchErr } = await admin
+      .from("agent_shared_files")
+      .select("id, storage_path")
+      .eq("id", id)
+      .single();
+
+    if (fetchErr || !file) return apiNotFound("file not found");
+
+    // Delete from storage
+    await admin.storage
+      .from("agent-shared-files")
+      .remove([file.storage_path]);
+
+    // Delete DB record
+    const { error: deleteErr } = await admin
+      .from("agent_shared_files")
+      .delete()
+      .eq("id", id);
+
+    if (deleteErr) throw deleteErr;
+
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    return apiInternalError(e, "admin/agent-shared-files DELETE");
+  }
+}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Badge from "@/components/ui/Badge";
-import { AGENT_STATUS_MAP, AGENT_APPLICATION_STATUS_MAP, getStatusEntry } from "@/lib/statusMaps";
+import { AGENT_STATUS_MAP, AGENT_APPLICATION_STATUS_MAP, SHARED_FILE_DIRECTION_MAP, SIGNING_STATUS_MAP, getStatusEntry } from "@/lib/statusMaps";
 import { formatDateTime, formatJpy } from "@/lib/format";
 
 type Agent = {
@@ -42,7 +42,14 @@ type Application = {
   updated_at: string;
 };
 
-type Tab = "agents" | "applications";
+type Tab = "agents" | "applications" | "shared_files" | "contracts";
+
+const TABS: { key: Tab; label: string }[] = [
+  { key: "agents", label: "代理店一覧" },
+  { key: "applications", label: "申請一覧" },
+  { key: "shared_files", label: "共有ファイル" },
+  { key: "contracts", label: "契約書" },
+];
 
 export default function AgentReviewClient() {
   const [tab, setTab] = useState<Tab>("agents");
@@ -51,29 +58,25 @@ export default function AgentReviewClient() {
     <div className="space-y-4">
       {/* Tab Bar */}
       <div className="flex gap-1 rounded-xl bg-inset p-1 w-fit">
-        <button
-          onClick={() => setTab("agents")}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            tab === "agents"
-              ? "bg-surface-solid text-primary shadow-sm"
-              : "text-secondary hover:text-primary"
-          }`}
-        >
-          代理店一覧
-        </button>
-        <button
-          onClick={() => setTab("applications")}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            tab === "applications"
-              ? "bg-surface-solid text-primary shadow-sm"
-              : "text-secondary hover:text-primary"
-          }`}
-        >
-          申請一覧
-        </button>
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              tab === t.key
+                ? "bg-surface-solid text-primary shadow-sm"
+                : "text-secondary hover:text-primary"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
-      {tab === "agents" ? <AgentsTab /> : <ApplicationsTab />}
+      {tab === "agents" && <AgentsTab />}
+      {tab === "applications" && <ApplicationsTab />}
+      {tab === "shared_files" && <SharedFilesTab />}
+      {tab === "contracts" && <ContractsTab />}
     </div>
   );
 }

@@ -106,7 +106,7 @@ export default function HomePage() {
           </h1>
 
           <p className="mt-8 text-lg md:text-xl leading-relaxed text-white/50 max-w-2xl mx-auto animate-[hero-fade-up_0.8s_ease-out_0.7s_both]">
-            CARTRUSTは、自動車の施工記録をデジタル証明書として発行・管理できるプラットフォームです。
+            Ledraは、自動車の施工記録をデジタル証明書として発行・管理できるプラットフォームです。
             <br className="hidden md:block" />
             サービス公開までもう少しお待ちください。
           </p>

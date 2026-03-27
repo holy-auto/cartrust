@@ -20,7 +20,7 @@ export function useTheme() {
   return useContext(ThemeContext);
 }
 
-const STORAGE_KEY = "cartrust_theme";
+const STORAGE_KEY = "ledra_theme";
 const COOKIE_KEY = "__theme";
 
 function getSystemTheme(): "light" | "dark" {

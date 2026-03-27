@@ -65,10 +65,10 @@ export default async function HomePage() {
         </FeatureGrid>
       </Section>
 
-      {/* CARTRUSTの解決方法 */}
+      {/* Ledraの解決方法 */}
       <Section>
         <SectionHeading
-          title="CARTRUSTが解決します"
+          title="Ledraが解決します"
           subtitle="デジタル施工証明書で、施工店と保険会社の業務を変えます"
         />
         <FeatureGrid>
@@ -162,7 +162,7 @@ export default async function HomePage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-xs text-white/30 uppercase tracking-widest">施工証明書</div>
-                    <div className="mt-1 text-lg font-bold text-white">CARTRUST Certificate</div>
+                    <div className="mt-1 text-lg font-bold text-white">Ledra</div>
                   </div>
                   <div className="w-10 h-10 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-blue-400">
@@ -279,7 +279,7 @@ export default async function HomePage() {
       <Section bg="alt">
         <SectionHeading
           title="ご利用シーン"
-          subtitle="さまざまな場面でCARTRUSTをご活用いただけます"
+          subtitle="さまざまな場面でLedraをご活用いただけます"
         />
         <FeatureGrid>
           <FeatureCard
@@ -399,7 +399,7 @@ export default async function HomePage() {
           />
           <FAQItem
             question="導入にあたって特別な設備やソフトウェアは必要ですか？"
-            answer="いいえ、CARTRUSTはWebブラウザのみで利用できます。特別なソフトウェアのインストールは不要で、インターネット環境があればすぐにご利用開始いただけます。"
+            answer="いいえ、LedraはWebブラウザのみで利用できます。特別なソフトウェアのインストールは不要で、インターネット環境があればすぐにご利用開始いただけます。"
           />
           <FAQItem
             question="保険会社側でアカウント登録は必要ですか？"

@@ -1,6 +1,6 @@
 -- ============================================================
 -- Square POS Integration Tables
--- READ-ONLY import of Square orders/sales into CARTRUST
+-- READ-ONLY import of Square orders/sales into Ledra
 -- ============================================================
 
 -- -----------------------------------------------------------

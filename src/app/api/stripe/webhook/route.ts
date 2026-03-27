@@ -71,7 +71,7 @@ async function sendPaymentFailureEmail(
         <h2 style="margin: 0; color: #1d1d1f; font-size: 18px;">お支払いに失敗しました</h2>
       </div>
       <p style="color: #1d1d1f; line-height: 1.6;">
-        ご利用中のCARTRUSTプランのお支払いを処理できませんでした。<br>
+        ご利用中のLedraプランのお支払いを処理できませんでした。<br>
         カード情報をご確認のうえ、更新をお願いいたします。
       </p>
       <p style="margin: 24px 0;">
@@ -83,14 +83,14 @@ async function sendPaymentFailureEmail(
         お支払いが確認できない場合、一部機能がご利用いただけなくなる場合がございます。
       </p>
       <div style="border-top: 1px solid #e5e5e5; margin-top: 24px; padding-top: 12px; font-size: 12px; color: #86868b;">
-        CARTRUST — 株式会社HOLY AUTO
+        Ledra — 株式会社HOLY AUTO
       </div>
     </div>
   `;
 
   const text = `お支払いに失敗しました
 
-ご利用中のCARTRUSTプランのお支払いを処理できませんでした。
+ご利用中のLedraプランのお支払いを処理できませんでした。
 カード情報をご確認のうえ、更新をお願いいたします。
 
 カード情報の更新はこちら: ${billingPortalUrl}
@@ -98,7 +98,7 @@ async function sendPaymentFailureEmail(
 お支払いが確認できない場合、一部機能がご利用いただけなくなる場合がございます。
 
 ---
-CARTRUST — 株式会社HOLY AUTO
+Ledra — 株式会社HOLY AUTO
 `;
 
   try {
@@ -108,8 +108,8 @@ CARTRUST — 株式会社HOLY AUTO
       body: JSON.stringify({
         from,
         to: email,
-        reply_to: "support@cartrust.co.jp",
-        subject: "【CARTRUST】お支払いについてのご連絡",
+        reply_to: "support@ledra.co.jp",
+        subject: "【Ledra】お支払いについてのご連絡",
         html,
         text,
       }),
@@ -474,7 +474,7 @@ export async function POST(req: NextRequest) {
             ).data?.id : null);
 
             if (resolvedTenantId) {
-              const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.cartrust.co.jp";
+              const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.ledra.co.jp";
               await sendPaymentFailureEmail(supabase, resolvedTenantId, `${appUrl}/admin/billing`);
             }
           }

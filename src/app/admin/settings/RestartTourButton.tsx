@@ -6,7 +6,7 @@ export default function RestartTourButton() {
   const router = useRouter();
 
   function handleClick() {
-    localStorage.removeItem("cartrust_tour_done");
+    localStorage.removeItem("ledra_tour_done");
     router.push("/admin");
   }
 

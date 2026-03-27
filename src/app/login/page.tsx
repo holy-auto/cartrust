@@ -36,7 +36,7 @@ export default async function Page({
           <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg" style={{ background: "linear-gradient(135deg, var(--accent-blue), #5856d6)" }}>
             C
           </div>
-          <span className="text-xl font-bold text-primary tracking-wide">CARTRUST</span>
+          <span className="text-xl font-bold text-primary tracking-wide">Ledra</span>
         </div>
 
         <h1 className="text-xl font-bold text-primary text-center">ログイン</h1>

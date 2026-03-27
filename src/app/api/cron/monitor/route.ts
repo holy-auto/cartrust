@@ -123,9 +123,9 @@ export async function GET(req: NextRequest) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: process.env.RESEND_FROM ?? "noreply@cartrust.co.jp",
+            from: process.env.RESEND_FROM ?? "noreply@ledra.co.jp",
             to: alertEmail,
-            subject: `[CARTRUST Monitor] ${alerts.length} alert(s) detected`,
+            subject: `[Ledra Monitor] ${alerts.length} alert(s) detected`,
             text: [
               "Monitoring Report",
               "",

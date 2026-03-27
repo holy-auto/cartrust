@@ -1,4 +1,4 @@
-# CARTRUST 運用ランブック
+# Ledra 運用ランブック
 
 ## 1. 障害対応フロー
 
@@ -56,7 +56,7 @@
 - Vercel ログで "stripe webhook handler failed" を検索
 - `/api/health` の stripe チェック
 **対応**:
-- Webhook URL が正しいか確認 (本番: https://app.cartrust.co.jp/api/stripe/webhook)
+- Webhook URL が正しいか確認 (本番: https://app.ledra.co.jp/api/stripe/webhook)
 - STRIPE_WEBHOOK_SECRET が正しいか確認
 - Stripe Dashboard から失敗イベントを手動再送信
 

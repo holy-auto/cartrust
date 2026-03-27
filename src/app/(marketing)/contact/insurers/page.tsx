@@ -5,7 +5,7 @@ import { DocumentRequestForm } from "@/components/marketing/DocumentRequestForm"
 
 export const metadata = {
   title: "保険会社向け資料請求",
-  description: "CARTRUSTの保険会社向け機能・導入メリット・連携方法をまとめた資料を無料でお届けします。",
+  description: "Ledraの保険会社向け機能・導入メリット・連携方法をまとめた資料を無料でお届けします。",
 };
 
 const documentContents = [
@@ -27,7 +27,7 @@ export default function InsurerDocumentPage() {
       <PageHero
         badge="FOR INSURERS"
         title="保険会社向け資料請求"
-        subtitle="CARTRUSTの保険会社向けポータル機能と導入メリットをまとめた資料を無料でお届けします。"
+        subtitle="Ledraの保険会社向けポータル機能と導入メリットをまとめた資料を無料でお届けします。"
       />
 
       <Section>

@@ -13,7 +13,7 @@ export default function BillingGate() {
         if (window.location.pathname.startsWith("/admin/billing")) return;
 
         // stale-while-revalidate: use cached state for instant check
-        const CACHE_KEY = "cartrust_billing_state";
+        const CACHE_KEY = "ledra_billing_state";
         const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
         const cached = sessionStorage.getItem(CACHE_KEY);
         if (cached) {
@@ -51,7 +51,7 @@ export default function BillingGate() {
         if (!res.ok) return;
         const j = await res.json().catch(() => null);
 
-        sessionStorage.setItem("cartrust_billing_state", JSON.stringify({ data: j, ts: Date.now() }));
+        sessionStorage.setItem("ledra_billing_state", JSON.stringify({ data: j, ts: Date.now() }));
 
         if (j?.tenant?.is_active === false) {
           redirectToBilling();

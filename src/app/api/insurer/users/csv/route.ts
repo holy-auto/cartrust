@@ -60,15 +60,15 @@ async function sendInviteEmail(to: string, companyName: string) {
   const from = (process.env.RESEND_FROM ?? "").trim();
   if (!apiKey || !from) return;
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.cartrust.co.jp";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.ledra.co.jp";
 
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
       <div style="border-bottom: 2px solid #0071e3; padding-bottom: 12px; margin-bottom: 20px;">
-        <h2 style="margin: 0; color: #1d1d1f; font-size: 18px;">CARTRUSTへの招待</h2>
+        <h2 style="margin: 0; color: #1d1d1f; font-size: 18px;">Ledraへの招待</h2>
       </div>
       <p style="color: #1d1d1f; line-height: 1.6;">
-        ${companyName} より、CARTRUST加盟店ポータルへ招待されました。<br>
+        ${companyName} より、Ledra加盟店ポータルへ招待されました。<br>
         以下のリンクからパスワードを設定し、ご利用を開始してください。
       </p>
       <p style="margin: 24px 0;">
@@ -80,7 +80,7 @@ async function sendInviteEmail(to: string, companyName: string) {
         心当たりのない場合は、このメールを無視してください。
       </p>
       <div style="border-top: 1px solid #e5e5e5; margin-top: 24px; padding-top: 12px; font-size: 12px; color: #86868b;">
-        CARTRUST — 株式会社HOLY AUTO
+        Ledra — 株式会社HOLY AUTO
       </div>
     </div>
   `;
@@ -95,7 +95,7 @@ async function sendInviteEmail(to: string, companyName: string) {
       body: JSON.stringify({
         from,
         to,
-        subject: `【CARTRUST】${companyName} から招待されました`,
+        subject: `【Ledra】${companyName} から招待されました`,
         html,
       }),
     });
@@ -132,7 +132,7 @@ export async function POST(req: Request) {
       .select("name")
       .eq("id", caller.insurerId)
       .single();
-    const companyName = insurerData?.name ?? "CARTRUST加盟店";
+    const companyName = insurerData?.name ?? "Ledra加盟店";
 
     // CSV読み込み
     const body = await req.text();
@@ -172,7 +172,7 @@ export async function POST(req: Request) {
         // Try to invite user (creates auth user + sends Supabase invite email)
         const inviteResult = await adminSb.auth.admin.inviteUserByEmail(email, {
           data: { display_name: r.display_name ?? undefined },
-          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://app.cartrust.co.jp"}/insurer/reset-password`,
+          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://app.ledra.co.jp"}/insurer/reset-password`,
         });
 
         if (inviteResult.error) {

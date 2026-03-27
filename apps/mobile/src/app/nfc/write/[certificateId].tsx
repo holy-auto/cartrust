@@ -17,7 +17,7 @@ import { mobileApi } from "@/lib/api";
 
 type WriteState = "idle" | "writing" | "verifying" | "success" | "error";
 
-const CERT_PUBLIC_BASE_URL = process.env.EXPO_PUBLIC_CERT_URL ?? "https://cert.cartrust.jp";
+const CERT_PUBLIC_BASE_URL = process.env.EXPO_PUBLIC_CERT_URL ?? "https://cert.ledra.co.jp";
 
 interface CertificateInfo {
   id: string;

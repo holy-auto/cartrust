@@ -175,7 +175,7 @@ export default async function AdminSettingsPage() {
           <div className="mb-5">
             <div className="text-xs font-semibold tracking-[0.18em] text-muted">外部連携</div>
             <div className="mt-1 text-base font-semibold text-primary">Square連携</div>
-            <p className="mt-1 text-xs text-muted">SquareのPOS売上データをCARTRUSTに取り込みます。</p>
+            <p className="mt-1 text-xs text-muted">SquareのPOS売上データをLedraに取り込みます。</p>
           </div>
           <SquareConnectSection />
         </section>

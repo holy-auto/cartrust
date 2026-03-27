@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
       // Return generic metadata for unknown IDs
       return NextResponse.json(
         {
-          title: "CARTRUST 証明書",
+          title: "Ledra 証明書",
           description: "証明書が見つかりませんでした。",
           og_image_url: null,
         },
@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
       cert.status === "expired" ? "期限切れ" :
       String(cert.status ?? "不明");
 
-    const title = `CARTRUST 証明書 - ${serviceLabel}`;
+    const title = `Ledra 証明書 - ${serviceLabel}`;
 
     const descParts: string[] = [];
     if (vehicleLabel) descParts.push(`車両: ${vehicleLabel}`);

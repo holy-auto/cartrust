@@ -68,7 +68,7 @@ export default function OnboardingWizard() {
         <div>
           <h2 className="text-lg font-bold text-blue-900">ようこそ、{insurer.name} 様</h2>
           <p className="text-sm text-blue-700 mt-1">
-            初期設定を完了して、CARTRUSTのご利用を開始しましょう。
+            初期設定を完了して、Ledraのご利用を開始しましょう。
           </p>
         </div>
         <button

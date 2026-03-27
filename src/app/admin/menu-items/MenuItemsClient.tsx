@@ -262,7 +262,7 @@ export default function MenuItemsClient() {
                     const blob = new Blob(["\uFEFF" + sample], { type: "text/csv;charset=utf-8" });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement("a");
-                    a.href = url; a.download = "cartrust_品目マスタ_見本.csv"; a.click();
+                    a.href = url; a.download = "ledra_品目マスタ_見本.csv"; a.click();
                     URL.revokeObjectURL(url);
                   }}
                 >

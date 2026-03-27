@@ -96,7 +96,7 @@ export default function AdminSupportPage() {
           <h2 className="text-lg font-semibold text-primary">お問い合わせを受け付けました</h2>
           <p className="text-sm text-secondary">
             通常1〜2営業日以内にご返信いたします。<br />
-            お急ぎの場合は <a href="mailto:info@cartrust.co.jp" className="text-accent hover:underline">info@cartrust.co.jp</a> までご連絡ください。
+            お急ぎの場合は <a href="mailto:info@ledra.co.jp" className="text-accent hover:underline">info@ledra.co.jp</a> までご連絡ください。
           </p>
           <button onClick={() => setSent(false)} className="btn-secondary mt-4">
             新しいお問い合わせ

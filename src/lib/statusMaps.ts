@@ -96,6 +96,22 @@ export const AGENT_APPLICATION_STATUS_MAP: Record<string, StatusEntry> = {
   rejected:     { variant: "danger",  label: "却下" },
 };
 
+/* ── Shared File Direction ── */
+export const SHARED_FILE_DIRECTION_MAP: Record<string, StatusEntry> = {
+  to_agent: { variant: "info",   label: "本部→代理店" },
+  to_hq:    { variant: "violet", label: "代理店→本部" },
+};
+
+/* ── Signing Request ── */
+export const SIGNING_STATUS_MAP: Record<string, StatusEntry> = {
+  draft:    { variant: "default", label: "下書き" },
+  sent:     { variant: "info",    label: "送信済み" },
+  viewed:   { variant: "warning", label: "閲覧済み" },
+  signed:   { variant: "success", label: "署名完了" },
+  rejected: { variant: "danger",  label: "拒否" },
+  expired:  { variant: "default", label: "期限切れ" },
+};
+
 /* ── Utility: get status entry safely ── */
 export function getStatusEntry(
   map: Record<string, StatusEntry>,

@@ -9,10 +9,10 @@ function getResend() {
 }
 
 /** 送信先（問い合わせ受信用アドレス） */
-const TO = process.env.CONTACT_TO_EMAIL ?? "info@cartrust.co.jp";
+const TO = process.env.CONTACT_TO_EMAIL ?? "info@ledra.co.jp";
 
 /** 送信元: RESEND_FROM（検証済みドメイン）を使用 */
-const FROM = process.env.RESEND_FROM ?? "CAR TRUST <support@cartrust.co.jp>";
+const FROM = process.env.RESEND_FROM ?? "Ledra <support@ledra.co.jp>";
 
 export async function POST(request: Request) {
   // Rate limit: 5 contact form submissions per IP per 15 minutes
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       from: FROM,
       to: TO,
       replyTo: email,
-      subject: `[CARTRUST] お問い合わせ: ${category}（${name}）`,
+      subject: `[Ledra] お問い合わせ: ${category}（${name}）`,
       text: [
         `お名前: ${name}`,
         `メール: ${email}`,

@@ -24,7 +24,7 @@ const RSS_FEEDS = [
 
 const parser = new Parser({
   timeout: 8000,
-  headers: { "User-Agent": "CARTRUST/1.0 NewsAggregator" },
+  headers: { "User-Agent": "Ledra/1.0 NewsAggregator" },
 });
 
 // In-memory cache for live RSS (5 min TTL)

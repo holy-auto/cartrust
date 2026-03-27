@@ -1,5 +1,5 @@
 -- ============================================================
--- CARTRUST テンプレートオプション DBテーブル定義
+-- Ledra テンプレートオプション DBテーブル定義
 -- ============================================================
 -- 前提: Supabase (PostgreSQL) + RLS
 -- 既存テーブル: tenants, tenant_memberships, certificates, templates
@@ -9,7 +9,7 @@
 -- ------------------------------------------------------------
 -- 1. platform_templates — 既製テンプレート（プラットフォーム提供）
 -- ------------------------------------------------------------
--- CARTRUST運営が登録・管理する既製テンプレートのマスタ。
+-- Ledra運営が登録・管理する既製テンプレートのマスタ。
 -- 加盟店はこのテーブルから選択し、自テナント用にカスタムする。
 -- 将来テンプレートが追加されても、このテーブルにINSERTするだけで済む。
 
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS platform_templates (
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-COMMENT ON TABLE platform_templates IS '既製テンプレートマスタ。CARTRUST運営が登録・管理。加盟店はここから選択してカスタムする。';
+COMMENT ON TABLE platform_templates IS '既製テンプレートマスタ。Ledra運営が登録・管理。加盟店はここから選択してカスタムする。';
 COMMENT ON COLUMN platform_templates.base_config IS 'デフォルトのconfig_json。テナントが設定を上書きする際のベースになる。';
 COMMENT ON COLUMN platform_templates.layout_key IS 'PDFレイアウトの識別子。renderBrandedCertificate で分岐に使う。';
 
@@ -406,7 +406,7 @@ ALTER TABLE certificates
 
 CREATE INDEX IF NOT EXISTS idx_cert_template_config ON certificates(template_config_id);
 
-COMMENT ON COLUMN certificates.template_config_id IS '発行時に使用したテンプレート設定。NULLの場合はCARTRUST標準テンプレート。';
+COMMENT ON COLUMN certificates.template_config_id IS '発行時に使用したテンプレート設定。NULLの場合はLedra標準テンプレート。';
 
 
 -- ============================================================

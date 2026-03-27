@@ -1,6 +1,6 @@
 -- =============================================================
 -- Core Tables Migration
--- Creates the foundational tables for the CARTRUST/holy-cert SaaS.
+-- Creates the foundational tables for the Ledra/holy-cert SaaS.
 -- Assumes Supabase (auth.users exists), pgcrypto extension enabled.
 -- =============================================================
 

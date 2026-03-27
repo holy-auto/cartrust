@@ -343,7 +343,7 @@ export default function AgentDashboardPage() {
                 </div>
                 <div className="mt-2 text-base font-semibold text-neutral-900">新規紹介を作成</div>
                 <p className="mt-1 text-sm text-neutral-500">
-                  新しい施工店をCARTRUSTに紹介します。
+                  新しい施工店をLedraに紹介します。
                 </p>
               </a>
               <a

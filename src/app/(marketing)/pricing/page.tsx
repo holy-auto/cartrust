@@ -23,7 +23,7 @@ import {
 
 export const metadata = {
   title: "料金プラン",
-  description: "CARTRUSTの料金プラン。無料プランから始められ、規模に合わせてスケールできます。",
+  description: "Ledraの料金プラン。無料プランから始められ、規模に合わせてスケールできます。",
 };
 
 export default function PricingPage() {
@@ -204,7 +204,7 @@ export default function PricingPage() {
           />
           <FAQItem
             question="保険会社のポータル利用は有料ですか？"
-            answer="いいえ、保険会社のポータル利用は無料です。施工店がCARTRUSTを利用して発行した証明書の確認・検索・エクスポートを無料でご利用いただけます。"
+            answer="いいえ、保険会社のポータル利用は無料です。施工店がLedraを利用して発行した証明書の確認・検索・エクスポートを無料でご利用いただけます。"
           />
         </FAQList>
       </Section>

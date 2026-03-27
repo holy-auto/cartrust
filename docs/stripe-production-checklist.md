@@ -29,7 +29,7 @@ Vercel の本番環境 (Production) に以下を設定すること。
 ## 2. Stripe ダッシュボード設定
 
 ### Webhook エンドポイント登録
-- [ ] 本番ドメインの Webhook URL を登録: `https://app.cartrust.co.jp/api/stripe/webhook`
+- [ ] 本番ドメインの Webhook URL を登録: `https://app.ledra.co.jp/api/stripe/webhook`
 - [ ] 以下のイベントを有効化:
   - `checkout.session.completed`
   - `customer.subscription.created`

@@ -49,7 +49,7 @@ export function Footer() {
           {/* Brand column */}
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="text-lg font-bold tracking-tight">
-              CARTRUST
+              Ledra
             </Link>
             <p className="mt-4 text-sm text-white/40 leading-relaxed max-w-[200px]">
               施工証明をデジタルで。
@@ -82,7 +82,7 @@ export function Footer() {
 
         <div className="py-6 border-t border-white/[0.06]">
           <p className="text-xs text-white/30">
-            &copy; {new Date().getFullYear()} CARTRUST. All rights reserved.
+            &copy; {new Date().getFullYear()} Ledra. All rights reserved.
           </p>
         </div>
       </Container>

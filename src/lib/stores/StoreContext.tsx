@@ -31,14 +31,14 @@ export function useStoreContext() {
   return useContext(StoreContext);
 }
 
-const STORAGE_KEY = "cartrust_active_store";
+const STORAGE_KEY = "ledra_active_store";
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [stores, setStores] = useState<Store[]>([]);
   const [activeStoreId, setActiveStoreIdState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const CACHE_KEY = "cartrust_stores_cache";
+  const CACHE_KEY = "ledra_stores_cache";
   const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   const fetchStores = useCallback(async () => {
