@@ -89,8 +89,38 @@ export async function POST(
     const baseUrl = resolveBaseUrl({ req });
     const applicationFee = Math.round(amount * PLATFORM_FEE_RATE);
 
+    // customer_balance (銀行振込) には Stripe Customer が必須
+    const { data: payerTenant } = await admin
+      .from("tenants")
+      .select("id, name, stripe_customer_id")
+      .eq("id", tenantId)
+      .single();
+
+    let stripeCustomerId = payerTenant?.stripe_customer_id as string | null;
+    if (!stripeCustomerId) {
+      const customer = await stripe.customers.create({
+        name: payerTenant?.name ?? undefined,
+        metadata: { tenant_id: tenantId },
+      });
+      stripeCustomerId = customer.id;
+      await admin
+        .from("tenants")
+        .update({ stripe_customer_id: stripeCustomerId })
+        .eq("id", tenantId);
+    }
+
     const session = await stripe.checkout.sessions.create({
+      customer: stripeCustomerId,
       mode: "payment",
+      payment_method_types: ["card", "customer_balance"],
+      payment_method_options: {
+        customer_balance: {
+          funding_type: "bank_transfer",
+          bank_transfer: {
+            type: "jp_bank_transfer",
+          },
+        },
+      },
       line_items: [
         {
           price_data: {

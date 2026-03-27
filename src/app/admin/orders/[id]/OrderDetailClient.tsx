@@ -536,87 +536,50 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
             受注者: {order.payment_confirmed_by_vendor ? "確認済" : "未確認"}
           </div>
 
-          {/* 発注者: 支払方法を選んで支払う */}
-          {isFrom && !order.payment_confirmed_by_client && (
+          {/* 発注者: Stripe決済（カード or 銀行振込を Checkout で選択） */}
+          {isFrom && !order.payment_confirmed_by_client && vendorStripeReady && (
             <div className="space-y-3">
-              <div className="text-sm text-primary">
-                支払金額: <span className="font-bold">{formatJpy(Number(order.accepted_amount ?? order.budget ?? 0))}</span>
-                {paymentMethod === "card" && vendorStripeReady && (
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-primary">
+                  支払金額: <span className="font-bold">{formatJpy(Number(order.accepted_amount ?? order.budget ?? 0))}</span>
                   <span className="text-xs text-muted ml-1">（手数料5%込）</span>
-                )}
+                </div>
+                <Button onClick={handleStripePay} loading={stripePayBusy} disabled={stripePayBusy}>
+                  {stripePayBusy ? "処理中…" : "支払う"}
+                </Button>
               </div>
-
-              {/* Payment method selector */}
-              <div className="grid gap-2 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("card")}
-                  className={`p-3 rounded-lg border text-left transition-colors ${
-                    paymentMethod === "card"
-                      ? "border-accent bg-accent/5"
-                      : "border-border bg-surface-hover hover:border-accent/40"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 text-accent">
-                      <path d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
-                    </svg>
-                    <span className="text-sm font-semibold text-primary">クレジットカード</span>
-                  </div>
-                  <div className="text-xs text-muted mt-1">即時決済・支払確認自動</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("bank_transfer")}
-                  className={`p-3 rounded-lg border text-left transition-colors ${
-                    paymentMethod === "bank_transfer"
-                      ? "border-accent bg-accent/5"
-                      : "border-border bg-surface-hover hover:border-accent/40"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 text-accent">
-                      <path d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" />
-                    </svg>
-                    <span className="text-sm font-semibold text-primary">銀行振込</span>
-                  </div>
-                  <div className="text-xs text-muted mt-1">振込後に手動で確認</div>
-                </button>
-              </div>
-
-              {/* Pay button */}
-              <div className="flex justify-end">
-                {paymentMethod === "card" && vendorStripeReady ? (
-                  <Button onClick={handleStripePay} loading={stripePayBusy} disabled={stripePayBusy}>
-                    {stripePayBusy ? "処理中…" : "支払う"}
-                  </Button>
-                ) : paymentMethod === "card" && !vendorStripeReady ? (
-                  <div className="text-xs text-muted">受注者がオンライン決済に未対応のため、銀行振込をご利用ください</div>
-                ) : (
-                  <Button onClick={handleConfirmPayment} loading={confirmingPayment} disabled={confirmingPayment}>
-                    {confirmingPayment ? "処理中…" : "支払を確認する"}
-                  </Button>
-                )}
+              <div className="text-xs text-muted">
+                クレジットカード・銀行振込に対応。決済画面で支払方法を選択できます。支払確認は自動で処理されます。
               </div>
               {stripePayError && <div className="text-xs text-red-500">{stripePayError}</div>}
             </div>
           )}
 
-          {/* 受注者: 支払確認 */}
-          {isTo && !order.payment_confirmed_by_vendor && (
-            <div className="flex items-end gap-3">
-              <div className="space-y-1">
-                <label className="text-xs text-muted">支払方法</label>
-                <select className="select-field" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
-                  <option value="bank_transfer">銀行振込</option>
-                  <option value="cash">現金</option>
-                  <option value="card">カード</option>
-                  <option value="other">その他</option>
-                </select>
+          {/* 発注者: 受注者がStripe未対応の場合のフォールバック */}
+          {isFrom && !order.payment_confirmed_by_client && !vendorStripeReady && (
+            <div className="space-y-3">
+              <div className="text-xs text-muted">受注者がオンライン決済に未対応のため、手動で支払確認を行ってください。</div>
+              <div className="flex items-end gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted">支払方法</label>
+                  <select className="select-field" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+                    <option value="bank_transfer">銀行振込</option>
+                    <option value="cash">現金</option>
+                    <option value="card">カード</option>
+                    <option value="other">その他</option>
+                  </select>
+                </div>
+                <Button onClick={handleConfirmPayment} loading={confirmingPayment} disabled={confirmingPayment}>
+                  支払を確認する
+                </Button>
               </div>
-              <Button onClick={handleConfirmPayment} loading={confirmingPayment} disabled={confirmingPayment}>
-                入金を確認する
-              </Button>
+            </div>
+          )}
+
+          {/* 受注者: Stripe決済なら自動、それ以外は手動確認 */}
+          {isTo && !order.payment_confirmed_by_vendor && (
+            <div className="text-xs text-muted">
+              発注者がオンライン決済で支払う場合、入金確認は自動で処理されます。
             </div>
           )}
         </section>

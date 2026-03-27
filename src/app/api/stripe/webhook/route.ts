@@ -23,6 +23,62 @@ function asStringId(v: any): string | null {
   return String(v);
 }
 
+// ─── Order payment completion helper ───
+async function completeOrderPayment(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  opts: {
+    jobOrderId: string;
+    fromTenantId: string | null;
+    toTenantId: string | null;
+    paymentIntentId: string | null;
+    amountTotal: number;
+    paymentMethod: "card" | "bank_transfer";
+  },
+) {
+  const now = new Date().toISOString();
+  const { jobOrderId, fromTenantId, toTenantId, paymentIntentId, amountTotal, paymentMethod } = opts;
+
+  await supabase
+    .from("job_orders")
+    .update({
+      payment_method: "stripe_connect",
+      payment_confirmed_by_client: true,
+      payment_confirmed_by_vendor: true,
+      payment_status: "both_confirmed",
+      status: "completed",
+      completed_at: now,
+      updated_at: now,
+    })
+    .eq("id", jobOrderId);
+
+  if (fromTenantId) {
+    await supabase.from("payments").insert({
+      tenant_id: fromTenantId,
+      job_order_id: jobOrderId,
+      payment_method: paymentMethod,
+      amount: amountTotal,
+      status: "completed",
+      paid_at: now,
+      stripe_payment_intent_id: paymentIntentId ?? null,
+    });
+  }
+
+  await supabase.from("order_audit_log").insert({
+    job_order_id: jobOrderId,
+    action: "payment_completed",
+    old_value: JSON.stringify({ status: "payment_pending" }),
+    new_value: JSON.stringify({
+      status: "completed",
+      payment_method: paymentMethod,
+      amount: amountTotal,
+      stripe_payment_intent_id: paymentIntentId,
+    }),
+    actor_tenant_id: fromTenantId ?? null,
+  });
+
+  console.log("webhook: order payment completed", { jobOrderId, fromTenantId, toTenantId, paymentMethod });
+}
+
 /** Stripe SDK v20+: current_period_end moved from Subscription to SubscriptionItem */
 function getCurrentPeriodEnd(sub: Stripe.Subscription): number | null {
   return (sub as any).current_period_end
@@ -324,50 +380,38 @@ export async function POST(req: NextRequest) {
           const paymentIntentId = asStringId(session.payment_intent);
 
           if (jobOrderId) {
-            const now = new Date().toISOString();
+            // Bank transfers: payment_status is "unpaid" at checkout completion.
+            // The actual payment arrives via checkout.session.async_payment_succeeded.
+            if (session.payment_status === "unpaid") {
+              // Mark that checkout was initiated (bank transfer pending)
+              await supabase
+                .from("job_orders")
+                .update({
+                  payment_method: "stripe_connect",
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", jobOrderId);
 
-            // Update order: mark payment confirmed by both parties and complete
-            await supabase
-              .from("job_orders")
-              .update({
-                payment_method: "stripe_connect",
-                payment_confirmed_by_client: true,
-                payment_confirmed_by_vendor: true,
-                payment_status: "both_confirmed",
-                status: "completed",
-                completed_at: now,
-                updated_at: now,
-              })
-              .eq("id", jobOrderId);
-
-            // Insert payment record
-            if (fromTenantId) {
-              await supabase.from("payments").insert({
-                tenant_id: fromTenantId,
+              await supabase.from("order_audit_log").insert({
                 job_order_id: jobOrderId,
-                payment_method: "card",
-                amount: session.amount_total ?? 0,
-                status: "completed",
-                paid_at: now,
-                stripe_payment_intent_id: paymentIntentId ?? null,
+                action: "bank_transfer_initiated",
+                new_value: JSON.stringify({ payment_status: "unpaid", method: "bank_transfer" }),
+                actor_tenant_id: fromTenantId ?? null,
               });
+
+              console.log("webhook: order bank transfer initiated (awaiting payment)", { jobOrderId });
+              break;
             }
 
-            // Audit log
-            await supabase.from("order_audit_log").insert({
-              job_order_id: jobOrderId,
-              action: "payment_completed",
-              old_value: JSON.stringify({ status: "payment_pending" }),
-              new_value: JSON.stringify({
-                status: "completed",
-                payment_method: "stripe_connect",
-                amount: session.amount_total,
-                stripe_payment_intent_id: paymentIntentId,
-              }),
-              actor_tenant_id: fromTenantId ?? null,
+            // Card payment: payment_status is "paid" — complete immediately
+            await completeOrderPayment(supabase, {
+              jobOrderId,
+              fromTenantId,
+              toTenantId,
+              paymentIntentId,
+              amountTotal: session.amount_total ?? 0,
+              paymentMethod: "card",
             });
-
-            console.log("webhook: order payment completed", { jobOrderId, fromTenantId, toTenantId });
           }
           break;
         }
@@ -416,6 +460,29 @@ export async function POST(req: NextRequest) {
           if (tenant_id && !sub.metadata?.tenant_id) sub.metadata = { ...(sub.metadata ?? {}), tenant_id };
           if (tenant_slug && !sub.metadata?.tenant_slug) sub.metadata = { ...(sub.metadata ?? {}), tenant_slug };
           await syncBySubscription(stripe, supabase, sub);
+        }
+        break;
+      }
+
+      // ─── 銀行振込の非同期入金完了 ───
+      case "checkout.session.async_payment_succeeded": {
+        const asyncSession = event.data.object as Stripe.Checkout.Session;
+        if (asyncSession.metadata?.source === "order_payment") {
+          const jobOrderId = asyncSession.metadata.job_order_id;
+          const fromTenantId = asyncSession.metadata.from_tenant_id;
+          const toTenantId = asyncSession.metadata.to_tenant_id;
+          const paymentIntentId = asStringId(asyncSession.payment_intent);
+
+          if (jobOrderId) {
+            await completeOrderPayment(supabase, {
+              jobOrderId,
+              fromTenantId,
+              toTenantId,
+              paymentIntentId,
+              amountTotal: asyncSession.amount_total ?? 0,
+              paymentMethod: "bank_transfer",
+            });
+          }
         }
         break;
       }
