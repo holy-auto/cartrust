@@ -15,30 +15,28 @@ export async function GET() {
 
     const today = new Date().toISOString().slice(0, 10);
 
-    const { data: campaigns } = await supabase
-      .from("agent_campaigns")
-      .select("*")
-      .eq("is_active", true)
-      .lte("start_date", today)
-      .gte("end_date", today)
-      .order("end_date", { ascending: true });
-
-    // Also get upcoming campaigns
-    const { data: upcoming } = await supabase
-      .from("agent_campaigns")
-      .select("*")
-      .eq("is_active", true)
-      .gt("start_date", today)
-      .order("start_date", { ascending: true })
-      .limit(5);
-
-    // Past campaigns
-    const { data: past } = await supabase
-      .from("agent_campaigns")
-      .select("*")
-      .lt("end_date", today)
-      .order("end_date", { ascending: false })
-      .limit(10);
+    const [{ data: campaigns }, { data: upcoming }, { data: past }] = await Promise.all([
+      supabase
+        .from("agent_campaigns")
+        .select("*")
+        .eq("is_active", true)
+        .lte("start_date", today)
+        .gte("end_date", today)
+        .order("end_date", { ascending: true }),
+      supabase
+        .from("agent_campaigns")
+        .select("*")
+        .eq("is_active", true)
+        .gt("start_date", today)
+        .order("start_date", { ascending: true })
+        .limit(5),
+      supabase
+        .from("agent_campaigns")
+        .select("*")
+        .lt("end_date", today)
+        .order("end_date", { ascending: false })
+        .limit(10),
+    ]);
 
     const res = NextResponse.json({
       active: campaigns ?? [],
