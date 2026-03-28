@@ -203,14 +203,6 @@ const s = StyleSheet.create({
     fontSize: 7,
     color: "#888",
   },
-  watermark: {
-    position: "absolute" as const,
-    top: "35%",
-    left: "25%",
-    width: 300,
-    height: 300,
-    opacity: 0.06,
-  },
 });
 
 export async function renderInvoicePdf(
@@ -246,9 +238,6 @@ export async function renderInvoicePdf(
   const doc = (
     <Document>
       <Page size="A4" style={s.page}>
-        {/* Logo watermark */}
-        {logoUrl && <Image src={logoUrl} style={s.watermark} />}
-
         {/* ── Header: Title left / No+Date right ── */}
         <View style={s.header}>
           <Text style={s.title}>請 求 書</Text>
