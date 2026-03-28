@@ -38,7 +38,7 @@ type DashboardData = {
 /* ── Skeleton ── */
 
 function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-lg bg-neutral-200 ${className}`} />;
+  return <div className={`animate-pulse rounded-lg bg-surface-hover ${className}`} />;
 }
 
 function StatCard({
@@ -51,10 +51,10 @@ function StatCard({
   sub?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-      <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">{label}</div>
-      <div className="mt-2 text-2xl font-bold text-neutral-900">{value}</div>
-      {sub && <div className="mt-1 text-sm text-neutral-500">{sub}</div>}
+    <div className="rounded-2xl border border-border-default bg-[var(--bg-surface)] p-5 shadow-sm">
+      <div className="text-xs font-semibold tracking-[0.18em] text-muted">{label}</div>
+      <div className="mt-2 text-2xl font-bold text-primary">{value}</div>
+      {sub && <div className="mt-1 text-sm text-muted">{sub}</div>}
     </div>
   );
 }
@@ -102,20 +102,20 @@ export default function AgentDashboardPage() {
     : 1;
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-6">
+    <div className="min-h-screen">
       <div className="mx-auto max-w-7xl space-y-6">
 
         {/* ── Header ── */}
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-3">
-            <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+            <div className="inline-flex rounded-full border border-border-default bg-[var(--bg-surface)] px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
               AGENT PORTAL
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+              <h1 className="text-3xl font-bold tracking-tight text-primary">
                 {data ? `${data.agent_name} さん、おかえりなさい` : "ダッシュボード"}
               </h1>
-              <p className="mt-2 text-sm text-neutral-600">
+              <p className="mt-2 text-sm text-secondary">
                 代理店パートナー管理画面 — 紹介・コミッション状況を確認できます。
               </p>
             </div>
@@ -130,7 +130,7 @@ export default function AgentDashboardPage() {
             </a>
             <button
               onClick={onLogout}
-              className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+              className="rounded-xl border border-border-default bg-[var(--bg-surface)] px-4 py-2 text-sm font-medium text-secondary hover:bg-surface-hover"
             >
               ログアウト
             </button>
@@ -164,7 +164,7 @@ export default function AgentDashboardPage() {
         {!data && !err && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm space-y-3">
+              <div key={i} className="rounded-2xl border border-border-default bg-[var(--bg-surface)] p-5 shadow-sm space-y-3">
                 <Skeleton className="h-3 w-20" />
                 <Skeleton className="h-7 w-28" />
                 <Skeleton className="h-3 w-16" />
@@ -201,28 +201,28 @@ export default function AgentDashboardPage() {
 
             {/* ── Announcements + Conversion Row ── */}
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-                <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">CONVERSION</div>
-                <div className="mt-2 text-2xl font-bold text-neutral-900">
+              <div className="rounded-2xl border border-border-default bg-[var(--bg-surface)] p-5 shadow-sm">
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">CONVERSION</div>
+                <div className="mt-2 text-2xl font-bold text-primary">
                   {(data.conversion_rate * 100).toFixed(1)}%
                 </div>
-                <div className="mt-3 h-2 rounded-full bg-neutral-100 overflow-hidden">
+                <div className="mt-3 h-2 rounded-full bg-surface-hover overflow-hidden">
                   <div
                     className="h-full rounded-full bg-accent transition-all"
                     style={{ width: `${Math.min(data.conversion_rate * 100, 100)}%` }}
                   />
                 </div>
-                <div className="mt-2 text-sm text-neutral-500">
+                <div className="mt-2 text-sm text-muted">
                   {data.contracted_referrals} / {data.total_referrals} 件が契約成立
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-                <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">ANNOUNCEMENTS</div>
-                <div className="mt-2 text-2xl font-bold text-neutral-900">
+              <div className="rounded-2xl border border-border-default bg-[var(--bg-surface)] p-5 shadow-sm">
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">ANNOUNCEMENTS</div>
+                <div className="mt-2 text-2xl font-bold text-primary">
                   {data.unread_announcements}
                 </div>
-                <div className="mt-1 text-sm text-neutral-500">未読のお知らせ</div>
+                <div className="mt-1 text-sm text-muted">未読のお知らせ</div>
                 {data.unread_announcements > 0 && (
                   <a
                     href="/agent/announcements"
@@ -235,11 +235,11 @@ export default function AgentDashboardPage() {
             </div>
 
             {/* ── Recent Referrals Table ── */}
-            <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+            <section className="rounded-2xl border border-border-default bg-[var(--bg-surface)] p-5 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">RECENT REFERRALS</div>
-                  <div className="mt-1 text-base font-semibold text-neutral-900">最近の紹介</div>
+                  <div className="text-xs font-semibold tracking-[0.18em] text-muted">RECENT REFERRALS</div>
+                  <div className="mt-1 text-base font-semibold text-primary">最近の紹介</div>
                 </div>
                 <a
                   href="/agent/referrals"
@@ -249,34 +249,34 @@ export default function AgentDashboardPage() {
                 </a>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-neutral-200">
+              <div className="overflow-x-auto rounded-xl border border-border-default">
                 <table className="min-w-full text-sm">
-                  <thead className="bg-neutral-50">
+                  <thead className="bg-[var(--bg-inset)]">
                     <tr>
-                      <th className="p-3 text-left font-semibold text-neutral-600">店舗名</th>
-                      <th className="p-3 text-left font-semibold text-neutral-600">担当者名</th>
-                      <th className="p-3 text-left font-semibold text-neutral-600">ステータス</th>
-                      <th className="p-3 text-left font-semibold text-neutral-600">作成日時</th>
-                      <th className="p-3 text-left font-semibold text-neutral-600">操作</th>
+                      <th className="p-3 text-left font-semibold text-secondary">店舗名</th>
+                      <th className="p-3 text-left font-semibold text-secondary">担当者名</th>
+                      <th className="p-3 text-left font-semibold text-secondary">ステータス</th>
+                      <th className="p-3 text-left font-semibold text-secondary">作成日時</th>
+                      <th className="p-3 text-left font-semibold text-secondary">操作</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(data.recent_referrals ?? []).map((r) => {
                       const s = getStatusEntry(AGENT_REFERRAL_STATUS_MAP, r.status);
                       return (
-                        <tr key={r.id} className="border-t hover:bg-neutral-50">
-                          <td className="p-3 font-medium text-neutral-900">{r.shop_name}</td>
-                          <td className="p-3 text-neutral-600">{r.contact_name || "-"}</td>
+                        <tr key={r.id} className="border-t hover:bg-surface-hover">
+                          <td className="p-3 font-medium text-primary">{r.shop_name}</td>
+                          <td className="p-3 text-secondary">{r.contact_name || "-"}</td>
                           <td className="p-3">
                             <Badge variant={s.variant}>{s.label}</Badge>
                           </td>
-                          <td className="p-3 whitespace-nowrap text-neutral-600">
+                          <td className="p-3 whitespace-nowrap text-secondary">
                             {formatDateTime(r.created_at)}
                           </td>
                           <td className="p-3">
                             <a
                               href={`/agent/referrals/${encodeURIComponent(r.id)}`}
-                              className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
+                              className="rounded-lg border border-border-default bg-[var(--bg-surface)] px-3 py-1.5 text-xs font-medium text-secondary hover:bg-surface-hover"
                             >
                               詳細
                             </a>
@@ -286,7 +286,7 @@ export default function AgentDashboardPage() {
                     })}
                     {(data.recent_referrals ?? []).length === 0 && (
                       <tr>
-                        <td colSpan={5} className="p-8 text-center text-sm text-neutral-500">
+                        <td colSpan={5} className="p-8 text-center text-sm text-muted">
                           紹介がまだありません。「新規紹介を作成」から始めましょう。
                         </td>
                       </tr>
@@ -297,10 +297,10 @@ export default function AgentDashboardPage() {
             </section>
 
             {/* ── Monthly Commission Chart ── */}
-            <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+            <section className="rounded-2xl border border-border-default bg-[var(--bg-surface)] p-5 shadow-sm">
               <div className="mb-4">
-                <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">MONTHLY COMMISSION</div>
-                <div className="mt-1 text-base font-semibold text-neutral-900">月別コミッション推移</div>
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">MONTHLY COMMISSION</div>
+                <div className="mt-1 text-base font-semibold text-primary">月別コミッション推移</div>
               </div>
 
               {(data.monthly_commissions ?? []).length > 0 ? (
@@ -309,7 +309,7 @@ export default function AgentDashboardPage() {
                     const pct = (m.total_amount / chartMax) * 100;
                     return (
                       <div key={m.month} className="flex flex-1 flex-col items-center gap-1">
-                        <div className="text-[10px] font-medium text-neutral-600">
+                        <div className="text-[10px] font-medium text-secondary">
                           {formatJpy(m.total_amount)}
                         </div>
                         <div className="w-full flex items-end" style={{ height: "160px" }}>
@@ -318,7 +318,7 @@ export default function AgentDashboardPage() {
                             style={{ height: `${Math.max(pct, 2)}%` }}
                           />
                         </div>
-                        <div className="text-[10px] text-neutral-500 whitespace-nowrap">
+                        <div className="text-[10px] text-muted whitespace-nowrap">
                           {m.month.slice(5)}月
                         </div>
                       </div>
@@ -326,7 +326,7 @@ export default function AgentDashboardPage() {
                   })}
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-48 text-sm text-neutral-500">
+                <div className="flex items-center justify-center h-48 text-sm text-muted">
                   コミッションデータがまだありません。
                 </div>
               )}
@@ -336,25 +336,25 @@ export default function AgentDashboardPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <a
                 href="/agent/referrals/new"
-                className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm hover:border-accent hover:shadow-md transition-all group"
+                className="rounded-2xl border border-border-default bg-[var(--bg-surface)] p-5 shadow-sm hover:border-accent hover:shadow-md transition-all group"
               >
-                <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500 group-hover:text-accent">
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted group-hover:text-accent">
                   NEW REFERRAL
                 </div>
-                <div className="mt-2 text-base font-semibold text-neutral-900">新規紹介を作成</div>
-                <p className="mt-1 text-sm text-neutral-500">
+                <div className="mt-2 text-base font-semibold text-primary">新規紹介を作成</div>
+                <p className="mt-1 text-sm text-muted">
                   新しい施工店をLedraに紹介します。
                 </p>
               </a>
               <a
                 href="/agent/commissions"
-                className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm hover:border-accent hover:shadow-md transition-all group"
+                className="rounded-2xl border border-border-default bg-[var(--bg-surface)] p-5 shadow-sm hover:border-accent hover:shadow-md transition-all group"
               >
-                <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500 group-hover:text-accent">
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted group-hover:text-accent">
                   COMMISSIONS
                 </div>
-                <div className="mt-2 text-base font-semibold text-neutral-900">コミッション一覧</div>
-                <p className="mt-1 text-sm text-neutral-500">
+                <div className="mt-2 text-base font-semibold text-primary">コミッション一覧</div>
+                <p className="mt-1 text-sm text-muted">
                   支払い履歴と明細を確認できます。
                 </p>
               </a>
@@ -363,6 +363,6 @@ export default function AgentDashboardPage() {
         )}
 
       </div>
-    </main>
+    </div>
   );
 }

@@ -127,7 +127,7 @@ export default function InsurerHomePage() {
 
   if (isSuspended) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-neutral-50 p-6">
+      <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
         <div className="max-w-md rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
           <h1 className="text-xl font-bold text-red-800 mb-2">アカウント停止中</h1>
           <p className="text-sm text-red-700 mb-4">
@@ -137,7 +137,7 @@ export default function InsurerHomePage() {
             ログアウト
           </button>
         </div>
-      </main>
+      </div>
     );
   }
 
@@ -149,21 +149,21 @@ export default function InsurerHomePage() {
   const exportUrl = `/api/insurer/export${exportQs.toString() ? `?${exportQs.toString()}` : ""}`;
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-6">
+    <div className="min-h-screen p-4 sm:p-6">
       <InsurerIdleAutoLogout />
       <div className="mx-auto max-w-7xl space-y-6">
 
         {/* Header */}
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-3">
-            <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+            <div className="inline-flex rounded-full border border-border-default bg-[var(--bg-surface)] px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
               INSURER PORTAL
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+              <h1 className="text-3xl font-bold tracking-tight text-primary">
                 証明書検索
               </h1>
-              <p className="mt-2 text-sm text-neutral-600">
+              <p className="mt-2 text-sm text-secondary">
                 保険会社ポータル — 施工証明書を public_id・顧客名・車両で検索します。
               </p>
             </div>
@@ -175,13 +175,13 @@ export default function InsurerHomePage() {
               disabled={billingBusy || isPending}
               title={isPending ? "仮登録中はご利用いただけません" : undefined}
               data-billing-trigger
-              className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100 disabled:opacity-40"
+              className="rounded-xl border border-border-default bg-[var(--bg-surface)] px-4 py-2 text-sm font-medium text-secondary hover:bg-surface-hover disabled:opacity-40"
             >
               {billingBusy ? "処理中..." : planTier ? `プラン管理 (${planTier})` : "サブスク契約"}
             </button>
             <button
               onClick={onLogout}
-              className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+              className="rounded-xl border border-border-default bg-[var(--bg-surface)] px-4 py-2 text-sm font-medium text-secondary hover:bg-surface-hover"
             >
               ログアウト
             </button>
@@ -210,26 +210,26 @@ export default function InsurerHomePage() {
         {/* Case summary widget */}
         {caseSummary && (
           <div className="grid gap-4 sm:grid-cols-3">
-            <Link href="/insurer/cases?status=open" className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm hover:shadow-md transition">
+            <Link href="/insurer/cases?status=open" className="rounded-2xl border border-border-default bg-[var(--bg-surface)] p-5 shadow-sm hover:shadow-md transition">
               <p className="text-3xl font-bold text-blue-600">{caseSummary.open_count}</p>
-              <p className="mt-1 text-sm text-neutral-500">未対応案件</p>
+              <p className="mt-1 text-sm text-muted">未対応案件</p>
             </Link>
-            <Link href="/insurer/cases?status=in_progress" className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm hover:shadow-md transition">
+            <Link href="/insurer/cases?status=in_progress" className="rounded-2xl border border-border-default bg-[var(--bg-surface)] p-5 shadow-sm hover:shadow-md transition">
               <p className="text-3xl font-bold text-amber-600">{caseSummary.active_count}</p>
-              <p className="mt-1 text-sm text-neutral-500">対応中案件</p>
+              <p className="mt-1 text-sm text-muted">対応中案件</p>
             </Link>
-            <Link href="/insurer/cases" className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm hover:shadow-md transition">
-              <p className="text-3xl font-bold text-neutral-900">{caseSummary.today_count}</p>
-              <p className="mt-1 text-sm text-neutral-500">今日更新</p>
+            <Link href="/insurer/cases" className="rounded-2xl border border-border-default bg-[var(--bg-surface)] p-5 shadow-sm hover:shadow-md transition">
+              <p className="text-3xl font-bold text-primary">{caseSummary.today_count}</p>
+              <p className="mt-1 text-sm text-muted">今日更新</p>
             </Link>
           </div>
         )}
 
         {/* Search bar */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-border-default bg-[var(--bg-surface)] p-5 shadow-sm">
           <div className="mb-3">
-            <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">SEARCH</div>
-            <div className="mt-1 text-base font-semibold text-neutral-900">証明書を検索</div>
+            <div className="text-xs font-semibold tracking-[0.18em] text-muted">SEARCH</div>
+            <div className="mt-1 text-base font-semibold text-primary">証明書を検索</div>
           </div>
           <div className="space-y-3">
             {/* キーワード行 */}
@@ -239,7 +239,7 @@ export default function InsurerHomePage() {
                 onChange={(e) => setQ(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && runSearch()}
                 placeholder="public_id / 顧客名 / 車両型式 / ナンバー"
-                className="flex-1 rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-neutral-400"
+                className="flex-1 rounded-xl border border-border-default bg-[var(--bg-inset)] px-4 py-2.5 text-sm focus:bg-[var(--bg-surface)] focus:outline-none focus:ring-2 focus:ring-border-default"
               />
               <button
                 onClick={runSearch}
@@ -251,14 +251,14 @@ export default function InsurerHomePage() {
               {isPending ? (
                 <span
                   title="仮登録中はご利用いただけません"
-                  className="rounded-xl border border-neutral-200 bg-neutral-100 px-4 py-2.5 text-sm font-medium text-neutral-400 cursor-not-allowed"
+                  className="rounded-xl border border-border-default bg-surface-hover px-4 py-2.5 text-sm font-medium text-muted cursor-not-allowed"
                 >
                   CSV
                 </span>
               ) : (
                 <a
                   href={exportUrl}
-                  className="rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+                  className="rounded-xl border border-border-default bg-[var(--bg-surface)] px-4 py-2.5 text-sm font-medium text-secondary hover:bg-surface-hover"
                 >
                   CSV
                 </a>
@@ -270,7 +270,7 @@ export default function InsurerHomePage() {
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+                className="rounded-xl border border-border-default bg-[var(--bg-surface)] px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-border-default"
               >
                 <option value="">全ステータス</option>
                 <option value="active">有効 (active)</option>
@@ -278,22 +278,22 @@ export default function InsurerHomePage() {
               </select>
 
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-neutral-500 whitespace-nowrap">FROM</span>
+                <span className="text-xs font-medium text-muted whitespace-nowrap">FROM</span>
                 <input
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className="flex-1 rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+                  className="flex-1 rounded-xl border border-border-default bg-[var(--bg-surface)] px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-border-default"
                 />
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-neutral-500 whitespace-nowrap">TO</span>
+                <span className="text-xs font-medium text-muted whitespace-nowrap">TO</span>
                 <input
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className="flex-1 rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+                  className="flex-1 rounded-xl border border-border-default bg-[var(--bg-surface)] px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-border-default"
                 />
               </div>
             </div>
@@ -307,49 +307,49 @@ export default function InsurerHomePage() {
         </div>
 
         {/* Results */}
-        <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+        <section className="rounded-2xl border border-border-default bg-[var(--bg-surface)] p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">RESULTS</div>
-              <div className="mt-1 text-base font-semibold text-neutral-900">検索結果</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">RESULTS</div>
+              <div className="mt-1 text-base font-semibold text-primary">検索結果</div>
             </div>
             {rows.length > 0 && (
-              <div className="text-sm text-neutral-500">
-                <span className="font-semibold text-neutral-900">{rows.length}</span> 件
+              <div className="text-sm text-muted">
+                <span className="font-semibold text-primary">{rows.length}</span> 件
               </div>
             )}
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-neutral-200">
+          <div className="overflow-x-auto rounded-xl border border-border-default">
             <table className="min-w-full text-sm">
-              <thead className="bg-neutral-50">
+              <thead className="bg-[var(--bg-inset)]">
                 <tr>
-                  <th className="p-3 text-left font-semibold text-neutral-600">証明書 ID</th>
-                  <th className="p-3 text-left font-semibold text-neutral-600">顧客名</th>
-                  <th className="p-3 text-left font-semibold text-neutral-600">車両</th>
-                  <th className="p-3 text-left font-semibold text-neutral-600">ステータス</th>
-                  <th className="p-3 text-left font-semibold text-neutral-600">作成日時</th>
-                  <th className="p-3 text-left font-semibold text-neutral-600">操作</th>
+                  <th className="p-3 text-left font-semibold text-secondary">証明書 ID</th>
+                  <th className="p-3 text-left font-semibold text-secondary">顧客名</th>
+                  <th className="p-3 text-left font-semibold text-secondary">車両</th>
+                  <th className="p-3 text-left font-semibold text-secondary">ステータス</th>
+                  <th className="p-3 text-left font-semibold text-secondary">作成日時</th>
+                  <th className="p-3 text-left font-semibold text-secondary">操作</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.public_id} className="border-t hover:bg-neutral-50">
-                    <td className="p-3 font-mono text-xs text-neutral-700">{r.public_id}</td>
-                    <td className="p-3 font-medium text-neutral-900">{r.customer_name}</td>
-                    <td className="p-3 text-neutral-600">
+                  <tr key={r.public_id} className="border-t hover:bg-surface-hover">
+                    <td className="p-3 font-mono text-xs text-secondary">{r.public_id}</td>
+                    <td className="p-3 font-medium text-primary">{r.customer_name}</td>
+                    <td className="p-3 text-secondary">
                       {[r.vehicle_model, r.vehicle_plate].filter(Boolean).join(" / ") || "-"}
                     </td>
                     <td className="p-3">
                       {(() => { const s = getStatusEntry(CERTIFICATE_STATUS_MAP, r.status); return <Badge variant={s.variant}>{s.label}</Badge>; })()}
                     </td>
-                    <td className="p-3 whitespace-nowrap text-neutral-600">
+                    <td className="p-3 whitespace-nowrap text-secondary">
                       {formatDateTime(r.created_at)}
                     </td>
                     <td className="p-3">
                       <a
                         href={`/insurer/c/${encodeURIComponent(r.public_id)}`}
-                        className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
+                        className="rounded-lg border border-border-default bg-[var(--bg-surface)] px-3 py-1.5 text-xs font-medium text-secondary hover:bg-surface-hover"
                       >
                         詳細
                       </a>
@@ -358,7 +358,7 @@ export default function InsurerHomePage() {
                 ))}
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-sm text-neutral-500">
+                    <td colSpan={6} className="p-8 text-center text-sm text-muted">
                       {q ? `「${q}」に一致する証明書が見つかりません。` : "検索キーワードを入力してください。"}
                     </td>
                   </tr>
@@ -369,6 +369,6 @@ export default function InsurerHomePage() {
         </section>
 
       </div>
-    </main>
+    </div>
   );
 }

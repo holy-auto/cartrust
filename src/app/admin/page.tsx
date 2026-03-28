@@ -62,85 +62,20 @@ function StatSkeleton() {
 async function TenantStats({ tenantId }: { tenantId: string }) {
   const supabase = await createSupabaseServerClient();
 
-  // Try consolidated RPC first, fall back to individual queries
-  const { data: stats, error: rpcError } = await supabase.rpc("dashboard_tenant_stats", { p_tenant_id: tenantId });
+  const { data: stats } = await supabase.rpc("dashboard_tenant_stats", { p_tenant_id: tenantId });
 
-  let totalCerts = 0, activeCerts = 0, voidCerts = 0, memberCount = 0, customerCount = 0;
-  let invoiceCount = 0, unpaidAmount = 0, todayRes = 0, activeRes = 0, activeOrders = 0;
-  let statusBreakdown: Array<{ status: string; count: number }> = [];
-  let recentActivity: Array<{ date: string; count: number }> = [];
-
-  if (!rpcError && stats) {
-    // RPC succeeded — use consolidated data
-    totalCerts = stats.total_certs ?? 0;
-    activeCerts = stats.active_certs ?? 0;
-    voidCerts = stats.void_certs ?? 0;
-    memberCount = stats.member_count ?? 0;
-    customerCount = stats.customer_count ?? 0;
-    invoiceCount = stats.invoice_count ?? 0;
-    unpaidAmount = stats.unpaid_amount ?? 0;
-    todayRes = stats.today_reservations ?? 0;
-    activeRes = stats.active_reservations ?? 0;
-    activeOrders = stats.active_orders ?? 0;
-    statusBreakdown = stats.status_breakdown ?? [];
-    recentActivity = stats.recent_activity ?? [];
-  } else {
-    // Fallback: individual queries (for environments where RPC is not yet deployed)
-    const today = new Date().toISOString().slice(0, 10);
-    const [
-      { data: certs },
-      { count: mc },
-      { count: cc },
-      { data: invoices },
-      todayResResult,
-      activeResResult,
-      ordersResult,
-    ] = await Promise.all([
-      supabase.from("certificates").select("status,created_at").eq("tenant_id", tenantId),
-      supabase.from("tenant_memberships").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId),
-      supabase.from("customers").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId),
-      supabase.from("documents").select("status,total").eq("tenant_id", tenantId).in("doc_type", ["invoice", "consolidated_invoice"]),
-      Promise.resolve(supabase.from("reservations").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("scheduled_date", today).neq("status", "cancelled")).catch(() => ({ count: 0 })),
-      Promise.resolve(supabase.from("reservations").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).in("status", ["confirmed", "arrived", "in_progress"])).catch(() => ({ count: 0 })),
-      Promise.resolve(supabase.from("job_orders").select("*", { count: "exact", head: true }).or(`from_tenant_id.eq.${tenantId},to_tenant_id.eq.${tenantId}`).in("status", ["pending", "accepted", "in_progress"])).catch(() => ({ count: 0 })),
-    ]);
-
-    const allCerts = certs ?? [];
-    totalCerts = allCerts.length;
-    activeCerts = allCerts.filter((c: any) => c.status === "active").length;
-    voidCerts = allCerts.filter((c: any) => c.status === "void").length;
-    memberCount = mc ?? 0;
-    customerCount = cc ?? 0;
-
-    const statusMap = new Map<string, number>();
-    for (const c of allCerts) {
-      const s = c.status ?? "unknown";
-      statusMap.set(s, (statusMap.get(s) ?? 0) + 1);
-    }
-    statusBreakdown = Array.from(statusMap.entries()).map(([status, count]) => ({ status, count }));
-
-    const dateMap = new Map<string, number>();
-    for (let i = 0; i < 30; i++) {
-      const d = new Date();
-      d.setDate(d.getDate() - (29 - i));
-      dateMap.set(d.toISOString().slice(0, 10), 0);
-    }
-    for (const c of allCerts) {
-      if (!c.created_at) continue;
-      const date = c.created_at.slice(0, 10);
-      if (dateMap.has(date)) dateMap.set(date, (dateMap.get(date) ?? 0) + 1);
-    }
-    recentActivity = Array.from(dateMap.entries()).map(([date, count]) => ({ date, count }));
-
-    const invoiceList = invoices ?? [];
-    invoiceCount = invoiceList.length;
-    unpaidAmount = invoiceList
-      .filter((inv: any) => inv.status === "sent" || inv.status === "overdue")
-      .reduce((sum: number, inv: any) => sum + (inv.total ?? 0), 0);
-    todayRes = (todayResResult as any)?.count ?? 0;
-    activeRes = (activeResResult as any)?.count ?? 0;
-    activeOrders = (ordersResult as any)?.count ?? 0;
-  }
+  const totalCerts = stats?.total_certs ?? 0;
+  const activeCerts = stats?.active_certs ?? 0;
+  const voidCerts = stats?.void_certs ?? 0;
+  const memberCount = stats?.member_count ?? 0;
+  const customerCount = stats?.customer_count ?? 0;
+  const invoiceCount = stats?.invoice_count ?? 0;
+  const unpaidAmount = stats?.unpaid_amount ?? 0;
+  const todayRes = stats?.today_reservations ?? 0;
+  const activeRes = stats?.active_reservations ?? 0;
+  const activeOrders = stats?.active_orders ?? 0;
+  const statusBreakdown: Array<{ status: string; count: number }> = stats?.status_breakdown ?? [];
+  const recentActivity: Array<{ date: string; count: number }> = stats?.recent_activity ?? [];
 
   // ── Partner Score ──
   const { data: partnerScore } = await supabase

@@ -8,6 +8,17 @@ export interface Column<T> {
   render: (row: T) => ReactNode;
   sortable?: boolean;
   className?: string;
+  /** Hide this column in mobile card view */
+  hideOnMobile?: boolean;
+  /** Use as card title in mobile view */
+  cardTitle?: boolean;
+}
+
+interface BulkAction {
+  label: string;
+  icon?: ReactNode;
+  variant?: "default" | "danger";
+  onAction: (selectedKeys: Set<string>) => void;
 }
 
 interface DataTableProps<T> {
@@ -19,6 +30,7 @@ interface DataTableProps<T> {
   selectedKeys?: Set<string>;
   onSelectionChange?: (keys: Set<string>) => void;
   emptyMessage?: string;
+  bulkActions?: BulkAction[];
 }
 
 export default function DataTable<T>({
@@ -30,6 +42,7 @@ export default function DataTable<T>({
   selectedKeys,
   onSelectionChange,
   emptyMessage = "データがありません",
+  bulkActions,
 }: DataTableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -67,7 +80,37 @@ export default function DataTable<T>({
 
   return (
     <div className="glass-card overflow-hidden">
-      <div className="overflow-x-auto">
+      {selectable && selectedKeys && selectedKeys.size > 0 && bulkActions && (
+        <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-border-default bg-accent-dim px-4 py-2.5">
+          <span className="text-sm font-medium text-accent">
+            {selectedKeys.size}件選択中
+          </span>
+          <div className="flex items-center gap-2 ml-auto">
+            {bulkActions.map((action, i) => (
+              <button
+                key={i}
+                onClick={() => action.onAction(selectedKeys)}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                  action.variant === "danger"
+                    ? "bg-[var(--accent-red-dim)] text-danger hover:bg-[var(--accent-red)]/20"
+                    : "bg-[var(--bg-surface)] text-primary hover:bg-surface-hover"
+                }`}
+              >
+                {action.icon}
+                {action.label}
+              </button>
+            ))}
+            <button
+              onClick={() => onSelectionChange?.(new Set())}
+              className="text-sm text-muted hover:text-primary transition-colors ml-2"
+            >
+              選択解除
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Desktop table */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border-default text-left">
@@ -139,6 +182,56 @@ export default function DataTable<T>({
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile card view */}
+      <div className="md:hidden">
+        {data.length === 0 ? (
+          <div className="px-4 py-12 text-center text-sm text-muted">{emptyMessage}</div>
+        ) : (
+          <div className="divide-y divide-border-subtle">
+            {data.map((row) => {
+              const key = rowKey(row);
+              const isSelected = selectedKeys?.has(key) ?? false;
+              const titleCol = columns.find((c) => c.cardTitle);
+              const visibleCols = columns.filter((c) => !c.hideOnMobile && c !== titleCol);
+
+              return (
+                <div
+                  key={key}
+                  className={`p-4 transition-colors ${onRowClick ? "cursor-pointer active:bg-surface-hover/40" : ""} ${isSelected ? "bg-accent-dim" : ""}`}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                >
+                  <div className="flex items-start gap-3">
+                    {selectable && (
+                      <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleOne(key)}
+                          className="accent-[var(--accent-blue)]"
+                        />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      {titleCol && (
+                        <div className="text-sm font-medium text-primary mb-2">{titleCol.render(row)}</div>
+                      )}
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                        {visibleCols.map((col) => (
+                          <div key={col.key}>
+                            <div className="text-[10px] font-medium text-muted uppercase tracking-wider">{col.header}</div>
+                            <div className="text-sm text-primary mt-0.5">{col.render(row)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

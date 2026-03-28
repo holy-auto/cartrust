@@ -3,6 +3,7 @@
 import { ReactNode, useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import SidebarShell from "@/components/ui/SidebarShell";
 
 const AUTH_ROUTES = ["/insurer/login", "/insurer/forgot-password", "/insurer/reset-password"];
 
@@ -223,7 +224,7 @@ function CollapsibleGroup({
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-400 transition-colors hover:text-neutral-600"
+        className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted transition-colors hover:text-secondary"
       >
         <svg
           width="12"
@@ -254,7 +255,6 @@ function CollapsibleGroup({
 /* ------------------------------------------------------------------ */
 function InsurerSidebar() {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
   const [groupState, setGroupState] = useState<Record<string, boolean>>({});
   const initialized = useRef(false);
 
@@ -279,8 +279,6 @@ function InsurerSidebar() {
     });
   }, []);
 
-  useEffect(() => { setOpen(false); }, [pathname]);
-
   const renderItem = (item: NavItem) => {
     const isActive = item.exact
       ? pathname === item.href
@@ -295,11 +293,11 @@ function InsurerSidebar() {
           href={item.href}
           className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all duration-150 ${
             active
-              ? "bg-neutral-900 text-white"
-              : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
+              ? "bg-accent-dim text-accent"
+              : "text-secondary hover:bg-surface-hover hover:text-primary"
           }`}
         >
-          <span className={active ? "text-white" : "text-neutral-400"}>{item.icon}</span>
+          <span className={active ? "text-accent" : "text-muted"}>{item.icon}</span>
           {item.label}
         </Link>
       </li>
@@ -309,11 +307,11 @@ function InsurerSidebar() {
   const sidebarContent = (
     <>
       {/* Brand */}
-      <div className="flex h-14 items-center gap-2.5 border-b border-neutral-200 px-5">
+      <div className="flex h-14 items-center gap-2.5 border-b border-border-subtle px-5">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-neutral-800 to-neutral-600">
           <span className="text-xs font-bold text-white">保</span>
         </div>
-        <Link href="/insurer" className="text-[13px] font-semibold tracking-wide text-neutral-900">
+        <Link href="/insurer" className="text-[13px] font-semibold tracking-wide text-primary">
           保険会社ポータル
         </Link>
       </div>
@@ -344,42 +342,9 @@ function InsurerSidebar() {
   );
 
   return (
-    <>
-      {/* Mobile hamburger */}
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="fixed left-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-xl border border-neutral-200 bg-white shadow-sm lg:hidden"
-        aria-label="メニュー"
-      >
-        {open ? (
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-          </svg>
-        ) : (
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
-          </svg>
-        )}
-      </button>
-
-      {/* Overlay */}
-      {open && (
-        <div
-          className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm lg:hidden"
-          onClick={() => setOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`fixed left-0 top-0 z-40 flex h-screen w-60 flex-col border-r border-neutral-200 bg-white transition-transform duration-300 ease-out ${
-          open ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0`}
-      >
-        {sidebarContent}
-      </aside>
-    </>
+    <SidebarShell>
+      {sidebarContent}
+    </SidebarShell>
   );
 }
 
@@ -395,7 +360,7 @@ export default function InsurerLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-[var(--bg-inset)]">
       <InsurerSidebar />
       <main className="pt-16 lg:pt-0 lg:pl-60">{children}</main>
     </div>

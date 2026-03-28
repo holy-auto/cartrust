@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import SidebarShell from "@/components/ui/SidebarShell";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -186,33 +187,11 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 /* ------------------------------------------------------------------ */
-/*  Mobile viewport hook                                               */
-/* ------------------------------------------------------------------ */
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const mql = window.matchMedia("(max-width: 1023px)");
-    setIsMobile(mql.matches);
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mql.addEventListener("change", handler);
-    return () => mql.removeEventListener("change", handler);
-  }, []);
-  return isMobile;
-}
-
-/* ------------------------------------------------------------------ */
 /*  AgentSidebar                                                       */
 /* ------------------------------------------------------------------ */
 export default function AgentSidebar() {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
   const [agentName, setAgentName] = useState<string | null>(null);
-  const isMobile = useIsMobile();
-
-  // Close mobile menu on route change
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
 
   // Fetch agent name
   useEffect(() => {
@@ -254,92 +233,59 @@ export default function AgentSidebar() {
   };
 
   return (
-    <>
-      {/* Mobile hamburger */}
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="fixed left-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-[var(--radius-lg)] border border-border-default bg-[var(--bg-elevated)] backdrop-blur-[20px] lg:hidden"
-        aria-label="メニュー"
-      >
-        {open ? (
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-          </svg>
-        ) : (
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
-          </svg>
-        )}
-      </button>
+    <SidebarShell>
+      {/* Brand */}
+      <div className="flex h-14 items-center gap-2.5 border-b border-border-subtle px-5">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-[#5856d6]">
+          <span className="text-xs font-bold text-white">C</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[13px] font-semibold tracking-wide text-primary">Ledra</span>
+          <span className="text-[10px] font-medium uppercase tracking-widest text-muted">Agent Portal</span>
+        </div>
+      </div>
 
-      {/* Overlay */}
-      {open && (
-        <div
-          className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm lg:hidden"
-          onClick={() => setOpen(false)}
-        />
+      {/* Agent name */}
+      {agentName && (
+        <div className="border-b border-border-subtle px-5 py-2.5">
+          <div className="flex items-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-accent-dim">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-accent">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+              </svg>
+            </div>
+            <span className="truncate text-[12px] font-medium text-secondary">{agentName}</span>
+          </div>
+        </div>
       )}
 
-      {/* Sidebar */}
-      <aside
-        className={`fixed left-0 top-0 z-40 flex h-screen w-60 flex-col border-r border-border-subtle bg-[var(--bg-elevated)] backdrop-blur-[40px] backdrop-saturate-[180%] transition-transform duration-300 ease-out ${
-          open ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0`}
-      >
-        {/* Brand */}
-        <div className="flex h-14 items-center gap-2.5 border-b border-border-subtle px-5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-[#5856d6]">
-            <span className="text-xs font-bold text-white">C</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[13px] font-semibold tracking-wide text-primary">Ledra</span>
-            <span className="text-[10px] font-medium uppercase tracking-widest text-muted">Agent Portal</span>
-          </div>
-        </div>
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-3 py-3">
+        <ul className="space-y-0.5">
+          {NAV_ITEMS.map(renderItem)}
+        </ul>
+      </nav>
 
-        {/* Agent name */}
-        {agentName && (
-          <div className="border-b border-border-subtle px-5 py-2.5">
-            <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-accent-dim">
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-accent">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                </svg>
-              </div>
-              <span className="truncate text-[12px] font-medium text-secondary">{agentName}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-3">
-          <ul className="space-y-0.5">
-            {NAV_ITEMS.map(renderItem)}
-          </ul>
-        </nav>
-
-        {/* Footer */}
-        <div className="border-t border-border-subtle px-3 py-3">
-          <button
-            type="button"
-            onClick={async () => {
-              try {
-                const supabase = createClient();
-                await supabase.auth.signOut();
-                try { sessionStorage.clear(); } catch { /* ignore */ }
-              } catch { /* ignore */ }
-              window.location.replace("/agent/login");
-            }}
-            className="flex w-full items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-2 text-[13px] font-medium text-muted transition-all duration-150 hover:bg-surface-hover hover:text-primary"
-          >
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-            </svg>
-            ログアウト
-          </button>
-        </div>
-      </aside>
-    </>
+      {/* Footer */}
+      <div className="border-t border-border-subtle px-3 py-3">
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              const supabase = createClient();
+              await supabase.auth.signOut();
+              try { sessionStorage.clear(); } catch { /* ignore */ }
+            } catch { /* ignore */ }
+            window.location.replace("/agent/login");
+          }}
+          className="flex w-full items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-2 text-[13px] font-medium text-muted transition-all duration-150 hover:bg-surface-hover hover:text-primary"
+        >
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+          </svg>
+          ログアウト
+        </button>
+      </div>
+    </SidebarShell>
   );
 }
