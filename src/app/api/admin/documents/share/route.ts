@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolveCallerWithRole } from "@/lib/auth/checkRole";
-import { apiOk, apiUnauthorized, apiValidationError, apiInternalError, apiNotFound } from "@/lib/api/response";
+import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { apiOk, apiUnauthorized, apiForbidden, apiValidationError, apiInternalError, apiNotFound } from "@/lib/api/response";
 import { getAdminClient } from "@/lib/api/auth";
 import { DOC_TYPES, type DocType } from "@/types/document";
 import { sendDocumentEmail } from "@/lib/documents/share-email";
@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
 
     const body = await req.json().catch(() => ({} as any));
     const documentId = (body?.document_id ?? "").trim();

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminClient, resolveCallerFull } from "@/lib/api/auth";
+import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { apiOk, apiUnauthorized, apiValidationError, apiInternalError, apiForbidden } from "@/lib/api/response";
 
 /** GET: 全テナントのテンプレートオーダー一覧（管理者用） */
@@ -63,8 +64,8 @@ export async function PUT(req: NextRequest) {
     const supabase = await createClient();
     const caller = await resolveCallerFull(supabase);
     if (!caller) return apiUnauthorized();
-    if (caller.role !== "owner" && caller.role !== "admin") {
-      return apiForbidden("管理者権限が必要です。");
+    if (!isPlatformAdmin(caller)) {
+      return apiForbidden("プラットフォーム管理者権限が必要です。");
     }
 
     const admin = getAdminClient();

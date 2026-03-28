@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
 
     const { data, error, count } = await query;
 
-    if (error) return apiValidationError(error.message);
+    if (error) return apiValidationError("操作に失敗しました。");
 
     return NextResponse.json({ cases: data ?? [], total: count ?? 0 });
   } catch (err) {
@@ -171,7 +171,7 @@ export async function POST(req: NextRequest) {
       .select("id, case_number, title, status, priority, category, description, created_at, insurer_id, certificate_id, vehicle_id, tenant_id, created_by, assigned_to, resolved_at, closed_at, updated_at")
       .single();
 
-    if (error) return apiValidationError(error.message);
+    if (error) return apiValidationError("操作に失敗しました。");
 
     // Log to insurer_access_logs
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;

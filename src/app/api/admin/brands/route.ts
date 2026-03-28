@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { brandCreateSchema, brandUpdateSchema } from "@/lib/validations/brand";
-import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import {
   apiOk,
   apiInternalError,
   apiUnauthorized,
+  apiForbidden,
   apiNotFound,
   apiValidationError,
   apiError,
@@ -38,6 +39,7 @@ export async function POST(req: Request) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
+    if (!requireMinRole(caller, "admin")) return apiForbidden();
 
     const body = await req.json();
     const parsed = brandCreateSchema.safeParse(body);
@@ -70,6 +72,7 @@ export async function PUT(req: Request) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
+    if (!requireMinRole(caller, "admin")) return apiForbidden();
 
     const body = await req.json();
     const parsed = brandUpdateSchema.safeParse(body);

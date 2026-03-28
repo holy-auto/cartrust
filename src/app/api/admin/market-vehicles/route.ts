@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { apiForbidden } from "@/lib/api/response";
 import { escapeIlike, escapePostgrestValue } from "@/lib/sanitize";
 import { enforceBilling } from "@/lib/billing/guard";
 
@@ -118,6 +119,7 @@ export async function POST(req: NextRequest) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
 
     const deny = await enforceBilling(req as any, { minPlan: "standard", action: "market_create" });
     if (deny) return deny as any;
@@ -187,6 +189,7 @@ export async function PUT(req: NextRequest) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
 
     const deny = await enforceBilling(req as any, { minPlan: "standard", action: "market_update" });
     if (deny) return deny as any;
@@ -265,6 +268,7 @@ export async function DELETE(req: NextRequest) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
 
     const deny = await enforceBilling(req as any, { minPlan: "standard", action: "market_delete" });
     if (deny) return deny as any;

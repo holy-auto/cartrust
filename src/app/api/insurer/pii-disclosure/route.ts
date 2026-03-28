@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     .eq("is_active", true)
     .maybeSingle();
 
-  if (error) return apiValidationError(error.message);
+  if (error) return apiValidationError("操作に失敗しました。");
 
   const disclosed =
     data &&
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
     .select()
     .single();
 
-  if (error) return apiValidationError(error.message);
+  if (error) return apiValidationError("操作に失敗しました。");
 
   await admin.from("insurer_access_logs").insert({
     insurer_id: caller.insurerId,

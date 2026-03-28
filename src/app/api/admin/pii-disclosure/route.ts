@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     .eq("certificate_id", certificateId)
     .eq("is_active", true);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json({ error: "データの取得に失敗しました。" }, { status: 400 });
 
   return NextResponse.json({ consents: consents ?? [] });
 }
@@ -53,6 +53,18 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await getUser();
   if (!user) return new Response("Unauthorized", { status: 401 });
+
+  // Verify user has admin role via tenant membership
+  const adminCheck = createAdminClient();
+  const { data: membership } = await adminCheck
+    .from("tenant_memberships")
+    .select("role")
+    .eq("user_id", user.id)
+    .in("role", ["admin", "owner"])
+    .maybeSingle();
+
+  if (!membership)
+    return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
 
   let body: any;
   try {
@@ -102,7 +114,7 @@ export async function POST(req: NextRequest) {
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json({ error: "操作に失敗しました。" }, { status: 400 });
   if (!data)
     return NextResponse.json(
       { error: "No pending disclosure request found" },

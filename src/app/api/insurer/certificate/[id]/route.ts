@@ -27,7 +27,7 @@ export async function GET(
     .eq("id", id)
     .maybeSingle();
 
-  if (error) return apiValidationError(error.message);
+  if (error) return apiValidationError("証明書の取得に失敗しました。");
   if (!cert) return apiNotFound("証明書が見つかりません。");
 
   // Verify insurer has an active contract with the certificate's tenant

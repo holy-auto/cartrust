@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
   }
 
   const { data, error } = await query;
-  if (error) return apiValidationError(error.message);
+  if (error) return apiValidationError("ログの取得に失敗しました。");
 
   return NextResponse.json({ logs: data ?? [], limit, offset });
 }
