@@ -106,13 +106,6 @@ export async function POST(req: NextRequest) {
 
     const { email, display_name: displayName, role } = parsed.data;
 
-    // Prevent non-owners from assigning owner/super_admin role
-    if (role === "owner" || role === "super_admin") {
-      if (caller.role !== "owner" && caller.role !== "super_admin") {
-        return NextResponse.json({ error: "forbidden", message: "この権限を付与する権限がありません" }, { status: 403 });
-      }
-    }
-
     const admin = getSupabaseAdmin();
 
     // 現在のメンバー数を確認
