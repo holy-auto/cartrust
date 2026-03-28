@@ -1,6 +1,84 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
+// ─── Global API rate limiter (120 req / 60s per IP) ───
+let globalLimiter: Ratelimit | null = null;
+
+function getGlobalLimiter(): Ratelimit | null {
+  if (globalLimiter) return globalLimiter;
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return null;
+  globalLimiter = new Ratelimit({
+    redis: new Redis({ url, token }),
+    limiter: Ratelimit.slidingWindow(120, "60 s"),
+    prefix: "rl:global",
+  });
+  return globalLimiter;
+}
+
+function getClientIp(request: NextRequest): string {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown"
+  );
+}
+
+/**
+ * Global rate limit check for all API routes.
+ * Returns a 429 response if exceeded, or null to continue.
+ */
+async function globalRateLimit(request: NextRequest): Promise<NextResponse | null> {
+  const { pathname } = request.nextUrl;
+  if (!pathname.startsWith("/api/")) return null;
+
+  // Skip webhook routes — they have their own rate limits and come from trusted servers
+  if (pathname.startsWith("/api/webhooks/") || pathname.startsWith("/api/stripe/webhook") || pathname.startsWith("/api/line/webhook")) {
+    return null;
+  }
+
+  // Skip cron routes — server-to-server calls
+  if (pathname.startsWith("/api/cron/")) return null;
+
+  const limiter = getGlobalLimiter();
+  if (!limiter) {
+    // Fail-closed in production
+    if (process.env.NODE_ENV === "production") {
+      console.error("[globalRateLimit] Redis not configured in production");
+      return NextResponse.json(
+        { error: "service_unavailable", message: "サービスが一時的に利用できません。" },
+        { status: 503 },
+      );
+    }
+    return null;
+  }
+
+  try {
+    const ip = getClientIp(request);
+    const result = await limiter.limit(ip);
+    if (!result.success) {
+      const retryAfter = Math.ceil((result.reset - Date.now()) / 1000);
+      return NextResponse.json(
+        { error: "rate_limited", message: "リクエスト回数の上限に達しました。しばらく経ってから再度お試しください。", retry_after: retryAfter },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } },
+      );
+    }
+  } catch (e) {
+    console.error("[globalRateLimit] Redis error:", e);
+    if (process.env.NODE_ENV === "production") {
+      return NextResponse.json(
+        { error: "service_unavailable", message: "サービスが一時的に利用できません。" },
+        { status: 503 },
+      );
+    }
+  }
+
+  return null;
+}
 
 const PUBLIC_PREFIXES = [
   "/login",
@@ -140,6 +218,10 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith("/_next") || pathname === "/favicon.ico" || pathname === "/robots.txt" || pathname === "/sitemap.xml") {
     return NextResponse.next();
   }
+
+  // Global rate limit for API routes
+  const rateLimitResponse = await globalRateLimit(request);
+  if (rateLimitResponse) return rateLimitResponse;
 
   // Content-Type validation for API mutations
   const contentTypeResponse = contentTypeCheck(request);
