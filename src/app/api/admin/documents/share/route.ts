@@ -33,10 +33,10 @@ export async function POST(req: NextRequest) {
     if (!VALID_CHANNELS.includes(channel)) return apiValidationError("channel は email, line, sms のいずれかを指定してください。");
     if (!recipient) return apiValidationError("recipient は必須です。");
 
-    // Fetch document
+    // Fetch document (only needed fields)
     const { data: doc } = await supabase
       .from("documents")
-      .select("*")
+      .select("id, doc_type, doc_number, total, status, customer_id, recipient_name")
       .eq("id", documentId)
       .eq("tenant_id", caller.tenantId)
       .single();

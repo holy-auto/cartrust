@@ -5,6 +5,7 @@ import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { enforceBilling } from "@/lib/billing/guard";
 import { escapeIlike, escapePostgrestValue } from "@/lib/sanitize";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 // ─── 有効なステータス一覧 ───
 const VALID_STATUSES = [
@@ -163,6 +164,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
