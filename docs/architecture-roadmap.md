@@ -191,6 +191,49 @@ Upstash Redis を活用して以下をキャッシュ:
 
 ---
 
+## 9. パフォーマンス最適化（スケーラビリティ監査より）
+
+### 9.1 ダッシュボード集計のSQL化（緊急）
+
+**現状**: `/api/admin/dashboard-summary` がJS側で全証明書を取得しカウント。
+50k件超でパフォーマンス劣化。
+
+**対策**:
+```sql
+SELECT
+  COUNT(*) FILTER (WHERE status = 'active') as active_count,
+  COUNT(*) FILTER (WHERE status = 'void') as void_count,
+  COUNT(*) FILTER (WHERE status = 'draft') as draft_count
+FROM certificates
+WHERE tenant_id = ? AND created_at >= ?;
+```
+
+### 9.2 レシート番号採番のシーケンス化
+
+**現状**: `pos_checkout()` RPCが `COUNT(*)` でレシート番号を生成。
+同時決済で競合リスクあり。
+
+**対策**: PostgreSQLシーケンスに置き換え。
+
+### 9.3 画像最適化パイプライン
+
+**現状**: 証明書画像がSupabaseストレージから無加工で配信。
+サムネイル生成・フォーマット変換なし。
+
+**対策**:
+- アップロード時にリサイズ・WebP変換（Vercel Edge Function or cron）
+- サムネイル(400px)・中サイズ(1200px)・オリジナルの3段階保存
+- CDN Cache-Controlヘッダー最適化
+
+### 9.4 バンドルサイズ分析
+
+**対策**:
+- `@next/bundle-analyzer` 導入
+- `@react-pdf/renderer`, `stripe`, `googleapis` の遅延ロード徹底
+- CIにバンドルサイズ閾値チェック追加
+
+---
+
 ## 実施優先順位
 
 | 優先度 | 項目 | 時期 |
