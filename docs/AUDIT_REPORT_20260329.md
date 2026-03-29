@@ -30,13 +30,13 @@
 
 ## 1. セキュリティ — 重大欠陥 (5.5/10)
 
-### ~~CRITICAL~~ → MEDIUM（訂正済み）: middleware.ts が未接続
+### INFO（問題なし）: proxy.ts はNext.js 16で自動有効
 
-`src/proxy.ts`にCSRF保護・セッションリフレッシュ・未認証リダイレクトが**堅実に実装済み**。
-ただし`middleware.ts`が存在せず、`proxy()`がどこからもインポートされていないため**実行されていない**。
-middleware.tsを作成してproxyをインポートする1行の修正で解決する。→ **本監査で修正済み**
+Next.js 16では`middleware.ts`は非推奨となり、`proxy.ts`が後継として自動認識される。
+`src/proxy.ts`にCSRF保護・セッションリフレッシュ・未認証リダイレクトが**堅実に実装済み**であり、
+**追加のmiddleware.ts作成は不要**（作成するとビルドエラーになる）。
 
-**proxy.tsの実装内容:**
+**proxy.tsの実装内容（既に自動的に有効）:**
 - CSRF保護（Origin/Hostヘッダー検証、sec-fetch-site確認）
 - Supabaseセッション自動リフレッシュ（JWT有効期限5分前に更新）
 - 未認証ユーザーのリダイレクト（/admin→/login、/insurer→/insurer/login）
@@ -295,7 +295,7 @@ POS機能は**既に本格実装済み**：
 
 | # | 問題 | 重要度 | 修正工数 | 状態 |
 |---|------|--------|---------|------|
-| 1 | middleware.ts未接続（proxy.tsは実装済み） | **HIGH** | 数分 | **本監査で修正済み** |
+| 1 | ~~middleware.ts未接続~~ | ~~HIGH~~ | — | **問題なし（Next.js 16でproxy.ts自動有効）** |
 | 2 | Insurerポータルにクライアント側ルートガードなし | **HIGH** | 半日 | **本監査で修正済み** |
 | 3 | Resend Webhook署名未検証 | ~~CRITICAL~~ LOW | - | 本番環境では設定済み（実施不要） |
 | 4 | マーケティングサイト5ページがComing Soon | ~~CRITICAL~~ INFO | - | 特許出願対応で意図的（実施不要） |
@@ -336,7 +336,7 @@ POS機能は**既に本格実装済み**：
 
 | 対策 | 状態 |
 |------|------|
-| Next.js Middleware | proxy.ts実装済み → **本監査でmiddleware.ts接続済み** |
+| Next.js Proxy (middleware後継) | proxy.ts実装済み — Next.js 16で自動有効 |
 | Supabase RLS | 実装済み |
 | Zod バリデーション | 部分的（主要フォームのみ） |
 | レートリミット | 公開エンドポイントのみ |
@@ -371,7 +371,7 @@ POS機能は**既に本格実装済み**：
 
 | 優先度 | 問題 | 場所 | 修正内容 | 状態 |
 |--------|------|------|---------|------|
-| ~~CRITICAL~~ | middleware.ts未接続 | プロジェクトルート | proxy.tsをインポートするmiddleware.ts追加 | **修正済み** |
+| INFO | ~~middleware.ts未接続~~ | `src/proxy.ts` | Next.js 16でproxy.tsは自動有効。対応不要 | **問題なし** |
 | ~~CRITICAL~~ | Insurerポータルにルートガードなし | `/src/app/insurer/layout.tsx` | InsurerRouteGuard作成 | **修正済み** |
 | LOW | Resend Webhookのフォールバック | `/api/webhooks/resend/route.ts` | 本番設定済み。防御的に未設定時500返却が望ましい | 本番影響なし |
 | HIGH | Cron署名が空文字列をハッシュ | `/lib/cronAuth.ts` | Vercel署名フォーマットの正しい実装 | 未対応 |
