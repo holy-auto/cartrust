@@ -1,32 +1,41 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+"use client";
 
-function safeNextPath(value: string | undefined) {
+import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+
+function safeNextPath(value: string | null) {
   if (!value) return "/admin/certificates";
   if (!value.startsWith("/admin")) return "/admin/certificates";
   return value;
 }
 
-export default async function Page({
-  searchParams,
-}: {
-  searchParams: Promise<{ next?: string; e?: string; reason?: string }>;
-}) {
-  const sp = await searchParams;
-  const next = safeNextPath(sp.next);
+export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const next = safeNextPath(searchParams.get("next"));
+  const hasError = searchParams.get("e");
+  const reason = searchParams.get("reason");
 
-  async function signIn(formData: FormData) {
-    "use server";
-    const email = String(formData.get("email") || "");
-    const password = String(formData.get("password") || "");
+  const supabase = createClient();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(hasError ? "メールアドレスまたはパスワードが正しくありません。" : null);
 
-    const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) redirect(`/login?next=${encodeURIComponent(next)}&e=1`);
-    redirect(next);
-  }
+  const onLogin = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      window.location.href = next;
+    } catch {
+      setErr("メールアドレスまたはパスワードが正しくありません。");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-base p-6">
@@ -34,42 +43,46 @@ export default async function Page({
         {/* Branding */}
         <div className="flex items-center justify-center gap-3">
           <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg" style={{ background: "linear-gradient(135deg, var(--accent-blue), #5856d6)" }}>
-            C
+            L
           </div>
           <span className="text-xl font-bold text-primary tracking-wide">Ledra</span>
         </div>
 
         <h1 className="text-xl font-bold text-primary text-center">ログイン</h1>
 
-        {sp.reason === "idle" && (
+        {reason === "idle" && (
           <div className="text-sm text-amber-500 text-center">
             一定時間操作がなかったため、自動的にログアウトしました。
           </div>
         )}
 
-        {sp.e && (
-          <div className="text-sm text-red-400 text-center">
-            メールアドレスまたはパスワードが正しくありません。
-          </div>
+        {err && (
+          <div className="text-sm text-red-400 text-center">{err}</div>
         )}
 
-        <form action={signIn} className="space-y-4">
+        <div className="space-y-4">
           <input
-            name="email"
             type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !busy && onLogin()}
             placeholder="Email"
             className="input-field w-full"
             required
           />
           <input
-            name="password"
             type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !busy && onLogin()}
             placeholder="Password"
             className="input-field w-full"
             required
           />
-          <button className="btn-primary w-full">ログイン</button>
-        </form>
+          <button onClick={onLogin} disabled={busy} className="btn-primary w-full">
+            {busy ? "ログイン中..." : "ログイン"}
+          </button>
+        </div>
 
         <div className="text-center space-y-2">
           <Link href="/forgot-password" className="text-xs text-accent hover:underline">
