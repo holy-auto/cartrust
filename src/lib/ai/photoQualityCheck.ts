@@ -74,7 +74,7 @@ export interface CertificatePhotoAudit {
   photoResults: PhotoCheckResult[];
   missingPhotos: string[];
   missingFields: string[];
-  warningMessages: Array<{ level: "error" | "warning"; message: string }>;
+  warningMessages: Array<{ level: "error" | "warning" | "info"; message: string }>;
 }
 
 // ─────────────────────────────────────────────
@@ -178,7 +178,7 @@ export async function auditCertificatePhotos(params: {
 }): Promise<CertificatePhotoAudit> {
   const { category, photoUrls, fieldValues, standardRule, checkPhotosWithAI = true } = params;
 
-  const warningMessages: Array<{ level: "error" | "warning"; message: string }> = [];
+  const warningMessages: Array<{ level: "error" | "warning" | "info"; message: string }> = [];
   const missingPhotos: string[] = [];
   const missingFields: string[] = [];
 
