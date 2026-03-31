@@ -300,11 +300,14 @@ export default function NewVehicleForm() {
           className="hidden"
           onChange={onOcrFileChange}
         />
-        {ocrMsg != null && (
-          <p className={`text-sm ${ocrMsg.startsWith("✓") ? "text-emerald-600" : "text-red-500"}`}>
-            {ocrMsg}
-          </p>
-        )}
+        {ocrMsg != null && (() => {
+          const msg: string = ocrMsg;
+          return (
+            <p className={`text-sm ${msg.startsWith("✓") ? "text-emerald-600" : "text-red-500"}`}>
+              {msg}
+            </p>
+          );
+        })()}
       </section>}
 
       {/* 基本情報 */}
