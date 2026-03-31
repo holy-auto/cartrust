@@ -463,7 +463,7 @@ export async function GET(req: NextRequest) {
                   customer: { name: customer.name ?? "お客様" },
                   certificate: { label: "季節メンテナンス", issued_at: todayStr },
                   vehicle: {},
-                  shop: { name: shopName, phone: tenant.phone },
+                  shop: { name: shopName, phone: tenant.phone ?? undefined },
                 });
                 const sent = await sendFollowUpEmail({
                   shopName,
