@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import { Container } from "./Container";
 import { MobileMenu } from "./MobileMenu";
+import LedraLogo from "@/components/ui/LedraLogo";
 
 const navItems: { label: string; href: string }[] = [];
 
@@ -43,11 +44,9 @@ export function Header() {
       }`}
     >
       <Container className="flex items-center justify-between h-[72px]">
-        <Link
-          href="/"
-          className="text-[1.375rem] font-bold tracking-tight text-white hover:opacity-80 transition-opacity"
-        >
-          Ledra
+        <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+          <LedraLogo size="sm" />
+          <span className="text-[1.375rem] font-bold tracking-tight text-white">Ledra</span>
         </Link>
 
         {/* Desktop nav */}

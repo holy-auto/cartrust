@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import LedraLogo from "@/components/ui/LedraLogo";
 
 function safeNextPath(value: string | undefined) {
   if (!value) return "/admin/certificates";
@@ -33,9 +34,7 @@ export default async function Page({
       <div className="glass-card w-full max-w-sm space-y-6 p-8">
         {/* Branding */}
         <div className="flex items-center justify-center gap-3">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg" style={{ background: "linear-gradient(135deg, var(--accent-blue), #5856d6)" }}>
-            C
-          </div>
+          <LedraLogo size="md" />
           <span className="text-xl font-bold text-primary tracking-wide">Ledra</span>
         </div>
 
@@ -48,26 +47,12 @@ export default async function Page({
         )}
 
         {sp.e && (
-          <div className="text-sm text-red-400 text-center">
-            メールアドレスまたはパスワードが正しくありません。
-          </div>
+          <div className="text-sm text-red-400 text-center">メールアドレスまたはパスワードが正しくありません。</div>
         )}
 
         <form action={signIn} className="space-y-4">
-          <input
-            name="email"
-            type="email"
-            placeholder="Email"
-            className="input-field w-full"
-            required
-          />
-          <input
-            name="password"
-            type="password"
-            placeholder="Password"
-            className="input-field w-full"
-            required
-          />
+          <input name="email" type="email" placeholder="Email" className="input-field w-full" required />
+          <input name="password" type="password" placeholder="Password" className="input-field w-full" required />
           <button className="btn-primary w-full">ログイン</button>
         </form>
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import LedraLogo from "@/components/ui/LedraLogo";
 
 export function MobileMenu({
   navItems,
@@ -35,8 +36,13 @@ export function MobileMenu({
         createPortal(
           <div className="fixed inset-0 z-50 bg-[#060a12]">
             <div className="flex items-center justify-between h-16 px-5">
-              <Link href="/" className="text-xl font-bold tracking-tight text-white" onClick={() => setOpen(false)}>
-                Ledra
+              <Link
+                href="/"
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                onClick={() => setOpen(false)}
+              >
+                <LedraLogo size="sm" />
+                <span className="text-xl font-bold tracking-tight text-white">Ledra</span>
               </Link>
               <button onClick={() => setOpen(false)} className="p-2 text-white/60" aria-label="メニューを閉じる">
                 <svg

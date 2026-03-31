@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import LedraLogo from "@/components/ui/LedraLogo";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -17,12 +18,12 @@ export default function SignupPage() {
     setErrors([]);
 
     const form = new FormData(e.currentTarget);
-    const email = (form.get("email") as string || "").trim();
-    const password = (form.get("password") as string || "").trim();
-    const passwordConfirm = (form.get("password_confirm") as string || "").trim();
-    const shopName = (form.get("shop_name") as string || "").trim();
-    const displayName = (form.get("display_name") as string || "").trim();
-    const contactPhone = (form.get("contact_phone") as string || "").trim();
+    const email = ((form.get("email") as string) || "").trim();
+    const password = ((form.get("password") as string) || "").trim();
+    const passwordConfirm = ((form.get("password_confirm") as string) || "").trim();
+    const shopName = ((form.get("shop_name") as string) || "").trim();
+    const displayName = ((form.get("display_name") as string) || "").trim();
+    const contactPhone = ((form.get("contact_phone") as string) || "").trim();
 
     // クライアント側バリデーション
     const clientErrors: string[] = [];
@@ -83,14 +84,16 @@ export default function SignupPage() {
       <main className="min-h-screen flex items-center justify-center bg-base p-6">
         <div className="glass-card w-full max-w-sm space-y-6 p-8 text-center">
           <div className="flex items-center justify-center gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg" style={{ background: "linear-gradient(135deg, var(--accent-blue), #5856d6)" }}>
-              C
-            </div>
+            <LedraLogo size="md" />
             <span className="text-xl font-bold text-primary tracking-wide">Ledra</span>
           </div>
           <div className="text-success">
             <svg className="mx-auto w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+              />
             </svg>
           </div>
           <h1 className="text-xl font-bold text-primary">登録完了</h1>
@@ -108,9 +111,7 @@ export default function SignupPage() {
       <div className="glass-card w-full max-w-md space-y-6 p-8">
         {/* Branding */}
         <div className="flex items-center justify-center gap-3">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg" style={{ background: "linear-gradient(135deg, var(--accent-blue), #5856d6)" }}>
-            C
-          </div>
+          <LedraLogo size="md" />
           <span className="text-xl font-bold text-primary tracking-wide">Ledra</span>
         </div>
 
@@ -122,7 +123,9 @@ export default function SignupPage() {
         {errors.length > 0 && (
           <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 space-y-1">
             {errors.map((err, i) => (
-              <div key={i} className="text-sm text-red-400">{err}</div>
+              <div key={i} className="text-sm text-red-400">
+                {err}
+              </div>
             ))}
           </div>
         )}
@@ -145,9 +148,7 @@ export default function SignupPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold tracking-[0.12em] text-muted mb-1">
-                担当者名
-              </label>
+              <label className="block text-xs font-semibold tracking-[0.12em] text-muted mb-1">担当者名</label>
               <input
                 name="display_name"
                 type="text"
@@ -157,15 +158,8 @@ export default function SignupPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold tracking-[0.12em] text-muted mb-1">
-                電話番号
-              </label>
-              <input
-                name="contact_phone"
-                type="tel"
-                placeholder="例: 03-1234-5678"
-                className="input-field w-full"
-              />
+              <label className="block text-xs font-semibold tracking-[0.12em] text-muted mb-1">電話番号</label>
+              <input name="contact_phone" type="tel" placeholder="例: 03-1234-5678" className="input-field w-full" />
             </div>
           </div>
 
@@ -176,13 +170,7 @@ export default function SignupPage() {
             <label className="block text-xs font-semibold tracking-[0.12em] text-muted mb-1">
               メールアドレス <span className="text-red-400">*</span>
             </label>
-            <input
-              name="email"
-              type="email"
-              placeholder="you@example.com"
-              className="input-field w-full"
-              required
-            />
+            <input name="email" type="email" placeholder="you@example.com" className="input-field w-full" required />
           </div>
 
           <div>
@@ -225,9 +213,13 @@ export default function SignupPage() {
         <div className="text-center space-y-2">
           <p className="text-xs text-muted">
             登録すると
-            <Link href="/terms" className="text-accent hover:underline mx-1">利用規約</Link>
+            <Link href="/terms" className="text-accent hover:underline mx-1">
+              利用規約
+            </Link>
             と
-            <Link href="/privacy" className="text-accent hover:underline mx-1">プライバシーポリシー</Link>
+            <Link href="/privacy" className="text-accent hover:underline mx-1">
+              プライバシーポリシー
+            </Link>
             に同意したことになります。
           </p>
           <p className="text-sm text-secondary">

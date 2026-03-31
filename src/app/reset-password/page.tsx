@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import LedraLogo from "@/components/ui/LedraLogo";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -17,8 +18,8 @@ export default function ResetPasswordPage() {
     setError(null);
 
     const form = new FormData(e.currentTarget);
-    const password = (form.get("password") as string || "").trim();
-    const passwordConfirm = (form.get("password_confirm") as string || "").trim();
+    const password = ((form.get("password") as string) || "").trim();
+    const passwordConfirm = ((form.get("password_confirm") as string) || "").trim();
 
     if (!password || password.length < 8) {
       setError("パスワードは8文字以上で入力してください。");
@@ -56,14 +57,16 @@ export default function ResetPasswordPage() {
       <main className="min-h-screen flex items-center justify-center bg-base p-6">
         <div className="glass-card w-full max-w-sm space-y-6 p-8 text-center">
           <div className="flex items-center justify-center gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg" style={{ background: "linear-gradient(135deg, var(--accent-blue), #5856d6)" }}>
-              C
-            </div>
+            <LedraLogo size="md" />
             <span className="text-xl font-bold text-primary tracking-wide">Ledra</span>
           </div>
           <div className="text-success">
             <svg className="mx-auto w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+              />
             </svg>
           </div>
           <h1 className="text-xl font-bold text-primary">パスワード更新完了</h1>
@@ -77,9 +80,7 @@ export default function ResetPasswordPage() {
     <main className="min-h-screen flex items-center justify-center bg-base p-6">
       <div className="glass-card w-full max-w-sm space-y-6 p-8">
         <div className="flex items-center justify-center gap-3">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg" style={{ background: "linear-gradient(135deg, var(--accent-blue), #5856d6)" }}>
-            C
-          </div>
+          <LedraLogo size="md" />
           <span className="text-xl font-bold text-primary tracking-wide">Ledra</span>
         </div>
 
@@ -96,9 +97,7 @@ export default function ResetPasswordPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold tracking-[0.12em] text-muted mb-1">
-              新しいパスワード
-            </label>
+            <label className="block text-xs font-semibold tracking-[0.12em] text-muted mb-1">新しいパスワード</label>
             <input
               name="password"
               type="password"
@@ -110,9 +109,7 @@ export default function ResetPasswordPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold tracking-[0.12em] text-muted mb-1">
-              パスワード（確認）
-            </label>
+            <label className="block text-xs font-semibold tracking-[0.12em] text-muted mb-1">パスワード（確認）</label>
             <input
               name="password_confirm"
               type="password"

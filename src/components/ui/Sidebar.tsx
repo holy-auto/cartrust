@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
+import LedraLogo from "@/components/ui/LedraLogo";
 import { useCurrentRole } from "@/lib/auth/useCurrentRole";
 import { ROUTE_PERMISSIONS, type Permission } from "@/lib/auth/permissions";
 import { ROLE_LABELS } from "@/lib/auth/roles";
@@ -870,9 +871,7 @@ export default function Sidebar() {
     <SidebarShell>
       {/* Brand */}
       <div className="flex h-14 items-center gap-2.5 border-b border-border-subtle px-5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-[#5856d6]">
-          <span className="text-xs font-bold text-white">C</span>
-        </div>
+        <LedraLogo size="sm" />
         <span className="text-[13px] font-semibold tracking-wide text-primary">Ledra</span>
         <div className="ml-auto">
           <NotificationBell />
