@@ -37,12 +37,23 @@ export async function GET(req: NextRequest) {
 
     try {
       // テナント一覧取得（拡張カラム含む）
-      const { data: settings } = await supabase
+      type FollowUpSetting = {
+        tenant_id: string;
+        reminder_days_before: number[] | null;
+        follow_up_days_after: number[] | null;
+        enabled: boolean;
+        send_on_issue: boolean | null;
+        first_reminder_days: number | null;
+        warranty_end_days: number | null;
+        inspection_pre_days: number | null;
+        seasonal_enabled: boolean | null;
+      };
+      const { data: settings } = (await supabase
         .from("follow_up_settings")
         .select(
           "tenant_id, reminder_days_before, follow_up_days_after, enabled, send_on_issue, first_reminder_days, warranty_end_days, inspection_pre_days, seasonal_enabled",
         )
-        .eq("enabled", true);
+        .eq("enabled", true)) as { data: FollowUpSetting[] | null };
 
       if (!settings?.length) {
         return NextResponse.json({ ok: true, reminders_sent: 0, follow_ups_sent: 0, date: todayStr });
@@ -51,10 +62,11 @@ export async function GET(req: NextRequest) {
       const allTenantIds = [...new Set(settings.map((s) => s.tenant_id))];
 
       // テナント名・プランを一括取得
-      const { data: tenants } = await supabase
+      type TenantInfo = { id: string; name: string | null; phone: string | null; plan_tier: string | null };
+      const { data: tenants } = (await supabase
         .from("tenants")
         .select("id, name, phone, plan_tier")
-        .in("id", allTenantIds);
+        .in("id", allTenantIds)) as { data: TenantInfo[] | null };
       const tenantMap = new Map((tenants ?? []).map((t) => [t.id, t]));
 
       // ─── 共通ヘルパー: 通知送信 ───────────────────────────────────
