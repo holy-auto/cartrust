@@ -248,8 +248,8 @@ export default function NewVehicleForm() {
         <div className="glass-card p-4 text-sm text-red-500">{errMsg}</div>
       )}
 
-      {/* 車検証 OCR */}
-      <section className="glass-card p-5 space-y-3">
+      {/* 車検証 OCR — 一時非表示 */}
+      {false && <section className="glass-card p-5 space-y-3">
         <div>
           <div className="text-xs font-semibold tracking-[0.18em] text-muted">QUICK FILL</div>
           <div className="mt-1 text-base font-semibold text-primary">車検証から自動入力</div>
@@ -305,7 +305,7 @@ export default function NewVehicleForm() {
             {ocrMsg}
           </p>
         )}
-      </section>
+      </section>}
 
       {/* 基本情報 */}
       <section className="glass-card p-5 space-y-4">
