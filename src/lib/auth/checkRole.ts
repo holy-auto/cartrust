@@ -83,11 +83,7 @@ async function resolvePlanTier(
   tenantId: string,
 ): Promise<PlanTier> {
   try {
-    const { data } = await supabase
-      .from("tenants")
-      .select("plan_tier")
-      .eq("id", tenantId)
-      .single();
+    const { data } = await supabase.from("tenants").select("plan_tier").eq("id", tenantId).single();
     return normalizePlanTier(data?.plan_tier);
   } catch {
     return "free";
