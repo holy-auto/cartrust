@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     // Fetch agent record to check for existing Stripe account
     const { data: agentProfile, error: profileErr } = await supabase
       .from("agents")
-      .select("id, stripe_connect_account_id, name, contact_email")
+      .select("id, stripe_account_id, name, contact_email")
       .eq("id", agentId)
       .single();
 
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     const stripe = getStripe();
-    let accountId = agentProfile.stripe_connect_account_id as string | null;
+    let accountId = agentProfile.stripe_account_id as string | null;
 
     // Create Stripe Connect account if not already linked
     if (!accountId) {
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       const { error: saveErr } = await supabase
         .from("agents")
         .update({
-          stripe_connect_account_id: accountId,
+          stripe_account_id: accountId,
           updated_at: new Date().toISOString(),
         })
         .eq("id", agentId);
@@ -129,7 +129,7 @@ export async function GET() {
 
     const { data: agentProfile, error: profileErr } = await supabase
       .from("agents")
-      .select("stripe_connect_account_id, stripe_connect_onboarded")
+      .select("stripe_account_id, stripe_onboarding_done")
       .eq("id", agentId)
       .single();
 
@@ -137,7 +137,7 @@ export async function GET() {
       return NextResponse.json({ error: "agent_profile_not_found" }, { status: 404 });
     }
 
-    const accountId = agentProfile.stripe_connect_account_id as string | null;
+    const accountId = agentProfile.stripe_account_id as string | null;
     if (!accountId) {
       return NextResponse.json({
         connected: false,
@@ -153,11 +153,11 @@ export async function GET() {
     const onboarded = account.charges_enabled && account.payouts_enabled;
 
     // Update local state if changed
-    if (onboarded !== agentProfile.stripe_connect_onboarded) {
+    if (onboarded !== agentProfile.stripe_onboarding_done) {
       await supabase
         .from("agents")
         .update({
-          stripe_connect_onboarded: onboarded,
+          stripe_onboarding_done: onboarded,
           updated_at: new Date().toISOString(),
         })
         .eq("id", agentId);

@@ -63,7 +63,14 @@ export default function AgentSettingsPage() {
         if (!res.ok) throw new Error("設定情報の取得に失敗しました");
         const json = await res.json();
         if (!cancelled) {
-          setSettings({ ...DEFAULT_SETTINGS, ...json.settings });
+          const agent = json.agent ?? {};
+          setSettings({
+            ...DEFAULT_SETTINGS,
+            ...agent,
+            stripe_connected: agent.stripe_onboarding_done ?? false,
+            stripe_account_id: agent.stripe_account_id ?? null,
+            role: json.current_user?.role ?? "viewer",
+          });
         }
       } catch (e: unknown) {
         if (!cancelled)
@@ -114,7 +121,7 @@ export default function AgentSettingsPage() {
   const handleStripeSetup = useCallback(async () => {
     setStripeLoading(true);
     try {
-      const res = await fetch("/api/agent/stripe/connect", {
+      const res = await fetch("/api/agent/stripe-connect", {
         method: "POST",
       });
       if (!res.ok) throw new Error("Stripe Connect の設定に失敗しました");
