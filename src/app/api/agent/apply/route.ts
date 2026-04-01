@@ -82,21 +82,23 @@ export async function POST(req: NextRequest) {
   }
 
   // -----------------------------------------------------------------------
-  // Step 3: すでに代理店として登録済みでないか確認
+  // Step 3: すでに代理店として登録済みでないか確認（agent_users テーブルで確認）
   // -----------------------------------------------------------------------
   if (currentUserId) {
-    const { data: existingAgent } = await adminClient
-      .from("agents")
-      .select("id, status")
+    const { data: existingAgentUser } = await adminClient
+      .from("agent_users")
+      .select("agent_id, agents(id, status)")
       .eq("user_id", currentUserId)
+      .eq("is_active", true)
       .maybeSingle();
 
-    if (existingAgent) {
+    if (existingAgentUser) {
+      const agentStatus = (existingAgentUser.agents as { status?: string } | null)?.status;
       return NextResponse.json(
         {
           error: "already_registered",
           message: "このアカウントはすでに代理店として登録されています。",
-          agent_status: existingAgent.status,
+          agent_status: agentStatus,
         },
         { status: 409 },
       );
