@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2025-02-24.acacia" as any,
+    apiVersion: "2026-02-25.clover" as Stripe.LatestApiVersion,
   });
 }
 
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     if (role !== "admin") {
       return NextResponse.json(
         { error: "forbidden", message: "Stripe Connect を設定する権限がありません。" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -87,9 +87,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate onboarding link
-    const body = await request.json().catch(() => ({} as Record<string, unknown>));
-    const returnUrl = safeUrl(body?.return_url as string | undefined);
-    const refreshUrl = safeUrl(body?.refresh_url as string | undefined);
+    const body = await request.json().catch(() => ({}) as Record<string, unknown>);
+    const base = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/+$/, "") ?? "";
+    const returnUrl = safeUrl(body?.return_url as string | undefined, `${base}/agent/settings?stripe=success`);
+    const refreshUrl = safeUrl(body?.refresh_url as string | undefined, `${base}/agent/settings?stripe=refresh`);
 
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
