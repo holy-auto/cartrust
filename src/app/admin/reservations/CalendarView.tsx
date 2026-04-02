@@ -19,11 +19,11 @@ interface CalendarViewProps {
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
 const STATUS_CONFIG: Record<string, { bg: string; text: string; dot: string }> = {
-  confirmed: { bg: "bg-blue-100", text: "text-blue-700", dot: "bg-blue-500" },
-  arrived: { bg: "bg-amber-100", text: "text-amber-700", dot: "bg-amber-500" },
-  in_progress: { bg: "bg-violet-100", text: "text-violet-700", dot: "bg-violet-500" },
+  confirmed: { bg: "bg-accent-dim", text: "text-accent-text", dot: "bg-accent" },
+  arrived: { bg: "bg-warning-dim", text: "text-warning-text", dot: "bg-warning" },
+  in_progress: { bg: "bg-violet-dim", text: "text-violet-text", dot: "bg-violet" },
   completed: { bg: "bg-success-dim", text: "text-success-text", dot: "bg-success" },
-  cancelled: { bg: "bg-gray-100", text: "text-gray-500", dot: "bg-gray-400" },
+  cancelled: { bg: "bg-inset", text: "text-secondary", dot: "bg-muted" },
 };
 
 function getMonthDays(year: number, month: number) {
@@ -181,8 +181,8 @@ export default function CalendarView({ reservations, onDateClick }: CalendarView
               onClick={() => onDateClick(cell.date)}
               className={`relative min-h-[80px] border-b border-r border-border-subtle p-1.5 text-left transition-colors group ${
                 !cell.isCurrentMonth ? "bg-surface-hover/50" : ""
-              } ${isSat && cell.isCurrentMonth ? "bg-blue-50/30" : ""}
-              ${isSun && cell.isCurrentMonth ? "bg-red-50/30" : ""}
+              } ${isSat && cell.isCurrentMonth ? "bg-accent-dim/30" : ""}
+              ${isSun && cell.isCurrentMonth ? "bg-danger-dim/30" : ""}
               hover:bg-accent-dim/50 active:bg-accent-dim`}
             >
               {/* Date number */}

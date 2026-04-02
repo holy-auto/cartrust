@@ -71,24 +71,24 @@ const STATUS_CONFIG: Record<
     dot: "bg-success-dim0",
     variant: "success",
   },
-  cancelled: { label: "キャンセル", bg: "bg-gray-50", text: "text-gray-500", dot: "bg-gray-400", variant: "danger" },
+  cancelled: { label: "キャンセル", bg: "bg-inset", text: "text-secondary", dot: "bg-muted", variant: "danger" },
 };
 
 const cfg = (s: string) =>
   STATUS_CONFIG[s] ?? {
     label: s,
-    bg: "bg-gray-50",
-    text: "text-gray-500",
-    dot: "bg-gray-400",
+    bg: "bg-inset",
+    text: "text-secondary",
+    dot: "bg-muted",
     variant: "default" as const,
   };
 
 // ─── Styles ──────────────────────────────────────────────
 
 const inputCls =
-  "w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-shadow";
+  "w-full rounded-xl border border-border-default bg-surface text-primary px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-shadow";
 const labelCls = "block space-y-1.5";
-const labelTextCls = "text-xs font-semibold text-neutral-600 tracking-wide uppercase";
+const labelTextCls = "text-xs font-semibold text-secondary tracking-wide uppercase";
 
 // ─── Component ───────────────────────────────────────────
 
@@ -422,7 +422,7 @@ export default function ReservationsClient() {
           if (gcalResult === "error" || gcalResult === "auth_error") {
             window.history.replaceState({}, "", window.location.pathname);
             return (
-              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+              <div className="rounded-xl border border-danger/20 bg-danger-dim p-3 text-sm text-danger-text">
                 ❌ Googleカレンダーの連携に失敗しました。再度お試しください。
               </div>
             );
@@ -430,7 +430,9 @@ export default function ReservationsClient() {
           return null;
         })()}
 
-      {err && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">{err}</div>}
+      {err && (
+        <div className="rounded-xl border border-danger/20 bg-danger-dim p-3 text-sm text-danger-text">{err}</div>
+      )}
 
       {/* ── Stats cards ── */}
       <div className="grid grid-cols-3 gap-3">
@@ -577,7 +579,7 @@ export default function ReservationsClient() {
                       setGcalCalendars([]);
                       setGcalCalendarId(null);
                     }}
-                    className="btn-ghost text-xs px-3 py-1.5 text-red-500"
+                    className="btn-ghost text-xs px-3 py-1.5 text-danger"
                   >
                     連携解除
                   </button>
@@ -765,7 +767,7 @@ export default function ReservationsClient() {
                                     </p>
                                   )}
                                   {r.cancel_reason && (
-                                    <p className="mt-1 text-xs text-red-500">キャンセル理由: {r.cancel_reason}</p>
+                                    <p className="mt-1 text-xs text-danger">キャンセル理由: {r.cancel_reason}</p>
                                   )}
                                 </div>
 
@@ -812,7 +814,7 @@ export default function ReservationsClient() {
                                         setCancelReason("");
                                         setDetailId(null);
                                       }}
-                                      className="px-3 py-1.5 text-xs rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                                      className="px-3 py-1.5 text-xs rounded-lg border border-danger/20 bg-danger-dim text-danger-text hover:bg-danger/10 transition-colors"
                                     >
                                       🚫 取消
                                     </button>
@@ -834,7 +836,7 @@ export default function ReservationsClient() {
                                           setMutationErr(e instanceof Error ? e.message : String(e));
                                         }
                                       }}
-                                      className="px-3 py-1.5 text-xs rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                                      className="px-3 py-1.5 text-xs rounded-lg border border-danger/20 bg-danger-dim text-danger-text hover:bg-danger/10 transition-colors"
                                     >
                                       🗑️ 削除
                                     </button>
@@ -917,7 +919,7 @@ export default function ReservationsClient() {
                     {/* Title */}
                     <label className={labelCls}>
                       <span className={labelTextCls}>
-                        予約タイトル <span className="text-red-500">*</span>
+                        予約タイトル <span className="text-danger">*</span>
                       </span>
                       <input
                         type="text"
@@ -933,7 +935,7 @@ export default function ReservationsClient() {
                     <div className="grid grid-cols-3 gap-3">
                       <label className={`${labelCls} col-span-1`}>
                         <span className={labelTextCls}>
-                          予約日 <span className="text-red-500">*</span>
+                          予約日 <span className="text-danger">*</span>
                         </span>
                         <input
                           type="date"
@@ -1055,7 +1057,7 @@ export default function ReservationsClient() {
                           })}
                         </div>
                         {formAmount > 0 && (
-                          <div className="mt-3 flex items-center justify-between bg-accent-dim border border-blue-100 rounded-xl px-4 py-2.5">
+                          <div className="mt-3 flex items-center justify-between bg-accent-dim border border-accent/20 rounded-xl px-4 py-2.5">
                             <span className="text-xs text-accent-text font-medium">見積金額</span>
                             <span className="text-base font-bold text-accent-text">{formatJpy(formAmount)}</span>
                           </div>
@@ -1077,7 +1079,7 @@ export default function ReservationsClient() {
 
                     {saveMsg && (
                       <div
-                        className={`text-sm p-3 rounded-xl ${saveMsg.ok ? "bg-success-dim text-success-text" : "bg-red-50 text-red-600"}`}
+                        className={`text-sm p-3 rounded-xl ${saveMsg.ok ? "bg-success-dim text-success-text" : "bg-danger-dim text-danger-text"}`}
                       >
                         {saveMsg.text}
                       </div>
@@ -1113,9 +1115,9 @@ export default function ReservationsClient() {
             className="mx-4 w-full max-w-sm rounded-2xl bg-surface p-6 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+            <div className="w-12 h-12 rounded-full bg-danger-dim flex items-center justify-center mx-auto mb-4">
               <svg
-                className="w-6 h-6 text-red-500"
+                className="w-6 h-6 text-danger"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -1151,7 +1153,7 @@ export default function ReservationsClient() {
               <button
                 type="button"
                 onClick={handleCancel}
-                className="flex-1 rounded-xl bg-red-500 py-2.5 text-sm font-semibold text-white hover:bg-red-600 transition-colors"
+                className="flex-1 rounded-xl bg-danger py-2.5 text-sm font-semibold text-white hover:bg-danger/90 transition-colors"
               >
                 キャンセル確定
               </button>
