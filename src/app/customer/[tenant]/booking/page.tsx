@@ -18,6 +18,8 @@ type DaySlots = {
   date: string;
   slots: SlotInfo[];
   hasAvailable: boolean;
+  closed?: boolean; // 定休日フラグ
+  message?: string; // 定休日メッセージ
 };
 
 type Step = "calendar" | "week-grid" | "time-select" | "form" | "confirm" | "done";
@@ -157,6 +159,8 @@ export default function BookingPage() {
             date,
             slots,
             hasAvailable: slots.some((s) => s.available > 0),
+            closed: j.closed === true,
+            message: j.message,
           },
         }));
       } catch {
@@ -285,8 +289,9 @@ export default function BookingPage() {
     if (date < todayStr) return "past";
     if (loadingDates.has(date)) return "loading";
     const d = slotsCache[date];
-    if (!d) return "closed";
-    if (d.slots.length === 0) return "closed";
+    if (!d) return "loading"; // まだ取得していない → ローディング扱い
+    if (d.closed) return "closed"; // 定休日
+    if (d.slots.length === 0) return "closed"; // スロット未設定
     return d.hasAvailable ? "available" : "full";
   };
 
@@ -526,6 +531,14 @@ export default function BookingPage() {
 
             {isLoading ? (
               <div className="py-12 text-center text-sm text-gray-400">空き状況を確認中...</div>
+            ) : dayData?.closed ? (
+              <div className="py-12 text-center">
+                <div className="text-4xl mb-3">🚫</div>
+                <p className="text-sm font-medium text-gray-700">{dayData.message ?? "この日は定休日です"}</p>
+                <button onClick={() => setStep("calendar")} className="mt-4 text-sm text-accent font-medium underline">
+                  別の日を選ぶ
+                </button>
+              </div>
             ) : !dayData || dayData.slots.length === 0 ? (
               <div className="py-12 text-center">
                 <div className="text-4xl mb-3">📅</div>
@@ -731,10 +744,20 @@ export default function BookingPage() {
                             ? "text-accent"
                             : status === "full"
                               ? "text-gray-300"
-                              : "text-gray-200"
+                              : "text-gray-300"
                       }`}
                     >
-                      {status === "loading" ? "…" : status === "available" ? "○" : status === "full" ? "×" : "–"}
+                      {status === "loading" ? (
+                        "…"
+                      ) : status === "available" ? (
+                        "○"
+                      ) : status === "full" ? (
+                        "×"
+                      ) : slotsCache[cell.date]?.closed ? (
+                        <span className="text-xs font-semibold text-gray-300">休</span>
+                      ) : (
+                        "–"
+                      )}
                     </span>
                   )}
                 </button>
@@ -802,6 +825,8 @@ export default function BookingPage() {
                         cellContent = <span className="text-gray-200 text-base">–</span>;
                       } else if (isLoading) {
                         cellContent = <span className="text-gray-200 text-base animate-pulse">…</span>;
+                      } else if (dayData?.closed) {
+                        cellContent = <span className="text-xs text-gray-300 font-semibold">休</span>;
                       } else if (!slot) {
                         cellContent = <span className="text-gray-200 text-base">–</span>;
                       } else if (slot.available > 0) {
