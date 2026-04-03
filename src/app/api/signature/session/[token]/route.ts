@@ -102,14 +102,16 @@ export async function GET(
     metadata:   { opened_at: new Date().toISOString() },
   });
 
-  const cert = session.certificates as {
+  // Supabase のリレーション結合は配列として返るため unknown 経由でキャスト
+  type CertJoined = {
     id: string;
     public_id: string;
     created_at: string;
     cert_type: string | null;
     vehicles: { car_number: string | null; car_name: string | null } | null;
     stores:   { name: string } | null;
-  } | null;
+  };
+  const cert = (session.certificates as unknown) as CertJoined | null;
 
   return apiOk({
     status:     'pending',
