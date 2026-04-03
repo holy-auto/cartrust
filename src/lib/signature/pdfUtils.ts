@@ -60,7 +60,7 @@ export async function generateCertificatePdfBytes(
 
   // renderCertificatePdf でバイト列を生成（署名セクションなし）
   const pdfBuffer = await renderCertificatePdf(certRow, publicUrl);
-  return new Uint8Array(pdfBuffer as ArrayBuffer);
+  return new Uint8Array(pdfBuffer as unknown as ArrayBufferLike);
 }
 
 /**
@@ -112,7 +112,7 @@ export async function generateSignedPdfBytes(
     publicUrl,
     signatureInfo,
   );
-  return new Uint8Array(pdfBuffer as ArrayBuffer);
+  return new Uint8Array(pdfBuffer as unknown as ArrayBufferLike);
 }
 
 /**
