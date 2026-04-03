@@ -85,7 +85,7 @@ CREATE POLICY "signature_sessions_tenant_select"
   ON signature_sessions FOR SELECT
   USING (
     tenant_id IN (
-      SELECT tenant_id FROM tenant_members
+      SELECT tenant_id FROM tenant_memberships
       WHERE user_id = auth.uid()
     )
   );
@@ -95,7 +95,7 @@ CREATE POLICY "signature_sessions_tenant_insert"
   ON signature_sessions FOR INSERT
   WITH CHECK (
     tenant_id IN (
-      SELECT tenant_id FROM tenant_members
+      SELECT tenant_id FROM tenant_memberships
       WHERE user_id = auth.uid()
     )
   );
@@ -152,7 +152,7 @@ CREATE POLICY "audit_logs_tenant_select"
     session_id IN (
       SELECT id FROM signature_sessions
       WHERE tenant_id IN (
-        SELECT tenant_id FROM tenant_members
+        SELECT tenant_id FROM tenant_memberships
         WHERE user_id = auth.uid()
       )
     )
