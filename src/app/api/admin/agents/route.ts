@@ -66,7 +66,8 @@ export async function GET(request: NextRequest) {
       total_commission: commMap[agent.id] ?? 0,
     }));
 
-    return NextResponse.json({ agents: enriched });
+    const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
+    return NextResponse.json({ agents: enriched }, { headers });
   } catch (e) {
     return apiInternalError(e, "agents GET");
   }
