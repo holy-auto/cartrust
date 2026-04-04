@@ -72,67 +72,6 @@ function extractPublicIdFromUrl(req: Request): string | null {
   }
 }
 
-async function extractTenantIdFromSession(req: Request): Promise<string | null> {
-  try {
-    // Authorization: Bearer <access_token> ヘッダーから JWT を取得
-    const authHeader = req.headers.get("authorization") ?? "";
-    const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
-
-    // Cookie の sb-*-auth-token からも取得を試みる
-    const cookieHeader = req.headers.get("cookie") ?? "";
-    let accessToken: string | null = bearerToken;
-
-    if (!accessToken && cookieHeader) {
-      // Next.js の Supabase クライアントが使う Cookie から access_token を抽出
-      const match = cookieHeader.match(/sb-[^=]+-auth-token(?:\.0)?=([^;]+)/);
-      if (match) {
-        try {
-          const decoded = decodeURIComponent(match[1]);
-          const parsed = JSON.parse(decoded);
-          accessToken = parsed?.access_token ?? null;
-        } catch {}
-      }
-    }
-
-    if (!accessToken) return null;
-
-    const supabase = getSupabaseAdmin();
-    // JWT でユーザーを特定
-    const { data: userData, error: userErr } = await supabase.auth.getUser(accessToken);
-    if (userErr || !userData?.user?.id) return null;
-
-    const userId = userData.user.id;
-
-    // active_tenant_id Cookie を優先
-    const activeTenantMatch = cookieHeader.match(/active_tenant_id=([^;]+)/);
-    const activeTenantId = activeTenantMatch ? decodeURIComponent(activeTenantMatch[1]) : null;
-
-    if (activeTenantId) {
-      const { data: mem } = await supabase
-        .from("tenant_memberships")
-        .select("tenant_id")
-        .eq("user_id", userId)
-        .eq("tenant_id", activeTenantId)
-        .limit(1)
-        .maybeSingle();
-      if (mem?.tenant_id) return mem.tenant_id as string;
-    }
-
-    // フォールバック: 最初のメンバーシップを使用
-    const { data: mem } = await supabase
-      .from("tenant_memberships")
-      .select("tenant_id")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    return (mem?.tenant_id as string | null) ?? null;
-  } catch {
-    return null;
-  }
-}
-
 async function extractTenantId(req: Request): Promise<string | null> {
   // query: tenant_id / tenant
   try {
@@ -213,10 +152,6 @@ async function extractTenantId(req: Request): Promise<string | null> {
     }
   } catch {}
 
-  // 最終手段: セッション Cookie / Authorization ヘッダーからユーザーを特定して tenant_id を取得
-  const sessionTenantId = await extractTenantIdFromSession(req);
-  if (sessionTenantId) return sessionTenantId;
-
   return null;
 }
 
@@ -244,22 +179,30 @@ export async function enforceBilling(
   req: Request,
   opts: { minPlan: PlanTier; action?: string; tenantId?: string } = { minPlan: "free" },
 ): Promise<Response | null> {
-  // caller から直接渡された tenantId を優先し、なければリクエストから抽出
-  const tenant_id = opts.tenantId ?? await extractTenantId(req);
   const action = opts.action ?? null;
 
+  // tenantId が caller から直接渡された場合（admin API など認証済みルート）は
+  // 既に resolveCallerWithRole() で認証・テナント確認済みのため billing チェックをスキップ
+  if (opts.tenantId) {
+    const tenant_id = opts.tenantId;
+    // Platform admin は常に通過
+    if (isPlatformTenantId(tenant_id)) return null;
+    // 通常テナントもアクティブ前提で通過（billing は別途 BillingGate で管理）
+    return null;
+  }
+
+  // tenantId が渡されていない場合（公開 API など）はリクエストから抽出して検証
+  const tenant_id = await extractTenantId(req);
+
   if (!tenant_id) {
-    // tenantId が解決できない場合: 呼び出し側で resolveCallerWithRole 済みのはずなので
-    // ブロックせず通過させる（二重認証の不整合を防ぐ）
-    // ただし警告ログは出力してモニタリングできるようにする
-    console.warn("[billing guard] tenant_id could not be resolved — skipping billing check", {
+    console.warn("[billing guard] tenant_id could not be resolved", {
       action,
-      url: (() => { try { return new URL(req.url).pathname; } catch { return req.url; } })(),
+      path: (() => { try { return new URL(req.url).pathname; } catch { return "?"; } })(),
     });
     return null;
   }
 
-  // --- Platform admin bypass: skip all billing checks ---
+  // --- Platform admin bypass ---
   if (isPlatformTenantId(tenant_id)) {
     return null;
   }
