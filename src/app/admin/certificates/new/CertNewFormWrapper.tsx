@@ -99,6 +99,12 @@ export default function CertNewFormWrapper({
   const [submitStatus, setSubmitStatus] = useState<"active" | "draft">("active");
   const [error, setError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+  // 署名依頼オプション
+  const [requestSignature, setRequestSignature] = useState(false);
+  const [signerEmail, setSignerEmail] = useState("");
+  const [signerName, setSignerName] = useState("");
+  const [notifyMethod, setNotifyMethod] = useState<"email" | "line">("email");
+  const [signatureSent, setSignatureSent] = useState<string | null>(null);
   const [savingDefault, setSavingDefault] = useState(false);
   const [defaultSaveMsg, setDefaultSaveMsg] = useState<string | null>(null);
   const photoRef = useRef<PhotoUploadHandle>(null);
@@ -162,7 +168,7 @@ export default function CertNewFormWrapper({
         return;
       }
 
-      const { public_id } = result;
+      const { public_id, id: certId } = result;
 
       if (files.length > 0) {
         setUploadProgress(`写真をアップロード中 (0/${files.length})…`);
@@ -185,7 +191,31 @@ export default function CertNewFormWrapper({
         }
       }
 
-      router.push(`/admin/certificates/new/success?pid=${encodeURIComponent(public_id)}`);
+      // 証明書発行後、署名依頼オプションが有効なら自動送信
+      if (submitStatus === "active" && requestSignature && signerEmail && certId) {
+        try {
+          const sigRes = await fetch("/api/signature/request", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              certificate_id:      certId,
+              signer_name:         signerName || undefined,
+              signer_email:        signerEmail,
+              notification_method: notifyMethod,
+            }),
+          });
+          const sigJson = await sigRes.json();
+          if (sigRes.ok) {
+            setSignatureSent(sigJson.sign_url ?? null);
+          } else {
+            console.warn("署名依頼の送信に失敗しました", sigJson);
+          }
+        } catch (e) {
+          console.warn("署名依頼エラー", e);
+        }
+      }
+
+      router.push(`/admin/certificates/new/success?pid=${encodeURIComponent(public_id)}${requestSignature && signerEmail ? "&sig=1" : ""}`);
     });
   };
 
@@ -440,6 +470,65 @@ export default function CertNewFormWrapper({
             {uploadProgress}
           </div>
         )}
+
+        {/* ── 電子署名依頼オプション ── */}
+        <div className="rounded-xl border border-border-subtle p-5 space-y-4 bg-surface">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 rounded border-border-default accent-accent"
+              checked={requestSignature}
+              onChange={(e) => setRequestSignature(e.target.checked)}
+            />
+            <span className="space-y-0.5">
+              <span className="block text-sm font-semibold text-primary">✍️ 発行後に電子署名を依頼する</span>
+              <span className="block text-xs text-muted">
+                証明書発行と同時に署名URLをメール/LINEで顧客へ自動送信します
+              </span>
+            </span>
+          </label>
+
+          {requestSignature && (
+            <div className="pl-7 space-y-3 border-l-2 border-accent/30">
+              <label className={labelCls}>
+                <span className={labelTextCls}>顧客メールアドレス <span className="text-danger">*</span></span>
+                <input
+                  type="email"
+                  value={signerEmail}
+                  onChange={(e) => setSignerEmail(e.target.value)}
+                  placeholder="customer@example.com"
+                  className={inputCls}
+                />
+              </label>
+              <label className={labelCls}>
+                <span className={labelTextCls}>顧客氏名（任意）</span>
+                <input
+                  type="text"
+                  value={signerName}
+                  onChange={(e) => setSignerName(e.target.value)}
+                  placeholder="山田 太郎"
+                  className={inputCls}
+                />
+              </label>
+              <label className={labelCls}>
+                <span className={labelTextCls}>通知方法</span>
+                <select
+                  value={notifyMethod}
+                  onChange={(e) => setNotifyMethod(e.target.value as "email" | "line")}
+                  className={inputCls}
+                >
+                  <option value="email">メール</option>
+                  <option value="line">LINE</option>
+                </select>
+              </label>
+              {requestSignature && !signerEmail && (
+                <p className="text-xs text-warning">
+                  ※ 署名依頼を送るには顧客メールアドレスが必要です
+                </p>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* ── アクション ── */}
         <div className="border-t border-border-subtle pt-6 flex flex-wrap gap-3 items-center">

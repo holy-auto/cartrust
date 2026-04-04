@@ -5,7 +5,9 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { makePublicId } from "@/lib/publicId";
 import { enqueueInsuranceCaseCreated } from "@/lib/qstash/publish";
 
-export type CreateCertResult = { ok: true; public_id: string } | { ok: false; error: string };
+export type CreateCertResult =
+  | { ok: true; public_id: string; id: string }
+  | { ok: false; error: string };
 
 export async function createCertAction(formData: FormData): Promise<CreateCertResult> {
   const supabase = await createSupabaseServerClient();
@@ -130,7 +132,7 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
   const statusParam = String(formData.get("status") || "active").trim();
   const certStatus = statusParam === "draft" ? "draft" : "active";
 
-  const { error } = await supabase.from("certificates").insert({
+  const { error, data: insertedCert } = await supabase.from("certificates").insert({
     tenant_id: tenantId,
     public_id,
     status: certStatus,
@@ -161,9 +163,10 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
     footer_variant: "holy",
     logo_asset_path: tenantLogoPath,
     created_by: userId,
-  });
+  }).select("id").single();
 
   if (error) return { ok: false, error: error.message };
+  const certId = insertedCert?.id as string ?? "";
 
   // Record vehicle history entry
   if (vehicle_id) {
@@ -202,7 +205,7 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
     }).catch((e) => console.warn("[cert] post_issue follow-up failed:", e));
   }
 
-  return { ok: true, public_id };
+  return { ok: true, public_id, id: certId };
 }
 
 /** 発行直後フォローアップを非同期でトリガー */
