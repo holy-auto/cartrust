@@ -21,10 +21,10 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { sessionId: string } },
+  { params }: { params: Promise<{ sessionId: string }> },
 ) {
   try {
-    const { sessionId } = params;
+    const { sessionId } = await params;
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
     const ua = req.headers.get('user-agent') ?? 'unknown';
 
