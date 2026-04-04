@@ -143,12 +143,20 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await supabase.from("customers").insert(row).select("id, tenant_id, name, name_kana, email, phone, postal_code, address, note, created_at, updated_at").single();
     if (error) {
-      return apiInternalError(error, "customers POST");
+      console.error("[customers POST] insert error:", error.code, error.message, error.details);
+      return NextResponse.json(
+        { error: "insert_failed", message: error.message, code: error.code },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ ok: true, customer: data });
-  } catch (e) {
-    return apiInternalError(e, "customers POST");
+  } catch (e: any) {
+    console.error("[customers POST] unexpected error:", e);
+    return NextResponse.json(
+      { error: "internal_error", message: e?.message ?? String(e) },
+      { status: 500 },
+    );
   }
 }
 
