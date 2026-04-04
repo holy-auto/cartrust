@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/api/auth";
 import { verifyWebhookSignature, downloadSignedPdf } from "@/lib/agent/cloudsign";
+import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
     const valid = await verifyWebhookSignature(rawBody, signature);
     if (!valid) {
       console.error("[cloudsign-webhook] Invalid signature");
-      return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
+      return apiUnauthorized();
     }
 
     const event = JSON.parse(rawBody);
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
     const documentId = event.data?.document_id as string;
 
     if (!documentId) {
-      return NextResponse.json({ error: "missing_document_id" }, { status: 400 });
+      return apiValidationError("missing_document_id");
     }
 
     const admin = getAdminClient();
@@ -124,7 +125,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (e) {
-    console.error("[cloudsign-webhook] Error:", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return apiInternalError(e, "webhooks/cloudsign");
   }
 }

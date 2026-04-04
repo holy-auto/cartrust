@@ -16,7 +16,7 @@ function isActiveStatus(status: Stripe.Subscription.Status): boolean {
   return status === "active" || status === "trialing" || status === "past_due";
 }
 
-function asStringId(v: any): string | null {
+function asStringId(v: unknown): string | null {
   if (!v) return null;
   if (typeof v === "string") return v;
   if (typeof v === "object" && v !== null && "id" in v) return String(v.id);
@@ -25,7 +25,8 @@ function asStringId(v: any): string | null {
 
 /** Stripe SDK v20+: current_period_end moved from Subscription to SubscriptionItem */
 function getCurrentPeriodEnd(sub: Stripe.Subscription): number | null {
-  return (sub as any).current_period_end ?? sub.items?.data?.[0]?.current_period_end ?? null;
+  const subRecord = sub as unknown as Record<string, unknown>;
+  return (subRecord.current_period_end as number | undefined) ?? sub.items?.data?.[0]?.current_period_end ?? null;
 }
 
 // ── Payment failure notification email ──
@@ -169,7 +170,7 @@ async function resolveTenantSelector(params: {
 async function updateTenantBySelector(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   selector: TenantSelector,
-  patch: Record<string, any>,
+  patch: Record<string, unknown>,
 ) {
   const q = supabase.from("tenants").update(patch);
   const { error } = selector.by === "id" ? await q.eq("id", selector.value) : await q.eq("slug", selector.value);
@@ -194,7 +195,7 @@ async function syncBySubscription(
   const selector = await resolveTenantSelector({ supabase, tenant_id, tenant_slug, customerId, subscriptionId });
   if (!selector) throw new Error(`Unable to resolve tenant for subscription sync. sub=${subscriptionId}`);
 
-  const patch: Record<string, any> = {
+  const patch: Record<string, unknown> = {
     stripe_subscription_id: subscriptionId,
     is_active: active,
   };
@@ -261,7 +262,7 @@ async function doSyncInsurer(
   const active = isActiveStatus(sub.status);
   const customerId = asStringId(sub.customer);
 
-  const patch: Record<string, any> = {
+  const patch: Record<string, unknown> = {
     stripe_subscription_id: sub.id,
     is_active: active,
   };
@@ -379,7 +380,8 @@ export async function POST(req: NextRequest) {
           const optionType = session.metadata?.option_type as "preset" | "custom" | undefined;
           if (tenantId && optionType && subscriptionId) {
             // subscription item ID を取得
-            const sub = await stripe.subscriptions.retrieve(subscriptionId);
+            const subRes = await stripe.subscriptions.retrieve(subscriptionId);
+            const sub = subRes as unknown as Stripe.Subscription & Record<string, unknown>;
             const recurringItem = sub.items?.data?.find((i) => i.price?.recurring);
 
             await supabase.from("tenant_option_subscriptions").upsert(
@@ -410,7 +412,8 @@ export async function POST(req: NextRequest) {
 
         if (!subscriptionId) throw new Error("checkout.session.completed: missing subscription id");
 
-        const sub = await stripe.subscriptions.retrieve(subscriptionId);
+        const sub = (await stripe.subscriptions.retrieve(subscriptionId)) as unknown as Stripe.Subscription &
+          Record<string, unknown>;
 
         if (isInsurer) {
           // Insurer checkout
@@ -481,7 +484,7 @@ export async function POST(req: NextRequest) {
       // ✅ Portal操作後の支払い・失敗でも同期（invoice自体にmetadataが無いので subscription を取得）
       case "invoice.paid":
       case "invoice.payment_failed": {
-        const inv = event.data.object as any;
+        const inv = event.data.object as Stripe.Invoice & Record<string, unknown>;
         // Stripe API v2025+ moved subscription reference:
         //   legacy: inv.subscription (string)
         //   new:    inv.parent?.subscription_details?.subscription (string)
@@ -498,7 +501,8 @@ export async function POST(req: NextRequest) {
           break;
         }
 
-        const sub = await stripe.subscriptions.retrieve(subscriptionId);
+        const sub = (await stripe.subscriptions.retrieve(subscriptionId)) as unknown as Stripe.Subscription &
+          Record<string, unknown>;
 
         // ─── テンプレートオプション invoice ───
         if (isTemplateOptionEvent(sub.metadata as Record<string, string> | null)) {

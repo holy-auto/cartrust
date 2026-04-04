@@ -1,5 +1,6 @@
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { apiValidationError, apiInternalError } from "@/lib/api/response";
 
 /**
  * QStash handler: insurance-case-created
@@ -14,7 +15,7 @@ async function handler(request: Request) {
   const body = await request.json().catch(() => null);
 
   if (!body) {
-    return Response.json({ ok: false, error: "no payload" }, { status: 400 });
+    return apiValidationError("no payload");
   }
 
   console.info("[QSTASH][insurance-case-created] processing:", JSON.stringify(body));
@@ -31,7 +32,7 @@ async function handler(request: Request) {
   } = body as Record<string, string | undefined>;
 
   if (!certificate_id || !tenant_id) {
-    return Response.json({ ok: false, error: "missing certificate_id or tenant_id" }, { status: 400 });
+    return apiValidationError("missing certificate_id or tenant_id");
   }
 
   const admin = createAdminClient();
@@ -94,7 +95,7 @@ async function handler(request: Request) {
     });
   } catch (e) {
     console.error("[QSTASH][insurance-case-created] error:", e);
-    return Response.json({ ok: false, error: e instanceof Error ? e.message : String(e) }, { status: 500 });
+    return apiInternalError(e, "qstash/insurance-case-created");
   }
 }
 

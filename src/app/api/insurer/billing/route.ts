@@ -3,7 +3,7 @@ import Stripe from "stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
 import { insurerPlanTierToPriceId } from "@/lib/stripe/insurerPlan";
-import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiUnauthorized, apiValidationError, apiInternalError, apiForbidden } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import type { InsurerPlanTier } from "@/types/insurer";
 
@@ -36,10 +36,7 @@ export async function POST(req: NextRequest) {
 
     // Only admin can manage billing
     if (caller.role !== "admin") {
-      return new Response(JSON.stringify({ error: "管理者のみ課金操作が可能です。" }), {
-        status: 403,
-        headers: { "content-type": "application/json" },
-      });
+      return apiForbidden("管理者のみ課金操作が可能です。");
     }
 
     const body = await req.json().catch(() => ({}));
@@ -150,11 +147,16 @@ export async function GET() {
     if (insurer.stripe_subscription_id) {
       try {
         const stripe = getStripe();
-        const sub = (await stripe.subscriptions.retrieve(insurer.stripe_subscription_id)) as any;
+        const res = await stripe.subscriptions.retrieve(insurer.stripe_subscription_id);
+        // Stripe v20 moved current_period_end to items; access via Record for backwards compat
+        const resRecord = res as unknown as Record<string, unknown>;
+        const sub = ((resRecord.data as Record<string, unknown> | undefined) ?? resRecord) as Stripe.Subscription &
+          Record<string, unknown>;
+        const subAny = sub as unknown as Record<string, unknown>;
         subscription = {
           status: sub.status,
-          current_period_end: sub.current_period_end ?? null,
-          cancel_at_period_end: sub.cancel_at_period_end ?? false,
+          current_period_end: (subAny.current_period_end as number | undefined) ?? null,
+          cancel_at_period_end: (subAny.cancel_at_period_end as boolean | undefined) ?? false,
         };
       } catch {
         // Subscription may have been deleted

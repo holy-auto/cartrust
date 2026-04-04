@@ -43,7 +43,7 @@ export async function POST(
       .update({ status: "attached", attached_at: new Date().toISOString() })
       .eq("id", id)
       .eq("tenant_id", caller.tenantId)
-      .select()
+      .select("id, tenant_id, tag_code, certificate_id, status, attached_at, created_at, updated_at")
       .single();
 
     if (error) return apiInternalError(error, "nfc.attach");
