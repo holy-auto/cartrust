@@ -48,7 +48,7 @@ export async function POST(
       .update({ status: "void", void_reason: body.reason })
       .eq("id", id)
       .eq("tenant_id", caller.tenantId)
-      .select()
+      .select("id, public_id, vehicle_id, tenant_id, status, void_reason, created_at, updated_at")
       .single();
 
     if (error) return apiInternalError(error, "certificates.void");
