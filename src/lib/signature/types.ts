@@ -161,7 +161,7 @@ export interface SignaturePageData {
   session_id: string;
   signer_name: string | null;
   expires_at: string;
-  pdf_url: string;
+  pdf_url: string | null;
   certificate: {
     id: string;
     public_id: string;

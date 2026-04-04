@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
   // ユーザーが対象テナントのメンバーであるか確認
   const admin = getAdminClient();
   const { data: membership } = await admin
-    .from("tenant_members")
+    .from("tenant_memberships")
     .select("id")
     .eq("user_id", user.id)
     .eq("tenant_id", state)
