@@ -34,6 +34,28 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
 
+    // ── API Key 認証 ──
+    const apiKey = req.headers.get("x-api-key");
+    if (!apiKey) {
+      return apiError({
+        code: "unauthorized",
+        message: "API key required",
+        status: 401,
+      });
+    }
+
+    // TODO: Implement per-tenant API keys (tenant.api_key field).
+    // Temporary measure: validate against CRON_SECRET as a Bearer token fallback.
+    const bearerToken = req.headers.get("authorization")?.replace("Bearer ", "");
+    const cronSecret = process.env.CRON_SECRET;
+    if (apiKey !== cronSecret && bearerToken !== cronSecret) {
+      return apiError({
+        code: "unauthorized",
+        message: "Invalid API key",
+        status: 401,
+      });
+    }
+
     // 必須フィールド検証
     const tenantSlug = body?.tenant_slug;
     const customerName = body?.customer_name;

@@ -12,9 +12,7 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
 
-  // Exclude worktree directories from Turbopack/Webpack scanning to prevent
-  // infinite symlink loops caused by "holy-cert": "file:" in package.json
-  serverExternalPackages: ["holy-cert", "@react-pdf/renderer"],
+  serverExternalPackages: ["@react-pdf/renderer"],
 
   // Pin Turbopack root to this directory to prevent path resolution issues in worktrees
   turbopack: {

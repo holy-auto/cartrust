@@ -65,10 +65,11 @@ export function ContactForm() {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-white/80 mb-2">
+          <label htmlFor="contact-name" className="block text-sm font-medium text-white/80 mb-2">
             お名前 <span className="text-red-400">*</span>
           </label>
           <input
+            id="contact-name"
             type="text"
             name="name"
             required
@@ -77,10 +78,11 @@ export function ContactForm() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-white/80 mb-2">
+          <label htmlFor="contact-company" className="block text-sm font-medium text-white/80 mb-2">
             会社名
           </label>
           <input
+            id="contact-company"
             type="text"
             name="company"
             className={inputClass}
@@ -89,10 +91,11 @@ export function ContactForm() {
         </div>
       </div>
       <div>
-        <label className="block text-sm font-medium text-white/80 mb-2">
+        <label htmlFor="contact-email" className="block text-sm font-medium text-white/80 mb-2">
           メールアドレス <span className="text-red-400">*</span>
         </label>
         <input
+          id="contact-email"
           type="email"
           name="email"
           required
@@ -101,10 +104,10 @@ export function ContactForm() {
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-white/80 mb-2">
+        <label htmlFor="contact-category" className="block text-sm font-medium text-white/80 mb-2">
           お問い合わせ種別 <span className="text-red-400">*</span>
         </label>
-        <select name="category" required className={inputClass}>
+        <select id="contact-category" name="category" required className={inputClass}>
           <option value="">選択してください</option>
           <option value="demo">デモのご依頼</option>
           <option value="document">資料請求</option>
@@ -114,10 +117,11 @@ export function ContactForm() {
         </select>
       </div>
       <div>
-        <label className="block text-sm font-medium text-white/80 mb-2">
+        <label htmlFor="contact-message" className="block text-sm font-medium text-white/80 mb-2">
           お問い合わせ内容 <span className="text-red-400">*</span>
         </label>
         <textarea
+          id="contact-message"
           name="message"
           required
           rows={5}

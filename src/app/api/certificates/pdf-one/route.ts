@@ -75,25 +75,33 @@ async function proxyToCertificatePdf(req: NextRequest, id: string) {
 }
 
 export async function POST(req: NextRequest) {
-  // ── 認証チェック ──
-  const supabase = await createSupabaseServerClient();
-  const caller = await resolveCallerWithRole(supabase);
-  if (!caller) {
-    return apiUnauthorized();
+  try {
+    // ── 認証チェック ──
+    const supabase = await createSupabaseServerClient();
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller) {
+      return apiUnauthorized();
+    }
+
+    // free以上 + is_active 必須（certificate_id が来れば guard 側で tenant 逆引き可能）
+    const deny = await enforceBilling(req, { minPlan: "free", action: "pdf_one" });
+    if (deny) return deny as any;
+
+    const body = await req.json().catch(() => null);
+    const id = pickId(body);
+
+    if (!id) {
+      return apiValidationError("certificate_id は必須です。");
+    }
+
+    return proxyToCertificatePdf(req, id);
+  } catch (e) {
+    console.error("[certificates/pdf-one]", e);
+    return NextResponse.json(
+      { error: "internal_error", message: "内部エラーが発生しました" },
+      { status: 500 }
+    );
   }
-
-  // free以上 + is_active 必須（certificate_id が来れば guard 側で tenant 逆引き可能）
-  const deny = await enforceBilling(req, { minPlan: "free", action: "pdf_one" });
-  if (deny) return deny as any;
-
-  const body = await req.json().catch(() => null);
-  const id = pickId(body);
-
-  if (!id) {
-    return apiValidationError("certificate_id は必須です。");
-  }
-
-  return proxyToCertificatePdf(req, id);
 }
 
 // A: GETは案内を出さず 405 に統一

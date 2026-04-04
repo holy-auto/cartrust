@@ -168,6 +168,7 @@ export default function DataTable<T>({
                           checked={isSelected}
                           onChange={() => toggleOne(key)}
                           className="accent-[var(--accent-blue)]"
+                          aria-label="行を選択"
                         />
                       </td>
                     )}
@@ -210,6 +211,7 @@ export default function DataTable<T>({
                           checked={isSelected}
                           onChange={() => toggleOne(key)}
                           className="accent-[var(--accent-blue)]"
+                          aria-label="行を選択"
                         />
                       </div>
                     )}

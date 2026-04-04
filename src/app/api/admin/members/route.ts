@@ -6,6 +6,8 @@ import { normalizePlanTier } from "@/lib/billing/planFeatures";
 import { memberLimit, canAddMember } from "@/lib/billing/memberLimits";
 import { logAuditEvent } from "@/lib/audit/certificateLog";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { hasPermission } from "@/lib/auth/permissions";
+import { ASSIGNABLE_ROLES, type Role } from "@/lib/auth/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -91,10 +93,20 @@ export async function POST(req: NextRequest) {
     const caller = await resolveCallerWithPlan(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
+    // Permission check: only roles with members:manage can add members
+    if (!hasPermission(caller.role as Role, "members:manage")) {
+      return NextResponse.json({ error: "forbidden", message: "メンバー追加の権限がありません。" }, { status: 403 });
+    }
+
     const body = await req.json().catch(() => ({} as any));
     const email = (body?.email ?? "").trim().toLowerCase();
     const displayName = (body?.display_name ?? "").trim() || null;
     const role = (body?.role ?? "").trim() || null; // null → DB default
+
+    // Validate role is assignable (prevent escalation to "owner")
+    if (role && !ASSIGNABLE_ROLES.includes(role as Role)) {
+      return NextResponse.json({ error: "invalid_role", message: `無効なロールです。指定可能: ${ASSIGNABLE_ROLES.join(", ")}` }, { status: 400 });
+    }
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: "invalid_email" }, { status: 400 });

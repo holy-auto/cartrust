@@ -3,6 +3,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { syncCreateEvent, syncUpdateEvent, syncDeleteEvent } from "@/lib/gcal/client";
 import { enforceBilling } from "@/lib/billing/guard";
+import { parsePagination } from "@/lib/api/pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -15,13 +16,14 @@ export async function GET(req: NextRequest) {
 
     const url = new URL(req.url);
     const status = url.searchParams.get("status") ?? "";
-    const from = url.searchParams.get("from") ?? "";
-    const to = url.searchParams.get("to") ?? "";
+    const dateFrom = url.searchParams.get("from") ?? "";
+    const dateTo = url.searchParams.get("to") ?? "";
     const customerId = url.searchParams.get("customer_id") ?? "";
+    const pagination = parsePagination(req);
 
     let query = supabase
       .from("reservations")
-      .select("id, customer_id, vehicle_id, title, menu_items_json, note, scheduled_date, start_time, end_time, assigned_user_id, status, estimated_amount, created_at")
+      .select("id, customer_id, vehicle_id, title, menu_items_json, note, scheduled_date, start_time, end_time, assigned_user_id, status, estimated_amount, created_at", { count: "exact" })
       .eq("tenant_id", caller.tenantId)
       .order("scheduled_date", { ascending: true })
       .order("start_time", { ascending: true });
@@ -29,17 +31,22 @@ export async function GET(req: NextRequest) {
     if (status && status !== "all") {
       query = query.eq("status", status);
     }
-    if (from) {
-      query = query.gte("scheduled_date", from);
+    if (dateFrom) {
+      query = query.gte("scheduled_date", dateFrom);
     }
-    if (to) {
-      query = query.lte("scheduled_date", to);
+    if (dateTo) {
+      query = query.lte("scheduled_date", dateTo);
     }
     if (customerId) {
       query = query.eq("customer_id", customerId);
     }
 
-    const { data: reservations, error } = await query;
+    // Apply pagination if page param was provided
+    if (pagination.page > 0) {
+      query = query.range(pagination.from, pagination.to);
+    }
+
+    const { data: reservations, error, count } = await query;
     if (error) {
       console.error("[reservations] db_error:", error.message);
       return NextResponse.json({ error: "db_error" }, { status: 500 });
@@ -83,14 +90,16 @@ export async function GET(req: NextRequest) {
     const todayCount = enriched.filter((r) => r.scheduled_date === today && r.status !== "cancelled").length;
     const activeCount = enriched.filter((r) => r.status !== "cancelled" && r.status !== "completed").length;
 
+    const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
     return NextResponse.json({
       reservations: enriched,
       stats: {
-        total: enriched.length,
+        total: count ?? enriched.length,
         today_count: todayCount,
         active_count: activeCount,
       },
-    });
+      ...(pagination.page > 0 && { page: pagination.page, per_page: pagination.perPage, total: count ?? 0 }),
+    }, { headers });
   } catch (e: unknown) {
     console.error("reservations list failed", e);
     return NextResponse.json({ error: "internal_error" }, { status: 500 });

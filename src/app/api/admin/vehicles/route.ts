@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { parsePagination } from "@/lib/api/pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -13,10 +14,11 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const customerId = searchParams.get("customer_id");
+    const pagination = parsePagination(req);
 
     let query = supabase
       .from("vehicles")
-      .select("id, maker, model, year, plate_display, vin_code, customer_id, customer:customers(id, name)")
+      .select("id, maker, model, year, plate_display, vin_code, customer_id, customer:customers(id, name)", { count: "exact" })
       .eq("tenant_id", caller.tenantId)
       .order("created_at", { ascending: false });
 
@@ -24,14 +26,23 @@ export async function GET(req: NextRequest) {
       query = query.eq("customer_id", customerId);
     }
 
-    const { data: vehicles, error } = await query;
+    // Apply pagination if page param was provided
+    if (pagination.page > 0) {
+      query = query.range(pagination.from, pagination.to);
+    }
+
+    const { data: vehicles, error, count } = await query;
 
     if (error) {
       console.error("[admin/vehicles] db_error:", error.message);
       return NextResponse.json({ error: "db_error" }, { status: 500 });
     }
 
-    return NextResponse.json({ vehicles: vehicles ?? [] });
+    const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
+    return NextResponse.json({
+      vehicles: vehicles ?? [],
+      ...(pagination.page > 0 && { page: pagination.page, per_page: pagination.perPage, total: count ?? 0 }),
+    }, { headers });
   } catch (e: any) {
     console.error("admin vehicles list failed", e);
     return NextResponse.json({ error: "internal_error" }, { status: 500 });

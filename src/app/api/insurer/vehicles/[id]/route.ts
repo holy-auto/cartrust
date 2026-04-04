@@ -22,43 +22,51 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const limited = await checkRateLimit(req, "general");
-  if (limited) return limited;
+  try {
+    const limited = await checkRateLimit(req, "general");
+    if (limited) return limited;
 
-  const caller = await resolveInsurerCaller();
-  if (!caller) return apiUnauthorized();
+    const caller = await resolveInsurerCaller();
+    if (!caller) return apiUnauthorized();
 
-  const { id } = await params;
-  if (!id) return apiValidationError("Missing vehicle id");
+    const { id } = await params;
+    if (!id) return apiValidationError("Missing vehicle id");
 
-  const { ip, ua } = getClientMeta(req);
-  const supabase = await createClient();
-  const admin = createAdminClient();
+    const { ip, ua } = getClientMeta(req);
+    const supabase = await createClient();
+    const admin = createAdminClient();
 
-  const { data: vehicle, error: vErr } = await admin
-    .from("vehicles")
-    .select("id, maker, model, year, plate_display, vin_code, size_class, tenant_id")
-    .eq("id", id)
-    .maybeSingle();
+    const { data: vehicle, error: vErr } = await admin
+      .from("vehicles")
+      .select("id, maker, model, year, plate_display, vin_code, size_class, tenant_id")
+      .eq("id", id)
+      .maybeSingle();
 
-  if (vErr) return apiValidationError(vErr.message);
-  if (!vehicle) return apiNotFound("車両が見つかりません。");
+    if (vErr) return apiValidationError(vErr.message);
+    if (!vehicle) return apiNotFound("車両が見つかりません。");
 
-  const { data: tenant } = await admin
-    .from("tenants")
-    .select("name")
-    .eq("id", vehicle.tenant_id)
-    .maybeSingle();
+    const { data: tenant } = await admin
+      .from("tenants")
+      .select("name")
+      .eq("id", vehicle.tenant_id)
+      .maybeSingle();
 
-  const { data: certs, error: cErr } = await supabase.rpc(
-    "insurer_get_vehicle_certificates",
-    { p_vehicle_id: id, p_ip: ip, p_user_agent: ua },
-  );
+    const { data: certs, error: cErr } = await supabase.rpc(
+      "insurer_get_vehicle_certificates",
+      { p_vehicle_id: id, p_ip: ip, p_user_agent: ua },
+    );
 
-  if (cErr) return apiValidationError(cErr.message);
+    if (cErr) return apiValidationError(cErr.message);
 
-  return NextResponse.json({
-    vehicle: { ...vehicle, tenant_name: tenant?.name ?? "" },
-    certificates: certs ?? [],
-  });
+    return NextResponse.json({
+      vehicle: { ...vehicle, tenant_name: tenant?.name ?? "" },
+      certificates: certs ?? [],
+    });
+  } catch (e) {
+    console.error("[insurer/vehicles/id]", e);
+    return NextResponse.json(
+      { error: "internal_error", message: "内部エラーが発生しました" },
+      { status: 500 }
+    );
+  }
 }

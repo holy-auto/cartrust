@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/api/auth";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,15 @@ export async function GET(req: NextRequest) {
   const error = url.searchParams.get("error");
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
+
+  // ── 認証チェック: ユーザーがログイン済みかつテナントメンバーであることを確認 ──
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.redirect(
+      new URL("/admin/square?square=error&reason=unauthenticated", baseUrl),
+    );
+  }
 
   // ユーザーが拒否した場合
   if (error) {
@@ -25,8 +35,21 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // state がテナントIDとして有効か検証
+  // ユーザーが対象テナントのメンバーであるか確認
   const admin = getAdminClient();
+  const { data: membership } = await admin
+    .from("tenant_members")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("tenant_id", state)
+    .limit(1)
+    .maybeSingle();
+
+  if (!membership) {
+    return NextResponse.redirect(
+      new URL("/admin/square?square=error&reason=unauthorized", baseUrl),
+    );
+  }
   const { data: tenant } = await admin
     .from("tenants")
     .select("id")

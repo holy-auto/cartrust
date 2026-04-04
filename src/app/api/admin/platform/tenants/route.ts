@@ -4,6 +4,7 @@ import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { escapeIlike } from "@/lib/sanitize";
+import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -16,10 +17,10 @@ export async function GET(req: NextRequest) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+      return apiUnauthorized();
     }
     if (!isPlatformAdmin(caller)) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+      return apiForbidden();
     }
 
     const admin = getSupabaseAdmin();
@@ -47,34 +48,39 @@ export async function GET(req: NextRequest) {
 
     const { data, count, error } = await query;
     if (error) {
-      console.error("[platform/tenants] query error:", error.message);
-      return NextResponse.json({ error: "db_error" }, { status: 500 });
+      return apiInternalError(error, "GET /api/admin/platform/tenants query");
     }
 
-    // Get member counts per tenant
+    // Get member and certificate counts per tenant using parallel count queries
     const tenantIds = (data ?? []).map((t: any) => t.id);
     const memberCounts: Record<string, number> = {};
-    if (tenantIds.length > 0) {
-      const { data: members } = await admin
-        .from("tenant_memberships")
-        .select("tenant_id")
-        .in("tenant_id", tenantIds);
-      for (const m of members ?? []) {
-        const tid = (m as any).tenant_id;
-        memberCounts[tid] = (memberCounts[tid] ?? 0) + 1;
-      }
-    }
-
-    // Get certificate counts per tenant
     const certCounts: Record<string, number> = {};
     if (tenantIds.length > 0) {
-      const { data: certs } = await admin
-        .from("certificates")
-        .select("tenant_id")
-        .in("tenant_id", tenantIds);
-      for (const c of certs ?? []) {
-        const tid = (c as any).tenant_id;
-        certCounts[tid] = (certCounts[tid] ?? 0) + 1;
+      const [memberResults, certResults] = await Promise.all([
+        Promise.all(
+          tenantIds.map((tid: string) =>
+            admin
+              .from("tenant_memberships")
+              .select("*", { count: "exact", head: true })
+              .eq("tenant_id", tid)
+              .then(({ count }) => ({ tid, count: count ?? 0 }))
+          )
+        ),
+        Promise.all(
+          tenantIds.map((tid: string) =>
+            admin
+              .from("certificates")
+              .select("*", { count: "exact", head: true })
+              .eq("tenant_id", tid)
+              .then(({ count }) => ({ tid, count: count ?? 0 }))
+          )
+        ),
+      ]);
+      for (const { tid, count } of memberResults) {
+        memberCounts[tid] = count;
+      }
+      for (const { tid, count } of certResults) {
+        certCounts[tid] = count;
       }
     }
 
@@ -90,7 +96,6 @@ export async function GET(req: NextRequest) {
       limit,
     });
   } catch (e: unknown) {
-    console.error("[platform/tenants] GET failed:", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return apiInternalError(e, "GET /api/admin/platform/tenants");
   }
 }

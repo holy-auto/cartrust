@@ -103,7 +103,8 @@ export async function GET(req: NextRequest) {
 
     if (error) return apiValidationError(error.message);
 
-    return NextResponse.json({ cases: data ?? [], total: count ?? 0 });
+    const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
+    return NextResponse.json({ cases: data ?? [], total: count ?? 0 }, { headers });
   } catch (err) {
     return apiInternalError(err, "GET /api/insurer/cases");
   }

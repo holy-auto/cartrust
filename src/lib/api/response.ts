@@ -1,11 +1,27 @@
 import { NextResponse } from "next/server";
 
+// TODO [Q-6]: Migrate all 113+ API routes to use apiError/apiInternalError helpers
+// instead of raw NextResponse.json error returns. Track progress per directory:
+//   - src/app/api/admin/   (partially done)
+//   - src/app/api/insurer/ (partially done)
+//   - src/app/api/...      (not started)
+
 /**
  * 統一エラーレスポンスヘルパー
  *
  * - 本番環境では内部エラーの詳細をクライアントに漏らさない
  * - 一貫したレスポンス形式を保証
+ * - apiInternalError は自動的に Sentry にエラーを送信
  */
+
+/** Lazily capture errors to Sentry without blocking the response */
+function captureSentryError(error: unknown) {
+  import("@sentry/nextjs")
+    .then((Sentry) => {
+      Sentry.captureException(error);
+    })
+    .catch(() => {});
+}
 
 type ErrorCode =
   | "validation_error"
@@ -58,6 +74,8 @@ export function apiInternalError(error: unknown, context?: string) {
   } else {
     console.error("[API Error]", msg);
   }
+
+  captureSentryError(error);
 
   return apiError({
     code: "internal_error",

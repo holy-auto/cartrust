@@ -8,6 +8,7 @@
  */
 import { getAnthropicClient, AI_MODEL, parseJsonResponse } from "@/lib/ai/client";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { escapeIlike } from "@/lib/sanitize";
 
 // ─────────────────────────────────────────────
 // 型定義
@@ -64,7 +65,7 @@ async function searchKnowledge(params: {
 
   // 全文検索（ilike）
   if (keywords.length > 0) {
-    const orConditions = keywords.map((k) => `content.ilike.%${k}%`).join(",");
+    const orConditions = keywords.map((k) => `content.ilike.%${escapeIlike(k)}%`).join(",");
     query = query.or(orConditions);
   }
 

@@ -41,7 +41,7 @@ export async function GET() {
   try {
     const key = process.env.STRIPE_SECRET_KEY;
     if (!key) {
-      checks.stripe = { ok: false, error: "STRIPE_SECRET_KEY not set" };
+      checks.stripe = { ok: false, error: "Required payment key not configured" };
       allHealthy = false;
     } else {
       checks.stripe = { ok: true, latency_ms: 0 };
@@ -69,7 +69,7 @@ export async function GET() {
   checks.env_vars = {
     ok: missingEnvVars.length === 0,
     ...(missingEnvVars.length > 0
-      ? { error: `Missing: ${missingEnvVars.join(", ")}` }
+      ? { error: `${missingEnvVars.length} required env var(s) missing` }
       : {}),
   };
   if (missingEnvVars.length > 0) allHealthy = false;

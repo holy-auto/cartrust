@@ -27,6 +27,7 @@ export default function Accordion({ items, className = "" }: AccordionProps) {
           <div key={i}>
             <button
               onClick={() => toggle(i)}
+              aria-expanded={isOpen}
               className="flex w-full items-center justify-between gap-4 py-4 text-left transition-colors hover:text-primary"
             >
               <span className="text-sm font-medium text-primary">{item.question}</span>

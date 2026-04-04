@@ -113,7 +113,7 @@ export async function GET(req: NextRequest) {
   // ─── Send alert email if issues found ───
   if (alerts.length > 0) {
     const apiKey = process.env.RESEND_API_KEY;
-    const alertEmail = process.env.CONTACT_EMAIL_TO;
+    const alertEmail = process.env.CONTACT_TO_EMAIL;
     if (apiKey && alertEmail) {
       try {
         await fetch(RESEND_API, {

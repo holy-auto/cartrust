@@ -3,6 +3,7 @@ import { randomInt } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { emailSchema } from "@/lib/validation/schemas";
+import { sha256Hex } from "@/lib/customerPortalServer";
 
 export const runtime = "nodejs";
 
@@ -130,7 +131,7 @@ export async function POST(req: Request) {
     .from("insurer_email_verifications")
     .insert({
       email: email.toLowerCase(),
-      code,
+      code: sha256Hex(`insurer-otp|v1|${email.toLowerCase()}|${code}`),
       expires_at: expiresAt,
       verified: false,
       attempts: 0,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { parsePagination } from "@/lib/api/pagination";
+import { escapeIlike, escapePostgrestValue } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -37,8 +38,9 @@ export async function GET(req: NextRequest) {
     if (q) {
       // Search by public_id, customer_name, or vehicle-related fields
       // plate_display and vehicle_maker/vehicle_model are denormalized on the certificates table
+      const safeQ = escapePostgrestValue(escapeIlike(q));
       query = query.or(
-        `public_id.ilike.%${q}%,customer_name.ilike.%${q}%,plate_display.ilike.%${q}%,vehicle_maker.ilike.%${q}%,vehicle_model.ilike.%${q}%`,
+        `public_id.ilike.%${safeQ}%,customer_name.ilike.%${safeQ}%,plate_display.ilike.%${safeQ}%,vehicle_maker.ilike.%${safeQ}%,vehicle_model.ilike.%${safeQ}%`,
       );
     }
 
@@ -49,7 +51,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "db_error" }, { status: 500 });
     }
 
-    return NextResponse.json({ certificates: certificates ?? [] });
+    const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
+    return NextResponse.json({ certificates: certificates ?? [] }, { headers });
   } catch (e: any) {
     console.error("admin certificates list failed", e);
     return NextResponse.json({ error: "internal_error" }, { status: 500 });

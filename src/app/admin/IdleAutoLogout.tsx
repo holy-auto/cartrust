@@ -15,7 +15,12 @@ const WARNING_BEFORE_MS = 60 * 1000; // 警告表示から60秒後にログア�
 
 const ACTIVITY_EVENTS = ["mousedown", "keydown", "touchstart", "scroll", "mousemove"] as const;
 
-export default function IdleAutoLogout() {
+interface IdleAutoLogoutProps {
+  /** URL to redirect to after idle logout. Defaults to "/login". */
+  logoutUrl?: string;
+}
+
+export default function IdleAutoLogout({ logoutUrl = "/login" }: IdleAutoLogoutProps = {}) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const warningDialogRef = useRef<HTMLDialogElement | null>(null);
@@ -29,7 +34,7 @@ export default function IdleAutoLogout() {
       try { sessionStorage.clear(); } catch { /* ignore */ }
     } catch { /* ignore */ }
     // replaceでbfcacheに管理画面を残さない
-    window.location.replace("/login?reason=idle");
+    window.location.replace(`${logoutUrl}?reason=idle`);
   }, []);
 
   const dismissWarning = useCallback(() => {
