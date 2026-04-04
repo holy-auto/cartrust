@@ -284,8 +284,12 @@ export default function ReservationsClient() {
         body: JSON.stringify({ workflow_template_id: workflowTemplateId }),
       });
       if (!res.ok) throw new Error("Failed");
-      mutate();
-      setDetailId(null);
+      await mutate();
+      // ワークフロー開始後、ステッパー表示に切り替え
+      const tpl = detailTemplates.find((t) => t.id === workflowTemplateId);
+      if (tpl) setDetailSteps(tpl.steps);
+      setDetailStepLogs([]);
+      setWorkflowTemplateId("");
     } catch (e: unknown) {
       alert("ワークフロー開始に失敗: " + (e instanceof Error ? e.message : String(e)));
     }
