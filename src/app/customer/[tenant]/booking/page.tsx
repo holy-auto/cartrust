@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -99,6 +99,7 @@ function getWeekDates(anchor: Date): string[] {
 export default function BookingPage() {
   const params = useParams() as { tenant: string };
   const tenantSlug = params.tenant ?? "";
+  const searchParams = useSearchParams();
 
   const today = useMemo(() => new Date(), []);
   const todayStr = useMemo(() => toDateStr(today), [today]);
@@ -120,10 +121,10 @@ export default function BookingPage() {
   const [slotsCache, setSlotsCache] = useState<Record<string, DaySlots>>({});
   const [loadingDates, setLoadingDates] = useState<Set<string>>(new Set());
 
-  // ── form state ──
-  const [formName, setFormName] = useState("");
-  const [formPhone, setFormPhone] = useState("");
-  const [formEmail, setFormEmail] = useState("");
+  // ── form state (URLパラメータからのプリフィル対応) ──
+  const [formName, setFormName] = useState(() => searchParams?.get("name") ?? "");
+  const [formPhone, setFormPhone] = useState(() => searchParams?.get("phone") ?? "");
+  const [formEmail, setFormEmail] = useState(() => searchParams?.get("email") ?? "");
   const [formNote, setFormNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitErr, setSubmitErr] = useState<string | null>(null);

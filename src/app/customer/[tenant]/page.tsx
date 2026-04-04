@@ -279,7 +279,14 @@ export default function CustomerListPage() {
 
           <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={() => router.push(`/customer/${encodeURIComponent(tenant)}/booking`)}
+              onClick={() => {
+                const params = new URLSearchParams();
+                if (profile?.name) params.set("name", profile.name);
+                if (profile?.email) params.set("email", profile.email);
+                if (profile?.phone) params.set("phone", profile.phone);
+                const qs = params.toString();
+                router.push(`/customer/${encodeURIComponent(tenant)}/booking${qs ? `?${qs}` : ""}`);
+              }}
               className="rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white hover:bg-accent/90"
             >
               予約する
