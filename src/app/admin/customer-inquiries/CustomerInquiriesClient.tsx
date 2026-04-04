@@ -103,7 +103,7 @@ export default function CustomerInquiriesClient() {
 
   return (
     <div className="mx-auto max-w-4xl p-6">
-      <PageHeader title="お客様問い合わせ" description="マイページから届いたお客様からの問い合わせを管理します" />
+      <PageHeader tag="顧客管理" title="お客様問い合わせ" description="マイページから届いたお客様からの問い合わせを管理します" />
 
       {/* フィルタ */}
       <div className="mb-4 flex gap-2 flex-wrap">
