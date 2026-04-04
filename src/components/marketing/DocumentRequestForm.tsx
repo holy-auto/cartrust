@@ -81,10 +81,11 @@ export function DocumentRequestForm({ role }: { role: RoleType }) {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-white/80 mb-2">
+          <label htmlFor="docreq-name" className="block text-sm font-medium text-white/80 mb-2">
             お名前 <span className="text-red-400">*</span>
           </label>
           <input
+            id="docreq-name"
             type="text"
             name="name"
             required
@@ -93,10 +94,11 @@ export function DocumentRequestForm({ role }: { role: RoleType }) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-white/80 mb-2">
+          <label htmlFor="docreq-company" className="block text-sm font-medium text-white/80 mb-2">
             {role === "insurer" ? "会社名" : "会社名・店舗名"} <span className="text-red-400">*</span>
           </label>
           <input
+            id="docreq-company"
             type="text"
             name="company"
             required
@@ -107,10 +109,11 @@ export function DocumentRequestForm({ role }: { role: RoleType }) {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-white/80 mb-2">
+          <label htmlFor="docreq-email" className="block text-sm font-medium text-white/80 mb-2">
             メールアドレス <span className="text-red-400">*</span>
           </label>
           <input
+            id="docreq-email"
             type="email"
             name="email"
             required
@@ -119,10 +122,11 @@ export function DocumentRequestForm({ role }: { role: RoleType }) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-white/80 mb-2">
+          <label htmlFor="docreq-phone" className="block text-sm font-medium text-white/80 mb-2">
             電話番号
           </label>
           <input
+            id="docreq-phone"
             type="tel"
             name="phone"
             className={inputClass}
@@ -131,10 +135,11 @@ export function DocumentRequestForm({ role }: { role: RoleType }) {
         </div>
       </div>
       <div>
-        <label className="block text-sm font-medium text-white/80 mb-2">
+        <label htmlFor="docreq-message" className="block text-sm font-medium text-white/80 mb-2">
           ご質問・ご要望
         </label>
         <textarea
+          id="docreq-message"
           name="message"
           rows={4}
           className={`${inputClass} resize-none`}

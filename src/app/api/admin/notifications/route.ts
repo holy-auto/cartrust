@@ -39,10 +39,11 @@ export async function GET(req: NextRequest) {
       .or(`user_id.is.null,user_id.eq.${caller.userId}`)
       .is("read_at", null);
 
+    const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
     return NextResponse.json({
       notifications: data ?? [],
       unread_count: count ?? 0,
-    });
+    }, { headers });
   } catch (e) {
     return apiInternalError(e, "list notifications");
   }

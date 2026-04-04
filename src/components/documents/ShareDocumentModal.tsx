@@ -139,8 +139,9 @@ export default function ShareDocumentModal({
       {tab === "email" && (
         <div className="space-y-3">
           <div>
-            <label className="mb-1 block text-xs text-muted">メールアドレス</label>
+            <label htmlFor="share-email" className="mb-1 block text-xs text-muted">メールアドレス</label>
             <input
+              id="share-email"
               type="email"
               className="input-field w-full"
               placeholder="example@email.com"
@@ -149,8 +150,9 @@ export default function ShareDocumentModal({
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-muted">メッセージ（任意）</label>
+            <label htmlFor="share-email-message" className="mb-1 block text-xs text-muted">メッセージ（任意）</label>
             <textarea
+              id="share-email-message"
               className="input-field w-full"
               rows={3}
               placeholder="添付メッセージを入力..."
@@ -165,8 +167,9 @@ export default function ShareDocumentModal({
       {tab === "line" && (
         <div className="space-y-3">
           <div>
-            <label className="mb-1 block text-xs text-muted">LINE ユーザーID</label>
+            <label htmlFor="share-line-userid" className="mb-1 block text-xs text-muted">LINE ユーザーID</label>
             <input
+              id="share-line-userid"
               type="text"
               className="input-field w-full"
               placeholder="U1234567890abcdef..."
@@ -178,8 +181,9 @@ export default function ShareDocumentModal({
             LINE公式アカウントと友だち登録済みのユーザーIDを入力してください。
           </p>
           <div>
-            <label className="mb-1 block text-xs text-muted">メッセージ（任意）</label>
+            <label htmlFor="share-line-message" className="mb-1 block text-xs text-muted">メッセージ（任意）</label>
             <textarea
+              id="share-line-message"
               className="input-field w-full"
               rows={3}
               placeholder="追加メッセージを入力..."
@@ -194,8 +198,9 @@ export default function ShareDocumentModal({
       {tab === "sms" && (
         <div className="space-y-3">
           <div>
-            <label className="mb-1 block text-xs text-muted">電話番号</label>
+            <label htmlFor="share-sms-phone" className="mb-1 block text-xs text-muted">電話番号</label>
             <input
+              id="share-sms-phone"
               type="tel"
               className="input-field w-full"
               placeholder="090-1234-5678"
@@ -204,8 +209,9 @@ export default function ShareDocumentModal({
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-muted">メッセージ（任意）</label>
+            <label htmlFor="share-sms-message" className="mb-1 block text-xs text-muted">メッセージ（任意）</label>
             <textarea
+              id="share-sms-message"
               className="input-field w-full"
               rows={3}
               placeholder="追加メッセージを入力..."

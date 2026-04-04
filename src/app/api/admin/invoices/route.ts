@@ -124,6 +124,7 @@ export async function GET(req: NextRequest) {
       (i) => i.issued_at && i.issued_at >= thisMonthStart
     ).length;
 
+    const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
     return NextResponse.json({
       invoices: enriched,
       stats: {
@@ -139,7 +140,7 @@ export async function GET(req: NextRequest) {
           total_pages: Math.ceil((totalCount ?? allInvoices.length) / perPage),
         },
       }),
-    });
+    }, { headers });
   } catch (e: any) {
     console.error("invoices list failed", e);
     return NextResponse.json({ error: "internal_error" }, { status: 500 });

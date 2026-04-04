@@ -84,7 +84,7 @@ export async function POST(
     }
 
     // パートナースコア更新（fire-and-forget）
-    admin.rpc("refresh_partner_score", { p_tenant_id: reviewedTenantId }).then(() => {});
+    admin.rpc("refresh_partner_score", { p_tenant_id: reviewedTenantId }).then(() => {}).catch(console.error);
 
     // 監査ログ
     admin
@@ -96,7 +96,7 @@ export async function POST(
         action: "review_submitted",
         new_value: { rating: Math.round(rating), reviewed_tenant_id: reviewedTenantId },
       })
-      .then(() => {});
+      .then(() => {}).catch(console.error);
 
     return NextResponse.json({ review: data }, { status: 201 });
   } catch (e: unknown) {

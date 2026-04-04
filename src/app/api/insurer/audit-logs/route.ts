@@ -6,44 +6,52 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
-  const caller = await resolveInsurerCaller();
-  if (!caller) return apiUnauthorized();
+  try {
+    const caller = await resolveInsurerCaller();
+    if (!caller) return apiUnauthorized();
 
-  if (caller.role !== "admin" && caller.role !== "auditor") {
-    return new Response(
-      JSON.stringify({
-        error: "forbidden",
-        message: "監査ログの閲覧権限がありません。",
-      }),
-      { status: 403, headers: { "content-type": "application/json" } },
+    if (caller.role !== "admin" && caller.role !== "auditor") {
+      return new Response(
+        JSON.stringify({
+          error: "forbidden",
+          message: "監査ログの閲覧権限がありません。",
+        }),
+        { status: 403, headers: { "content-type": "application/json" } },
+      );
+    }
+
+    const url = new URL(req.url);
+    const limit = Math.min(
+      parseInt(url.searchParams.get("limit") ?? "100", 10) || 100,
+      500,
+    );
+    const offset = Math.max(
+      parseInt(url.searchParams.get("offset") ?? "0", 10) || 0,
+      0,
+    );
+    const action = url.searchParams.get("action") ?? "";
+
+    const admin = createAdminClient();
+    let query = admin
+      .from("insurer_access_logs")
+      .select("*")
+      .eq("insurer_id", caller.insurerId)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (action) {
+      query = query.eq("action", action);
+    }
+
+    const { data, error } = await query;
+    if (error) return apiValidationError(error.message);
+
+    return NextResponse.json({ logs: data ?? [], limit, offset });
+  } catch (e) {
+    console.error("[insurer/audit-logs]", e);
+    return NextResponse.json(
+      { error: "internal_error", message: "内部エラーが発生しました" },
+      { status: 500 }
     );
   }
-
-  const url = new URL(req.url);
-  const limit = Math.min(
-    parseInt(url.searchParams.get("limit") ?? "100", 10) || 100,
-    500,
-  );
-  const offset = Math.max(
-    parseInt(url.searchParams.get("offset") ?? "0", 10) || 0,
-    0,
-  );
-  const action = url.searchParams.get("action") ?? "";
-
-  const admin = createAdminClient();
-  let query = admin
-    .from("insurer_access_logs")
-    .select("*")
-    .eq("insurer_id", caller.insurerId)
-    .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1);
-
-  if (action) {
-    query = query.eq("action", action);
-  }
-
-  const { data, error } = await query;
-  if (error) return apiValidationError(error.message);
-
-  return NextResponse.json({ logs: data ?? [], limit, offset });
 }

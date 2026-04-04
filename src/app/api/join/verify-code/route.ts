@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { sha256Hex } from "@/lib/customerPortalServer";
 
 export const runtime = "nodejs";
 
@@ -77,8 +78,9 @@ export async function POST(req: Request) {
     .update({ attempts: record.attempts + 1 })
     .eq("id", record.id);
 
-  // Verify code
-  if (record.code !== code) {
+  // Verify code (compare hashed)
+  const codeHash = sha256Hex(`insurer-otp|v1|${email}|${code}`);
+  if (record.code !== codeHash) {
     return NextResponse.json(
       { error: "invalid_code", message: "確認コードが正しくありません" },
       { status: 400 },

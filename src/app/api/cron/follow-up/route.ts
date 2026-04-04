@@ -26,6 +26,7 @@ type FollowUpSetting = {
 };
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 120;
 
 const isAiPlan = (tier: string) => ["standard", "pro"].includes(tier);
 
@@ -174,22 +175,37 @@ export async function GET(req: NextRequest) {
             .eq("expiry_date", dateStr)
             .neq("status", "void");
 
-          for (const cert of certs ?? []) {
-            if (!cert.customer_id) continue;
-            const notifType = `expiry_reminder_${days}d`;
-            const { data: existing } = await supabase
-              .from("notification_logs")
-              .select("id")
-              .eq("target_id", cert.id)
-              .eq("type", notifType)
-              .limit(1);
-            if (existing?.length) continue;
+          const certList = certs ?? [];
+          if (!certList.length) continue;
 
-            const { data: customer } = await supabase
+          // Batch-fetch notification_logs for all certs in this batch
+          const certIds = certList.map((c) => c.id);
+          const notifType = `expiry_reminder_${days}d`;
+          const { data: existingLogs } = await supabase
+            .from("notification_logs")
+            .select("target_id")
+            .in("target_id", certIds)
+            .eq("type", notifType);
+          const alreadyNotifiedIds = new Set((existingLogs ?? []).map((l) => l.target_id));
+
+          // Batch-fetch customers for all certs
+          const customerIds = [...new Set(certList.map((c) => c.customer_id).filter(Boolean))] as string[];
+          const customerMap = new Map<string, { name: string | null; email: string | null }>();
+          if (customerIds.length) {
+            const { data: customers } = await supabase
               .from("customers")
-              .select("name, email")
-              .eq("id", cert.customer_id)
-              .single();
+              .select("id, name, email")
+              .in("id", customerIds);
+            for (const c of customers ?? []) {
+              customerMap.set(c.id, { name: c.name, email: c.email });
+            }
+          }
+
+          for (const cert of certList) {
+            if (!cert.customer_id) continue;
+            if (alreadyNotifiedIds.has(cert.id)) continue;
+
+            const customer = customerMap.get(cert.customer_id);
             if (!customer?.email) continue;
 
             const sent = await sendExpiryReminder({
@@ -229,22 +245,37 @@ export async function GET(req: NextRequest) {
             .gte("created_at", `${dateStr}T00:00:00`)
             .lte("created_at", `${dateStr}T23:59:59`);
 
-          for (const cert of certs ?? []) {
-            if (!cert.customer_id) continue;
-            const notifType = `follow_up_${days}d`;
-            const { data: existing } = await supabase
-              .from("notification_logs")
-              .select("id")
-              .eq("target_id", cert.id)
-              .eq("type", notifType)
-              .limit(1);
-            if (existing?.length) continue;
+          const certList = certs ?? [];
+          if (!certList.length) continue;
 
-            const { data: customer } = await supabase
+          // Batch-fetch notification_logs
+          const certIds = certList.map((c) => c.id);
+          const notifType = `follow_up_${days}d`;
+          const { data: existingLogs } = await supabase
+            .from("notification_logs")
+            .select("target_id")
+            .in("target_id", certIds)
+            .eq("type", notifType);
+          const alreadyNotifiedIds = new Set((existingLogs ?? []).map((l) => l.target_id));
+
+          // Batch-fetch customers
+          const customerIds = [...new Set(certList.map((c) => c.customer_id).filter(Boolean))] as string[];
+          const customerMap = new Map<string, { name: string | null; email: string | null; line_user_id: string | null }>();
+          if (customerIds.length) {
+            const { data: customers } = await supabase
               .from("customers")
-              .select("name, email, line_user_id")
-              .eq("id", cert.customer_id)
-              .single();
+              .select("id, name, email, line_user_id")
+              .in("id", customerIds);
+            for (const c of customers ?? []) {
+              customerMap.set(c.id, { name: c.name, email: c.email, line_user_id: c.line_user_id });
+            }
+          }
+
+          for (const cert of certList) {
+            if (!cert.customer_id) continue;
+            if (alreadyNotifiedIds.has(cert.id)) continue;
+
+            const customer = customerMap.get(cert.customer_id);
             if (!customer?.email) continue;
 
             const trigger: FollowUpTriggerType = days <= 90 ? "mid_followup" : "recoat_proposal";
@@ -283,21 +314,37 @@ export async function GET(req: NextRequest) {
             .gte("created_at", `${todayStr}T00:00:00`)
             .lte("created_at", `${todayStr}T23:59:59`);
 
-          for (const cert of newCerts ?? []) {
-            if (!cert.customer_id) continue;
-            const { data: existing } = await supabase
+          const newCertList = newCerts ?? [];
+          // Batch-fetch notification_logs for post_issue
+          const newCertIds = newCertList.map((c) => c.id);
+          let postIssueNotifiedIds = new Set<string>();
+          if (newCertIds.length) {
+            const { data: existingLogs } = await supabase
               .from("notification_logs")
-              .select("id")
-              .eq("target_id", cert.id)
-              .eq("type", "post_issue")
-              .limit(1);
-            if (existing?.length) continue;
+              .select("target_id")
+              .in("target_id", newCertIds)
+              .eq("type", "post_issue");
+            postIssueNotifiedIds = new Set((existingLogs ?? []).map((l) => l.target_id));
+          }
 
-            const { data: customer } = await supabase
+          // Batch-fetch customers
+          const newCertCustomerIds = [...new Set(newCertList.map((c) => c.customer_id).filter(Boolean))] as string[];
+          const newCertCustomerMap = new Map<string, { name: string | null; email: string | null }>();
+          if (newCertCustomerIds.length) {
+            const { data: customers } = await supabase
               .from("customers")
-              .select("name, email")
-              .eq("id", cert.customer_id)
-              .single();
+              .select("id, name, email")
+              .in("id", newCertCustomerIds);
+            for (const c of customers ?? []) {
+              newCertCustomerMap.set(c.id, { name: c.name, email: c.email });
+            }
+          }
+
+          for (const cert of newCertList) {
+            if (!cert.customer_id) continue;
+            if (postIssueNotifiedIds.has(cert.id)) continue;
+
+            const customer = newCertCustomerMap.get(cert.customer_id);
             if (!customer?.email) continue;
 
             const ok = await sendNotification({
@@ -339,22 +386,39 @@ export async function GET(req: NextRequest) {
             .gte("created_at", `${dateStr}T00:00:00`)
             .lte("created_at", `${dateStr}T23:59:59`);
 
-          for (const cert of certs ?? []) {
-            if (!cert.customer_id) continue;
-            const notifType = `first_reminder_${firstReminderDays}d`;
-            const { data: existing } = await supabase
-              .from("notification_logs")
-              .select("id")
-              .eq("target_id", cert.id)
-              .eq("type", notifType)
-              .limit(1);
-            if (existing?.length) continue;
+          const firstCertList = certs ?? [];
+          const notifType = `first_reminder_${firstReminderDays}d`;
 
-            const { data: customer } = await supabase
+          // Batch-fetch notification_logs
+          const firstCertIds = firstCertList.map((c) => c.id);
+          let firstNotifiedIds = new Set<string>();
+          if (firstCertIds.length) {
+            const { data: existingLogs } = await supabase
+              .from("notification_logs")
+              .select("target_id")
+              .in("target_id", firstCertIds)
+              .eq("type", notifType);
+            firstNotifiedIds = new Set((existingLogs ?? []).map((l) => l.target_id));
+          }
+
+          // Batch-fetch customers
+          const firstCustomerIds = [...new Set(firstCertList.map((c) => c.customer_id).filter(Boolean))] as string[];
+          const firstCustomerMap = new Map<string, { name: string | null; email: string | null }>();
+          if (firstCustomerIds.length) {
+            const { data: customers } = await supabase
               .from("customers")
-              .select("name, email")
-              .eq("id", cert.customer_id)
-              .single();
+              .select("id, name, email")
+              .in("id", firstCustomerIds);
+            for (const c of customers ?? []) {
+              firstCustomerMap.set(c.id, { name: c.name, email: c.email });
+            }
+          }
+
+          for (const cert of firstCertList) {
+            if (!cert.customer_id) continue;
+            if (firstNotifiedIds.has(cert.id)) continue;
+
+            const customer = firstCustomerMap.get(cert.customer_id);
             if (!customer?.email) continue;
 
             const ok = await sendNotification({
@@ -391,25 +455,45 @@ export async function GET(req: NextRequest) {
             .not("warranty_period", "is", null)
             .neq("status", "void");
 
-          for (const cert of activeCerts ?? []) {
-            if (!cert.customer_id) continue;
+          const activeCertList = activeCerts ?? [];
+          // Pre-filter by warranty end days
+          const warrantyFilteredCerts = activeCertList.filter((cert) => {
+            if (!cert.customer_id) return false;
             const daysUntilEnd = getDaysUntilWarrantyEnd(cert.created_at, cert.warranty_period);
-            if (daysUntilEnd === null || daysUntilEnd !== warrantyEndDays) continue;
+            return daysUntilEnd !== null && daysUntilEnd === warrantyEndDays;
+          });
 
-            const notifType = "warranty_end_reminder";
-            const { data: existing } = await supabase
+          const warrantyNotifType = "warranty_end_reminder";
+
+          // Batch-fetch notification_logs
+          const warrantyCertIds = warrantyFilteredCerts.map((c) => c.id);
+          let warrantyNotifiedIds = new Set<string>();
+          if (warrantyCertIds.length) {
+            const { data: existingLogs } = await supabase
               .from("notification_logs")
-              .select("id")
-              .eq("target_id", cert.id)
-              .eq("type", notifType)
-              .limit(1);
-            if (existing?.length) continue;
+              .select("target_id")
+              .in("target_id", warrantyCertIds)
+              .eq("type", warrantyNotifType);
+            warrantyNotifiedIds = new Set((existingLogs ?? []).map((l) => l.target_id));
+          }
 
-            const { data: customer } = await supabase
+          // Batch-fetch customers
+          const warrantyCustomerIds = [...new Set(warrantyFilteredCerts.map((c) => c.customer_id).filter(Boolean))] as string[];
+          const warrantyCustomerMap = new Map<string, { name: string | null; email: string | null }>();
+          if (warrantyCustomerIds.length) {
+            const { data: customers } = await supabase
               .from("customers")
-              .select("name, email")
-              .eq("id", cert.customer_id)
-              .single();
+              .select("id, name, email")
+              .in("id", warrantyCustomerIds);
+            for (const c of customers ?? []) {
+              warrantyCustomerMap.set(c.id, { name: c.name, email: c.email });
+            }
+          }
+
+          for (const cert of warrantyFilteredCerts) {
+            if (warrantyNotifiedIds.has(cert.id)) continue;
+
+            const customer = warrantyCustomerMap.get(cert.customer_id!);
             if (!customer?.email) continue;
 
             const ok = await sendNotification({
@@ -422,7 +506,7 @@ export async function GET(req: NextRequest) {
               issuedAt: cert.created_at,
               warrantyPeriod: cert.warranty_period,
               trigger: "warranty_end",
-              notifType,
+              notifType: warrantyNotifType,
               shopName,
               shopPhone: tenant.phone ?? undefined,
               planTier,

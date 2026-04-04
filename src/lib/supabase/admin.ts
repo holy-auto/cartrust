@@ -36,17 +36,31 @@ export const supabaseAdmin = /* @__PURE__ */ new Proxy({} as AnySupabaseClient, 
 /**
  * Tenant-scoped admin client wrapper.
  *
- * Returns the admin client with a helper that automatically appends
- * `.eq("tenant_id", tenantId)` to queries, reducing the risk of
- * cross-tenant data leakage when using the service-role client.
+ * Returns the admin client together with the tenantId that the caller
+ * **MUST** use to filter every query.
  *
- * Usage:
- *   const { admin, tenantId } = createTenantScopedAdmin(caller.tenantId);
- *   // Use admin normally — but remember to add tenant filtering
+ * @security **CRITICAL** — The returned `admin` client bypasses RLS and has
+ * unrestricted access to ALL tenants. Every query built with this client
+ * **MUST** include `.eq("tenant_id", tenantId)` (or an equivalent filter).
+ * Failing to do so will cause **cross-tenant data leakage**.
+ *
+ * @example
+ * ```ts
+ * const { admin, tenantId } = createTenantScopedAdmin(caller.tenantId);
+ * const { data } = await admin
+ *   .from("some_table")
+ *   .select("*")
+ *   .eq("tenant_id", tenantId); // <-- REQUIRED
+ * ```
+ *
+ * @throws {Error} if tenantId is falsy (empty string, null, undefined)
  */
 export function createTenantScopedAdmin(tenantId: string) {
-  if (!tenantId) {
-    throw new Error("[security] createTenantScopedAdmin called without tenantId");
+  if (!tenantId || typeof tenantId !== "string" || tenantId.trim() === "") {
+    throw new Error(
+      "[security] createTenantScopedAdmin called with falsy or empty tenantId. " +
+      "This is a critical error — aborting to prevent cross-tenant data leakage."
+    );
   }
   return { admin: getSupabaseAdmin(), tenantId };
 }

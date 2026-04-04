@@ -96,6 +96,7 @@ export async function GET(req: NextRequest) {
       .filter((p) => p.status === "completed")
       .reduce((sum, p) => sum + (p.amount ?? 0), 0);
 
+    const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
     return NextResponse.json({
       payments: enriched,
       stats: {
@@ -110,7 +111,7 @@ export async function GET(req: NextRequest) {
           total_pages: Math.ceil((totalCount ?? total) / perPage),
         },
       }),
-    });
+    }, { headers });
   } catch (e: unknown) {
     console.error("payments list failed", e);
     return NextResponse.json({ error: "internal_error" }, { status: 500 });
