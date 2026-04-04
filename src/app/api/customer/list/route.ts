@@ -27,6 +27,7 @@ export async function GET(req: Request) {
     const globalToken = c.get(GLOBAL_PORTAL_COOKIE)?.value ?? "";
 
     let phoneHash = "";
+    let phoneLast4: string | undefined;
 
     if (tenantToken) {
       const tenantSession = await validateSession(tenantId, tenantToken);
@@ -39,27 +40,29 @@ export async function GET(req: Request) {
       const portalAccess = await resolvePortalTenantAccessByGlobalToken(tenant_slug, globalToken);
       if (portalAccess) {
         phoneHash = portalAccess.phone_last4_hash;
+        // 古い証明書（ハッシュなし）への後方互換のため平文の下4桁も保持
+        if (portalAccess.phone_last4) phoneLast4 = portalAccess.phone_last4;
       }
     }
 
     if (!phoneHash) return apiUnauthorized();
 
     if (action === "history") {
-      const history = await listHistoryForCustomer(tenantId, phoneHash);
+      const history = await listHistoryForCustomer(tenantId, phoneHash, phoneLast4);
       return NextResponse.json({ ok: true, history });
     }
 
     if (action === "reservations") {
-      const reservations = await listReservationsForCustomer(tenantId, phoneHash);
+      const reservations = await listReservationsForCustomer(tenantId, phoneHash, phoneLast4);
       return NextResponse.json({ ok: true, reservations });
     }
 
     if (action === "profile") {
-      const profile = await getCustomerProfile(tenantId, phoneHash);
+      const profile = await getCustomerProfile(tenantId, phoneHash, phoneLast4);
       return NextResponse.json({ ok: true, profile });
     }
 
-    const rows = await listCertificatesForCustomer(tenantId, phoneHash);
+    const rows = await listCertificatesForCustomer(tenantId, phoneHash, phoneLast4);
 
     return NextResponse.json({ ok: true, rows });
   } catch (e: unknown) {
