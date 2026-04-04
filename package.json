@@ -40,7 +40,6 @@
     "cheerio": "^1.2.0",
     "driver.js": "^1.4.0",
     "google-auth-library": "^10.6.2",
-    "holy-cert": "file:",
     "import-in-the-middle": "^3.0.0",
     "jszip": "^3.10.1",
     "next": "16.1.6",
