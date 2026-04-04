@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { escapeIlike } from "@/lib/sanitize";
 import { enforceBilling } from "@/lib/billing/guard";
@@ -141,22 +142,16 @@ export async function POST(req: NextRequest) {
       note: (body?.note ?? "").trim() || null,
     };
 
-    const { data, error } = await supabase.from("customers").insert(row).select("id, tenant_id, name, name_kana, email, phone, postal_code, address, note, created_at, updated_at").single();
+    // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin.from("customers").insert(row).select("id, tenant_id, name, name_kana, email, phone, postal_code, address, note, created_at, updated_at").single();
     if (error) {
-      console.error("[customers POST] insert error:", error.code, error.message, error.details);
-      return NextResponse.json(
-        { error: "insert_failed", message: error.message, code: error.code },
-        { status: 500 },
-      );
+      return apiInternalError(error, "customers POST");
     }
 
     return NextResponse.json({ ok: true, customer: data });
-  } catch (e: any) {
-    console.error("[customers POST] unexpected error:", e);
-    return NextResponse.json(
-      { error: "internal_error", message: e?.message ?? String(e) },
-      { status: 500 },
-    );
+  } catch (e) {
+    return apiInternalError(e, "customers POST");
   }
 }
 
@@ -188,7 +183,9 @@ export async function PUT(req: NextRequest) {
       updated_at: new Date().toISOString(),
     };
 
-    const { data, error } = await supabase
+    // RLS をバイパスしてサービスロールで UPDATE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin
       .from("customers")
       .update(updates)
       .eq("id", id)
@@ -200,16 +197,16 @@ export async function PUT(req: NextRequest) {
       return apiInternalError(error, "customers PUT");
     }
 
-    // 双方向反映: 紐付き車両の customer_name も同期更新
+    // 双方向反映: 紐付き車両の updated_at も同期更新
     try {
-      const { count } = await supabase
+      const { count } = await admin
         .from("vehicles")
         .select("id", { count: "exact", head: true })
         .eq("customer_id", id)
         .eq("tenant_id", caller.tenantId);
 
       if (count && count > 0) {
-        await supabase
+        await admin
           .from("vehicles")
           .update({ updated_at: new Date().toISOString() })
           .eq("customer_id", id)
@@ -240,14 +237,17 @@ export async function DELETE(req: NextRequest) {
     const id = (body?.id ?? "").trim();
     if (!id) return apiValidationError("id is required");
 
+    // RLS をバイパスしてサービスロールで操作（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+
     // リンク済み証明書/請求書があるか確認（並列実行）
     const [{ count: certCount }, { count: invCount }] = await Promise.all([
-      supabase
+      admin
         .from("certificates")
         .select("id", { count: "exact", head: true })
         .eq("tenant_id", caller.tenantId)
         .eq("customer_id", id),
-      supabase
+      admin
         .from("documents")
         .select("id", { count: "exact", head: true })
         .eq("tenant_id", caller.tenantId)
@@ -259,7 +259,7 @@ export async function DELETE(req: NextRequest) {
       return apiValidationError("この顧客には証明書または請求書が紐付いているため削除できません。");
     }
 
-    const { error } = await supabase
+    const { error } = await admin
       .from("customers")
       .delete()
       .eq("id", id)
