@@ -1,4 +1,12 @@
--- customer_inquiries: マイページから加盟店への問い合わせ
+-- Fix: customer_inquiries RLS policies referenced non-existent table "tenant_members"
+-- Correct table name is "tenant_memberships"
+
+-- Drop incorrect policies if they were partially created
+drop policy if exists "tenant_members_select" on customer_inquiries;
+drop policy if exists "tenant_members_update" on customer_inquiries;
+drop policy if exists "service_role_all" on customer_inquiries;
+
+-- Recreate customer_inquiries table if migration failed mid-way
 create table if not exists customer_inquiries (
   id                  uuid primary key default gen_random_uuid(),
   tenant_id           uuid not null references tenants(id) on delete cascade,
@@ -14,17 +22,15 @@ create table if not exists customer_inquiries (
   updated_at          timestamptz not null default now()
 );
 
--- tenant ごとの問い合わせ取得用インデックス
 create index if not exists customer_inquiries_tenant_idx
   on customer_inquiries(tenant_id, created_at desc);
 
--- 顧客ハッシュ単位での絞り込み用インデックス
 create index if not exists customer_inquiries_hash_idx
   on customer_inquiries(tenant_id, phone_last4_hash, created_at desc);
 
--- RLS: 管理者（authenticated）のみ参照・更新可能
 alter table customer_inquiries enable row level security;
 
+-- 管理者（tenant_memberships 経由）のみ参照・更新可能
 create policy "tenant_members_select"
   on customer_inquiries for select
   using (
