@@ -130,7 +130,7 @@ const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   ],
   staff: [
     "dashboard:view",
-    "certificates:view", "certificates:create", "certificates:edit",
+    "certificates:view", "certificates:create", "certificates:edit", "certificates:void",
     "vehicles:view", "vehicles:create", "vehicles:edit",
     "customers:view", "customers:create", "customers:edit",
     "reservations:view", "reservations:create", "reservations:edit",
