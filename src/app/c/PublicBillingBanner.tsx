@@ -52,7 +52,9 @@ export default function PublicBillingBanner() {
 
   if (!data) return null;
 
-  if (data.billing_active) return null;
+  // billing_active が明示的に false の場合のみバナーを表示
+  // undefined（古いAPIレスポンスやキャッシュ）の場合は非表示
+  if (data.billing_active !== false) return null;
 
   return (
     <div className="glass-card mb-4 border-amber-500/30 p-4 text-sm text-amber-400">
