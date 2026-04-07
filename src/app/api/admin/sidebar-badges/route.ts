@@ -4,8 +4,6 @@ import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { getAdminClient } from "@/lib/api/auth";
 import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
 
-export const dynamic = "force-dynamic";
-
 /**
  * GET /api/admin/sidebar-badges
  *
