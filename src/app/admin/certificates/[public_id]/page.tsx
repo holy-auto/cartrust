@@ -7,6 +7,7 @@ import { logCertificateAction } from "@/lib/audit/certificateLog";
 import PageHeader from "@/components/ui/PageHeader";
 import AiExplainPanel from "@/components/certificates/AiExplainPanel";
 import SignatureRequestPanel from "./SignatureRequestPanel";
+import CertStatusActions from "./CertStatusActions";
 import { formatDateTime } from "@/lib/format";
 
 type PageProps = {
@@ -273,6 +274,17 @@ export default async function Page({ params }: PageProps) {
         </div>
 
         <aside className="space-y-6">
+          {/* ステータス操作（下書き公開・無効化） */}
+          {!isVoid && (
+            <section className="glass-card p-5 space-y-3">
+              <div>
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">ACTIONS</div>
+                <div className="mt-1 text-lg font-semibold text-primary">ステータス操作</div>
+              </div>
+              <CertStatusActions publicId={row.public_id as string} status={row.status as string} />
+            </section>
+          )}
+
           {/* AI説明変換パネル（B-2） */}
           <section className="glass-card p-5">
             <AiExplainPanel certificateId={row.id as string} />
