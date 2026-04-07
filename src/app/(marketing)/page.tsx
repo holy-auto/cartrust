@@ -15,9 +15,31 @@ import { Container } from "@/components/marketing/Container";
 import { getMarketingStats } from "@/lib/marketing/stats";
 import { PLANS } from "@/lib/marketing/pricing";
 import Link from "next/link";
+import { Suspense } from "react";
+
+async function MarketingStatsSection() {
+  const stats = await getMarketingStats();
+  if (stats.shopCount === "—" && stats.certificateCount === "—") return null;
+  return (
+    <Section>
+      <SectionHeading title="ご利用状況" />
+      <StatsRow>
+        {stats.shopCount !== "—" && (
+          <ScrollReveal variant="scale-up" delay={0}>
+            <StatCard value={stats.shopCount} label="導入企業数" />
+          </ScrollReveal>
+        )}
+        {stats.certificateCount !== "—" && (
+          <ScrollReveal variant="scale-up" delay={150}>
+            <StatCard value={stats.certificateCount} label="証明書発行数" />
+          </ScrollReveal>
+        )}
+      </StatsRow>
+    </Section>
+  );
+}
 
 export default async function HomePage() {
-  const stats = await getMarketingStats();
   return (
     <>
       {/* Hero */}
@@ -498,23 +520,9 @@ export default async function HomePage() {
       </Section>
 
       {/* 信頼要素 */}
-      {(stats.shopCount !== "—" || stats.certificateCount !== "—") && (
-        <Section>
-          <SectionHeading title="ご利用状況" />
-          <StatsRow>
-            {stats.shopCount !== "—" && (
-              <ScrollReveal variant="scale-up" delay={0}>
-                <StatCard value={stats.shopCount} label="導入企業数" />
-              </ScrollReveal>
-            )}
-            {stats.certificateCount !== "—" && (
-              <ScrollReveal variant="scale-up" delay={150}>
-                <StatCard value={stats.certificateCount} label="証明書発行数" />
-              </ScrollReveal>
-            )}
-          </StatsRow>
-        </Section>
-      )}
+      <Suspense>
+        <MarketingStatsSection />
+      </Suspense>
 
       {/* 料金概要 */}
       <Section bg="alt" id="pricing">
