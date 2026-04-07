@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createCertAction } from "./actions";
+import { createCertAction, updateDraftCertAction } from "./actions";
 import VehiclePickerSection from "./VehiclePickerSection";
 import FilmThicknessSection from "./FilmThicknessSection";
 import CoatingProductsSection from "./CoatingProductsSection";
@@ -50,6 +50,22 @@ type Template = {
   schema_json: TemplateSchema | null;
 };
 
+type InitialValues = {
+  customer_name?: string;
+  customer_id?: string;
+  vehicle_id?: string;
+  vehicle_maker?: string;
+  vehicle_model?: string;
+  vehicle_plate?: string;
+  content_free_text?: string;
+  expiry_value?: string;
+  expiry_date?: string;
+  warranty_period_end?: string;
+  maintenance_date?: string;
+  warranty_exclusions?: string;
+  remarks?: string;
+};
+
 type Props = {
   vehicles: Vehicle[];
   defaultVehicleId?: string;
@@ -61,6 +77,8 @@ type Props = {
   tid: string;
   serviceType?: string; // "ppf" | "coating" | etc — derived from template category
   defaultWarrantyExclusions?: string;
+  editPublicId?: string;      // set when editing an existing draft
+  initialValues?: InitialValues;
 };
 
 const inputCls =
@@ -89,6 +107,8 @@ export default function CertNewFormWrapper({
   tid,
   serviceType,
   defaultWarrantyExclusions,
+  editPublicId,
+  initialValues,
 }: Props) {
   const isPpf = serviceType === "ppf";
   const isMaintenance = serviceType === "maintenance";
@@ -150,7 +170,12 @@ export default function CertNewFormWrapper({
     const files = photoRef.current?.getFiles() ?? [];
 
     startTransition(async () => {
-      const result = await createCertAction(formData);
+      if (editPublicId) {
+        formData.set("edit_public_id", editPublicId);
+      }
+      const result = editPublicId
+        ? await updateDraftCertAction(formData)
+        : await createCertAction(formData);
       if (!result.ok) {
         setError(
           result.error === "vehicle_required"
@@ -255,6 +280,7 @@ export default function CertNewFormWrapper({
         <input type="hidden" name="template_name" value={selectedTemplate?.name ?? ""} />
         {defaultCustomerId && <input type="hidden" name="customer_id" value={defaultCustomerId} />}
         {serviceType && <input type="hidden" name="service_type" value={serviceType} />}
+        {editPublicId && <input type="hidden" name="edit_public_id" value={editPublicId} />}
 
         {/* ━━━ 1. 車種選択 ━━━ */}
         <section data-vehicle-picker className="pb-6">
@@ -266,8 +292,13 @@ export default function CertNewFormWrapper({
                   )
                 : vehicles
             }
-            defaultVehicleId={defaultVehicleId}
+            defaultVehicleId={initialValues?.vehicle_id ?? defaultVehicleId}
             onVehicleChange={setSelectedVehicleId}
+            initialCustomerName={initialValues?.customer_name}
+            initialCustomerId={initialValues?.customer_id}
+            initialMaker={initialValues?.vehicle_maker}
+            initialModel={initialValues?.vehicle_model}
+            initialPlate={initialValues?.vehicle_plate}
           />
         </section>
 
@@ -307,16 +338,16 @@ export default function CertNewFormWrapper({
           </div>
           <label className={labelCls}>
             <span className={labelTextCls}>有効条件（テキスト）</span>
-            <input name="expiry_value" className={inputCls} placeholder="半年ごとにメンテ推奨 など" />
+            <input name="expiry_value" className={inputCls} placeholder="半年ごとにメンテ推奨 など" defaultValue={initialValues?.expiry_value ?? ""} />
           </label>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={labelCls}>
               <span className={labelTextCls}>有効期限</span>
-              <input type="date" name="expiry_date" className={inputCls} />
+              <input type="date" name="expiry_date" className={inputCls} defaultValue={initialValues?.expiry_date ?? ""} />
             </label>
             <label className={labelCls}>
               <span className={labelTextCls}>保証期間（終了日）</span>
-              <input type="date" name="warranty_period_end" className={inputCls} />
+              <input type="date" name="warranty_period_end" className={inputCls} defaultValue={initialValues?.warranty_period_end ?? ""} />
             </label>
           </div>
         </section>
@@ -355,6 +386,7 @@ export default function CertNewFormWrapper({
               className={inputCls}
               rows={5}
               placeholder="施工内容の詳細を記入してください（下地処理、コーティング工程、仕上げ等）"
+              defaultValue={initialValues?.content_free_text ?? ""}
             />
           </label>
         </section>
@@ -372,7 +404,7 @@ export default function CertNewFormWrapper({
           </div>
           <label className={labelCls}>
             <span className={labelTextCls}>実施日</span>
-            <input type="date" name="maintenance_date" className={inputCls} />
+            <input type="date" name="maintenance_date" className={inputCls} defaultValue={initialValues?.maintenance_date ?? ""} />
           </label>
         </section>
 
@@ -389,7 +421,7 @@ export default function CertNewFormWrapper({
               name="warranty_exclusions"
               className={inputCls}
               rows={4}
-              defaultValue={defaultWarrantyExclusions ?? ""}
+              defaultValue={initialValues?.warranty_exclusions ?? defaultWarrantyExclusions ?? ""}
               placeholder="例: 飛び石による損傷、経年劣化、不適切な洗車方法による損傷等"
             />
           </label>
@@ -423,6 +455,7 @@ export default function CertNewFormWrapper({
               className={inputCls}
               rows={3}
               placeholder="その他の特記事項があれば記入してください"
+              defaultValue={initialValues?.remarks ?? ""}
             />
           </label>
         </section>
@@ -449,7 +482,7 @@ export default function CertNewFormWrapper({
             disabled={isPending}
             onClick={() => setSubmitStatus("active")}
           >
-            証明書を発行する
+            {editPublicId ? "発行する（下書きを確定）" : "証明書を発行する"}
           </Button>
           <Button
             type="submit"

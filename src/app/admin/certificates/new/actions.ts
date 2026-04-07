@@ -205,6 +205,86 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
   return { ok: true, public_id };
 }
 
+export type UpdateDraftResult = { ok: true; public_id: string } | { ok: false; error: string };
+
+export async function updateDraftCertAction(formData: FormData): Promise<UpdateDraftResult> {
+  const supabase = await createSupabaseServerClient();
+
+  const { data: userRes } = await supabase.auth.getUser();
+  if (!userRes.user) return { ok: false, error: "unauthorized" };
+
+  const { data: mem } = await supabase.from("tenant_memberships").select("tenant_id").limit(1).single();
+  const tenantId = mem?.tenant_id as string | undefined;
+  if (!tenantId) return { ok: false, error: "no_tenant" };
+
+  const public_id = String(formData.get("edit_public_id") || "").trim();
+  if (!public_id) return { ok: false, error: "missing_public_id" };
+
+  const customer_name = String(formData.get("customer_name") || "").trim();
+  if (!customer_name) return { ok: false, error: "customer_name_required" };
+
+  const vehicle_id = String(formData.get("vehicle_id") || "").trim() || null;
+  const vehicle_maker = String(formData.get("vehicle_maker") || "").trim();
+  const model = String(formData.get("model") || "").trim();
+  const plate = String(formData.get("plate") || "").trim();
+
+  if (!vehicle_id && !vehicle_maker && !model) return { ok: false, error: "vehicle_required" };
+
+  const customer_id = String(formData.get("customer_id") || "").trim() || null;
+  const content_free_text = String(formData.get("content_free_text") || "").trim();
+  const expiry_value = String(formData.get("expiry_value") || "").trim();
+  const expiry_date = String(formData.get("expiry_date") || "").trim() || null;
+  const warranty_period_end = String(formData.get("warranty_period_end") || "").trim() || null;
+  const maintenance_date = String(formData.get("maintenance_date") || "").trim() || null;
+  const warranty_exclusions = String(formData.get("warranty_exclusions") || "").trim() || null;
+  const remarks = String(formData.get("remarks") || "").trim() || null;
+  const service_type = String(formData.get("service_type") || "").trim() || null;
+  const statusParam = String(formData.get("status") || "draft").trim();
+  const certStatus = statusParam === "active" ? "active" : "draft";
+
+  let coating_products: any[] = [];
+  try { const r = JSON.parse(String(formData.get("coating_products_json") || "[]")); if (Array.isArray(r)) coating_products = r; } catch { /* noop */ }
+
+  let ppf_coverage: any[] = [];
+  try { const r = JSON.parse(String(formData.get("ppf_coverage_json") || "[]")); if (Array.isArray(r)) ppf_coverage = r; } catch { /* noop */ }
+
+  let maintenance_data: Record<string, any> = {};
+  try { const r = JSON.parse(String(formData.get("maintenance_json") || "{}")); if (typeof r === "object" && r !== null) maintenance_data = r; } catch { /* noop */ }
+
+  let body_repair_data: Record<string, any> = {};
+  try { const r = JSON.parse(String(formData.get("body_repair_json") || "{}")); if (typeof r === "object" && r !== null) body_repair_data = r; } catch { /* noop */ }
+
+  const { error } = await supabase
+    .from("certificates")
+    .update({
+      status: certStatus,
+      customer_name,
+      customer_id: customer_id ?? undefined,
+      vehicle_id: vehicle_id ?? undefined,
+      vehicle_info_json: { maker: vehicle_maker, model, plate },
+      content_free_text,
+      coating_products_json: coating_products,
+      ppf_coverage_json: ppf_coverage,
+      maintenance_json: maintenance_data,
+      body_repair_json: body_repair_data,
+      service_type: service_type || null,
+      expiry_type: "text",
+      expiry_value,
+      expiry_date: expiry_date || null,
+      warranty_period_end: warranty_period_end || null,
+      maintenance_date: maintenance_date || null,
+      warranty_exclusions: warranty_exclusions || null,
+      remarks: remarks || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("tenant_id", tenantId)
+    .eq("public_id", public_id)
+    .eq("status", "draft");
+
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, public_id };
+}
+
 /** 発行直後フォローアップを非同期でトリガー */
 async function triggerPostIssueFollowUp(params: {
   tenantId: string;

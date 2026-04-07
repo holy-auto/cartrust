@@ -74,6 +74,7 @@ export default async function Page({ params }: PageProps) {
   });
 
   const isVoid = String(row.status ?? "").toLowerCase() === "void";
+  const isDraft = String(row.status ?? "").toLowerCase() === "draft";
   const info = asObj(row.vehicle_info_json);
   const preset = asObj(row.content_preset_json);
 
@@ -124,7 +125,15 @@ export default async function Page({ params }: PageProps) {
             <Link href={publicUrl} target="_blank" className="btn-secondary">
               公開ページ
             </Link>
-            {!isVoid ? (
+            {isDraft ? (
+              <Link
+                href={`/admin/certificates/new?edit_draft=${encodeURIComponent(row.public_id)}`}
+                className="btn-primary"
+              >
+                下書きを編集
+              </Link>
+            ) : null}
+            {!isVoid && !isDraft ? (
               <>
                 <Link href={csvUrl} className="btn-secondary">
                   CSV(1件)

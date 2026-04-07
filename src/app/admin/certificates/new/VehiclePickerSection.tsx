@@ -44,20 +44,30 @@ export default function VehiclePickerSection({
   vehicles: initialVehicles,
   defaultVehicleId,
   onVehicleChange,
+  initialCustomerName,
+  initialCustomerId,
+  initialMaker,
+  initialModel,
+  initialPlate,
 }: {
   vehicles: Vehicle[];
   defaultVehicleId?: string;
   onVehicleChange?: (vehicleId: string | undefined) => void;
+  initialCustomerName?: string;
+  initialCustomerId?: string;
+  initialMaker?: string;
+  initialModel?: string;
+  initialPlate?: string;
 }) {
   const uid = useId();
   const [vehicles, setVehicles] = useState<Vehicle[]>(initialVehicles);
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState("");
-  const [customerName, setCustomerName] = useState("");
-  const [customerId, setCustomerId] = useState("");
-  const [model, setModel] = useState("");
-  const [plate, setPlate] = useState("");
-  const [maker, setMaker] = useState("");
+  const [customerName, setCustomerName] = useState(initialCustomerName ?? "");
+  const [customerId, setCustomerId] = useState(initialCustomerId ?? "");
+  const [model, setModel] = useState(initialModel ?? "");
+  const [plate, setPlate] = useState(initialPlate ?? "");
+  const [maker, setMaker] = useState(initialMaker ?? "");
 
   // Customer master search
   const [customerSearch, setCustomerSearch] = useState("");

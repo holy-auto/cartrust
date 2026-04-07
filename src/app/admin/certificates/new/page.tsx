@@ -11,12 +11,13 @@ export const dynamic = "force-dynamic";
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ tid?: string; vehicle_id?: string; customer_id?: string }>;
+  searchParams: Promise<{ tid?: string; vehicle_id?: string; customer_id?: string; edit_draft?: string }>;
 }) {
   const sp = await searchParams;
   const selectedTemplateId = sp.tid ?? "";
   const defaultVehicleId = sp.vehicle_id ?? undefined;
   const defaultCustomerId = sp.customer_id ?? undefined;
+  const editDraftPublicId = sp.edit_draft ?? undefined;
 
   const supabase = await createSupabaseServerClient();
   const { data: userRes } = await supabase.auth.getUser();
@@ -77,10 +78,46 @@ export default async function Page({
     .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false });
 
+  // 下書き編集モード: 既存下書きのデータを読み込む
+  let draftRow: Record<string, any> | null = null;
+  if (editDraftPublicId) {
+    const { data } = await supabase
+      .from("certificates")
+      .select(
+        "public_id, customer_name, customer_id, vehicle_id, vehicle_info_json, " +
+        "content_free_text, expiry_value, expiry_date, warranty_period_end, " +
+        "maintenance_date, warranty_exclusions, remarks, content_preset_json"
+      )
+      .eq("tenant_id", tenantId)
+      .eq("public_id", editDraftPublicId)
+      .eq("status", "draft")
+      .single();
+    draftRow = data ?? null;
+  }
+
   const list = templates ?? [];
   const fallbackId = list[0]?.id ?? "";
-  const tid = selectedTemplateId || fallbackId;
+  // 下書き編集時はテンプレートIDをpresetsから復元
+  const draftTemplateId = draftRow?.content_preset_json?.template_id ?? "";
+  const tid = selectedTemplateId || draftTemplateId || fallbackId;
   const selected = list.find((t) => t.id === tid) ?? list[0] ?? null;
+
+  const draftInfo = draftRow?.vehicle_info_json ?? {};
+  const initialValues = draftRow ? {
+    customer_name: draftRow.customer_name ?? "",
+    customer_id: draftRow.customer_id ?? "",
+    vehicle_id: draftRow.vehicle_id ?? "",
+    vehicle_maker: draftInfo.maker ?? "",
+    vehicle_model: draftInfo.model ?? "",
+    vehicle_plate: draftInfo.plate ?? "",
+    content_free_text: draftRow.content_free_text ?? "",
+    expiry_value: draftRow.expiry_value ?? "",
+    expiry_date: draftRow.expiry_date ?? "",
+    warranty_period_end: draftRow.warranty_period_end ?? "",
+    maintenance_date: draftRow.maintenance_date ?? "",
+    warranty_exclusions: draftRow.warranty_exclusions ?? "",
+    remarks: draftRow.remarks ?? "",
+  } : undefined;
 
   return (
     <div className="space-y-4">
@@ -118,6 +155,8 @@ export default async function Page({
           : undefined
         }
         defaultWarrantyExclusions={defaultWarrantyExclusions}
+        editPublicId={editDraftPublicId}
+        initialValues={initialValues}
       />
     </div>
   );
