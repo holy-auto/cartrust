@@ -31,51 +31,56 @@ export default async function Page({
   if (!mem) return <div className="text-sm text-muted">tenant_memberships が見つかりません。</div>;
   const tenantId = mem.tenant_id as string;
 
-  const { data: tenantRow } = await supabase
-    .from("tenants")
-    .select("logo_asset_path, plan_tier, default_warranty_exclusions")
-    .eq("id", tenantId)
-    .single();
+  // tenantId 確定後は全クエリを並列実行
+  const [
+    { data: tenantRow },
+    { data: templates, error: tplErr },
+    { data: vehiclesRaw },
+    brandedTemplateResult,
+  ] = await Promise.all([
+    supabase
+      .from("tenants")
+      .select("logo_asset_path, plan_tier, default_warranty_exclusions")
+      .eq("id", tenantId)
+      .single(),
+    supabase
+      .from("templates")
+      .select("id, name, schema_json, category, created_at")
+      .or(`tenant_id.eq.${tenantId},tenant_id.is.null`)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("vehicles")
+      .select("id, maker, model, year, plate_display, vin_code, customer_id, customer:customers(id, name)")
+      .eq("tenant_id", tenantId)
+      .order("created_at", { ascending: false })
+      .limit(300),
+    // ブランドテンプレート確認（2クエリを並列）
+    Promise.all([
+      supabase
+        .from("tenant_option_subscriptions")
+        .select("status")
+        .eq("tenant_id", tenantId)
+        .in("status", ["active", "past_due"])
+        .limit(1)
+        .maybeSingle()
+        .catch(() => ({ data: null })),
+      supabase
+        .from("tenant_template_configs")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle()
+        .catch(() => ({ data: null })),
+    ]),
+  ]);
+
+  if (tplErr) return <div className="text-sm text-danger">テンプレ読み込みエラー: {tplErr.message}</div>;
 
   const tenantLogoPath = (tenantRow?.logo_asset_path as string | null) ?? null;
   const planTier = normalizePlanTier(tenantRow?.plan_tier) as PlanTier;
   const defaultWarrantyExclusions = (tenantRow?.default_warranty_exclusions as string | null) ?? "";
-
-  // ブランドテンプレート確認
-  let hasBrandedTemplate = false;
-  try {
-    const { data: tos } = await supabase
-      .from("tenant_option_subscriptions")
-      .select("status")
-      .eq("tenant_id", tenantId)
-      .in("status", ["active", "past_due"])
-      .limit(1)
-      .maybeSingle();
-    const { data: ttc } = await supabase
-      .from("tenant_template_configs")
-      .select("id")
-      .eq("tenant_id", tenantId)
-      .eq("is_active", true)
-      .limit(1)
-      .maybeSingle();
-    hasBrandedTemplate = !!tos && !!ttc;
-  } catch { /* tables may not exist */ }
-
-  // テナント固有 + 共通テンプレート（tenant_id IS NULL）を取得
-  const { data: templates, error: tplErr } = await supabase
-    .from("templates")
-    .select("id, name, schema_json, category, created_at")
-    .or(`tenant_id.eq.${tenantId},tenant_id.is.null`)
-    .order("created_at", { ascending: false });
-
-  if (tplErr) return <div className="text-sm text-danger">テンプレ読み込みエラー: {tplErr.message}</div>;
-
-  // 車両一覧（顧客情報を JOIN）
-  const { data: vehiclesRaw } = await supabase
-    .from("vehicles")
-    .select("id, maker, model, year, plate_display, vin_code, customer_id, customer:customers(id, name)")
-    .eq("tenant_id", tenantId)
-    .order("created_at", { ascending: false });
+  const hasBrandedTemplate = !!brandedTemplateResult[0].data && !!brandedTemplateResult[1].data;
 
   const list = templates ?? [];
   const fallbackId = list[0]?.id ?? "";
