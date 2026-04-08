@@ -4,6 +4,8 @@ import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
 import Link from "next/link";
 
+const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "support@ledra.co.jp";
+
 export default function AdminError({
   error,
   reset,
@@ -40,6 +42,12 @@ export default function AdminError({
           ダッシュボードに戻る
         </Link>
       </div>
+      <a
+        href={`mailto:${SUPPORT_EMAIL}?subject=エラー報告${error.digest ? `（ID: ${error.digest}）` : ""}`}
+        className="text-xs text-muted hover:text-primary underline"
+      >
+        サポートに問い合わせる
+      </a>
     </div>
   );
 }

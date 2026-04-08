@@ -15,10 +15,12 @@
 
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { resolveCallerWithRole } from '@/lib/auth/checkRole';
 import { apiOk, apiError, apiUnauthorized } from '@/lib/api/response';
 import { createSignatureSession, getExistingPendingSession } from '@/lib/signature/session';
 import { generateCertificatePdfBytes } from '@/lib/signature/pdfUtils';
+import { notifySignatureRequest } from '@/lib/signature/notifications';
 import type { SignatureRequestBody } from '@/lib/signature/types';
 
 export const dynamic = 'force-dynamic';
@@ -108,14 +110,36 @@ export async function POST(req: NextRequest) {
 
   const signUrl = `${SIGN_BASE_URL}/${session.token}`;
 
-  // 6. 通知送信（LINE 優先 / メールフォールバック）
-  // TODO: Phase 4 以降で LINE/メール通知モジュールと統合
-  // 現時点では sign_url を返すのみ（手動共有可能）
+  // 6. 通知送信（LINE 優先 / メールフォールバック）— 非同期
+  // テナント名を取得して通知に使用
+  let notified = false;
+  try {
+    const { data: tenantRow } = await supabase
+      .from('tenants')
+      .select('name')
+      .eq('id', caller.tenantId)
+      .single();
+
+    const tenantName = (tenantRow as { name?: string } | null)?.name ?? '施工店';
+
+    void notifySignatureRequest(session, signUrl, tenantName).then(() => {
+      // 通知送信済みフラグを更新
+      getSupabaseAdmin()
+        .from('signature_sessions')
+        .update({ notification_sent_at: new Date().toISOString() })
+        .eq('id', session.id)
+        .then(() => {});
+    });
+    notified = true;
+  } catch {
+    // 通知失敗は署名フローを止めない
+    notified = false;
+  }
 
   return apiOk({
     session_id: session.id,
     sign_url:   signUrl,
     expires_at: session.expires_at,
-    notified:   false,
+    notified,
   });
 }

@@ -33,26 +33,34 @@ export async function GET() {
       return apiInternalError(error, "agent/members query");
     }
 
-    // Enrich with email from auth.users via admin client
+    // ── Enrich with email from auth.users (N+1 防止: listUsers 1回で取得) ──
     const admin = createAdminClient();
-    const enriched = await Promise.all(
-      (members ?? []).map(async (m) => {
-        let email: string | null = null;
-        if (m.user_id) {
-          const { data } = await admin.auth.admin.getUserById(m.user_id);
-          email = data?.user?.email ?? null;
-        }
-        return {
-          id: m.id,
-          user_id: m.user_id,
-          role: m.role ?? "viewer",
-          display_name: m.display_name ?? null,
-          email,
-          created_at: m.created_at,
-          is_self: m.user_id === auth.user.id,
-        };
-      })
+    const membersList = members ?? [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userIds = membersList.filter((m: any) => m.user_id).map((m: any) => m.user_id as string);
+
+    // listUsers は全ユーザーを返すため、user_id 一致でフィルタリング
+    const { data: usersData } = userIds.length > 0
+      ? await admin.auth.admin.listUsers({ perPage: 1000 })
+      : { data: { users: [] } };
+
+    const userIdToEmail = Object.fromEntries(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (usersData?.users ?? []).filter((u: any) => userIds.includes(u.id))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((u: any) => [u.id, u.email ?? null]),
     );
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const enriched = membersList.map((m: any) => ({
+      id:           m.id,
+      user_id:      m.user_id,
+      role:         m.role ?? "viewer",
+      display_name: m.display_name ?? null,
+      email:        (m.user_id ? userIdToEmail[m.user_id] : null) ?? null,
+      created_at:   m.created_at,
+      is_self:      m.user_id === auth.user.id,
+    }));
 
     return NextResponse.json({ members: enriched });
   } catch (e: unknown) {

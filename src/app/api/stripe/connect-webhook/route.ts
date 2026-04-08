@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { apiValidationError, apiInternalError } from "@/lib/api/response";
+import { notifyPayoutFailure } from "@/lib/signature/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -223,7 +224,16 @@ export async function POST(req: NextRequest) {
           failureCode: payout.failure_code,
           failureMessage: payout.failure_message,
         });
-        // TODO: 振込失敗メール通知
+        // 振込失敗メール通知（非同期）
+        void notifyPayoutFailure({
+          payoutId:       payout.id,
+          accountId,
+          tenantId,
+          agentId,
+          failureCode:    payout.failure_code ?? null,
+          failureMessage: payout.failure_message ?? null,
+          amount:         payout.amount,
+        });
         break;
       }
 

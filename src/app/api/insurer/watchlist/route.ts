@@ -43,47 +43,63 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ items: [] });
     }
 
-    // Enrich items with target details
-    const enriched = await Promise.all(
-      (items ?? []).map(async (item) => {
-        if (item.target_type === "certificate") {
-          const { data: cert } = await admin
+    // ── Enrich with target details using bulk IN queries (N+1 防止) ──
+    const watchItems = items ?? [];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const certIds    = watchItems.filter((i: any) => i.target_type === "certificate").map((i: any) => i.target_id as string);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vehicleIds = watchItems.filter((i: any) => i.target_type === "vehicle").map((i: any) => i.target_id as string);
+
+    const [certMap, vehicleMap] = await Promise.all([
+      certIds.length > 0
+        ? admin
             .from("certificates")
             .select("id, public_id, status, updated_at")
-            .eq("id", item.target_id)
-            .maybeSingle();
-          return {
-            ...item,
-            target_detail: cert
-              ? {
-                  identifier: cert.public_id,
-                  status: cert.status,
-                  updated_at: cert.updated_at,
-                }
-              : null,
-          };
-        } else if (item.target_type === "vehicle") {
-          const { data: vehicle } = await admin
+            .in("id", certIds)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .then(({ data }: { data: any }) =>
+              Object.fromEntries((data ?? []).map((c: { id: string; public_id: string; status: string; updated_at: string }) => [c.id, c])),
+            )
+        : Promise.resolve({}),
+      vehicleIds.length > 0
+        ? admin
             .from("vehicles")
             .select("id, plate_number, maker, model, updated_at")
-            .eq("id", item.target_id)
-            .maybeSingle();
-          return {
-            ...item,
-            target_detail: vehicle
-              ? {
-                  identifier: [vehicle.maker, vehicle.model, vehicle.plate_number]
-                    .filter(Boolean)
-                    .join(" "),
-                  status: null,
-                  updated_at: vehicle.updated_at,
-                }
-              : null,
-          };
-        }
-        return { ...item, target_detail: null };
-      }),
-    );
+            .in("id", vehicleIds)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .then(({ data }: { data: any }) =>
+              Object.fromEntries((data ?? []).map((v: { id: string; plate_number: string | null; maker: string | null; model: string | null; updated_at: string }) => [v.id, v])),
+            )
+        : Promise.resolve({}),
+    ]);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const enriched = watchItems.map((item: any) => {
+      if (item.target_type === "certificate") {
+        const cert = (certMap as Record<string, { id: string; public_id: string; status: string; updated_at: string }>)[item.target_id];
+        return {
+          ...item,
+          target_detail: cert
+            ? { identifier: cert.public_id, status: cert.status, updated_at: cert.updated_at }
+            : null,
+        };
+      }
+      if (item.target_type === "vehicle") {
+        const vehicle = (vehicleMap as Record<string, { id: string; plate_number: string | null; maker: string | null; model: string | null; updated_at: string }>)[item.target_id];
+        return {
+          ...item,
+          target_detail: vehicle
+            ? {
+                identifier: [vehicle.maker, vehicle.model, vehicle.plate_number].filter(Boolean).join(" "),
+                status:     null,
+                updated_at: vehicle.updated_at,
+              }
+            : null,
+        };
+      }
+      return { ...item, target_detail: null };
+    });
 
     return NextResponse.json({ items: enriched });
   } catch (err) {

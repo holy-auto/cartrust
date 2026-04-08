@@ -44,19 +44,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // TODO: Implement per-tenant API keys (tenant.api_key field).
-    // Temporary measure: validate against CRON_SECRET as a Bearer token fallback.
-    const bearerToken = req.headers.get("authorization")?.replace("Bearer ", "");
-    const cronSecret = process.env.CRON_SECRET;
-    if (apiKey !== cronSecret && bearerToken !== cronSecret) {
-      return apiError({
-        code: "unauthorized",
-        message: "Invalid API key",
-        status: 401,
-      });
-    }
-
-    // 必須フィールド検証
+    // 必須フィールド検証（テナントスラッグは認証にも必要）
     const tenantSlug = body?.tenant_slug;
     const customerName = body?.customer_name;
     const title = body?.title;
@@ -78,16 +66,34 @@ export async function POST(req: NextRequest) {
 
     const admin = getAdminClient();
 
-    // テナント解決
+    // テナント解決 + API キー取得（認証に必要なため先に実行）
     const { data: tenant } = await admin
       .from("tenants")
-      .select("id, name")
+      .select("id, name, external_api_key")
       .eq("slug", tenantSlug)
       .eq("is_active", true)
       .single();
 
     if (!tenant) {
       return apiValidationError("指定された店舗が見つかりません");
+    }
+
+    // ── テナント固有の API キー認証 ──
+    // テナントに external_api_key が設定されている場合はそれで検証する。
+    // 未設定テナントは後方互換のため CRON_SECRET フォールバックを許可するが、
+    // 本番環境では全テナントにキーを発行すること（マイグレーション参照）。
+    const tenantApiKey = (tenant as { external_api_key?: string | null }).external_api_key;
+    const cronSecret   = process.env.CRON_SECRET;
+    const isValidKey   = tenantApiKey
+      ? apiKey === tenantApiKey
+      : (cronSecret != null && apiKey === cronSecret);
+
+    if (!isValidKey) {
+      return apiError({
+        code: "unauthorized",
+        message: "Invalid API key",
+        status: 401,
+      });
     }
 
     // ── 定休日チェック ──

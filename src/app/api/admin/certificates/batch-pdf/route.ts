@@ -5,6 +5,7 @@ import { enforceBilling } from "@/lib/billing/guard";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { logCertificateAction, getRequestMeta } from "@/lib/audit/certificateLog";
 import { renderCertificatePdf } from "@/lib/pdfCertificate";
+import { SIGNED_URL_TTL_LONG_SECS } from "@/lib/constants";
 import {
   apiUnauthorized,
   apiValidationError,
@@ -110,10 +111,9 @@ export async function POST(req: NextRequest) {
           return { public_id: pid, error: "PDF アップロードに失敗しました。" };
         }
 
-        // Create signed URL (valid for 1 hour)
         const { data: signedData, error: signErr } = await admin.storage
           .from("certificates")
-          .createSignedUrl(storagePath, 3600);
+          .createSignedUrl(storagePath, SIGNED_URL_TTL_LONG_SECS);
 
         if (signErr || !signedData?.signedUrl) {
           return { public_id: pid, error: "署名付きURL の生成に失敗しました。" };

@@ -9,11 +9,11 @@ import {
 } from "@/lib/api/response";
 import { parseShakensho, calcSizeClass } from "@/lib/ocr/shakensho";
 import { escapeIlike } from "@/lib/sanitize";
+import { MAX_ATTACHMENT_BYTES } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
-/** Maximum image size: 10 MB */
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const MAX_IMAGE_SIZE = MAX_ATTACHMENT_BYTES;
 
 /**
  * POST /api/admin/vehicle-size/ocr

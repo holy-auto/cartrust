@@ -5,7 +5,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ThemeProvider } from "@/lib/theme/ThemeContext";
 import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -52,6 +52,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const themeCookie = cookieStore.get("__theme")?.value;
   const initialTheme = themeCookie === "dark" ? "dark" : undefined;
 
+  // Read nonce injected by middleware for CSP compliance (removes need for 'unsafe-inline').
+  const headerStore = await headers();
+  const nonce = headerStore.get("x-nonce") ?? undefined;
+
   return (
     <html
       lang="ja"
@@ -60,7 +64,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       suppressHydrationWarning
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#0071e3" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

@@ -5,6 +5,7 @@ import {
   createLoginCode,
   getTenantIdBySlug,
   normalizeEmail,
+  OTP_TTL_MIN,
   phoneLast4Hash,
   tenantHasPhoneHash,
 } from "@/lib/customerPortalServer";
@@ -80,7 +81,7 @@ export async function POST(req: Request) {
     if (!ok) return apiNotFound("no matching certificates");
 
     const code = genCode6();
-    const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10分
+    const expires = new Date(Date.now() + OTP_TTL_MIN * 60 * 1000).toISOString();
     await createLoginCode(tenantId, email, phoneHash, code, expires);
 
     const baseUrl = resolveBaseUrl({ req });

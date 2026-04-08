@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 const RESEND_API = "https://api.resend.com/emails";
 
 /**
@@ -5,10 +7,11 @@ const RESEND_API = "https://api.resend.com/emails";
  * Falls back to console.error if email config is missing.
  */
 export async function sendCronFailureAlert(jobName: string, error: unknown): Promise<void> {
+  const log     = logger(`cron/${jobName}`);
   const message = error instanceof Error ? error.message : String(error);
-  const stack = error instanceof Error ? error.stack : undefined;
+  const stack   = error instanceof Error ? error.stack : undefined;
 
-  console.error(`[cron/${jobName}] FAILURE:`, message);
+  log.error('Cron job failed', error instanceof Error ? error : new Error(message), { jobName });
 
   const apiKey = process.env.RESEND_API_KEY;
   const alertEmail = process.env.CONTACT_EMAIL_TO;
@@ -36,6 +39,6 @@ export async function sendCronFailureAlert(jobName: string, error: unknown): Pro
       }),
     });
   } catch {
-    console.error(`[cron/${jobName}] Failed to send alert email`);
+    log.warn('Failed to send cron alert email', { jobName });
   }
 }

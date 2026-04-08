@@ -21,6 +21,8 @@ import { apiOk, apiError } from '@/lib/api/response';
 import { getValidSessionByToken } from '@/lib/signature/session';
 import { buildSigningPayload }     from '@/lib/signature/hash';
 import { signPayload, getPrivateKey, getActiveKeyInfo } from '@/lib/signature/crypto';
+import { regenerateSignedPdf } from '@/lib/signature/pdfUtils';
+import { notifyShopSignatureComplete } from '@/lib/signature/notifications';
 import type { SignatureSignBody } from '@/lib/signature/types';
 
 export const dynamic = 'force-dynamic';
@@ -148,15 +150,29 @@ export async function POST(
     },
   });
 
+  const verifyUrl = `${VERIFY_BASE_URL}/${session.id}`;
+
   // 7. PDF 再生成（署名情報を埋め込み）— 非同期で実行（レスポンスをブロックしない）
-  // TODO: Phase 5 で pdfUtils.regenerateSignedPdf を実装後に有効化
-  // void regenerateSignedPdf(session.certificate_id, { ... });
+  void regenerateSignedPdf(session.certificate_id, {
+    signedAt:             signedAt,
+    signerEmail:          maskEmail(normalizedEmail),
+    signerName:           session.signer_name ?? undefined,
+    signaturePreview:     signature.slice(0, 20) + '...',
+    publicKeyFingerprint: keyInfo.fingerprint,
+    verifyUrl:            verifyUrl,
+    documentHash:         session.document_hash,
+  });
 
   // 8. 施工店への完了通知 — 非同期
-  // TODO: Phase 4 で通知モジュール実装後に有効化
-  // void notifyShopSignatureComplete(session);
-
-  const verifyUrl = `${VERIFY_BASE_URL}/${session.id}`;
+  void notifyShopSignatureComplete({
+    ...session,
+    signed_at:              signedAt,
+    signer_confirmed_email: normalizedEmail,
+    signature,
+    signing_payload:        signingPayload,
+    public_key_fingerprint: keyInfo.fingerprint,
+    key_version:            keyInfo.version,
+  });
 
   return apiOk({
     success:            true,
@@ -165,4 +181,14 @@ export async function POST(
     session_id:         session.id,
     signature_preview:  signature.slice(0, 20) + '...',
   });
+}
+
+/** メールアドレスを部分マスクする（例: te***@example.com） */
+function maskEmail(email: string): string {
+  const atIndex = email.indexOf('@');
+  if (atIndex <= 0) return '***';
+  const local  = email.slice(0, atIndex);
+  const domain = email.slice(atIndex);
+  const visibleChars = Math.min(2, local.length);
+  return local.slice(0, visibleChars) + '***' + domain;
 }

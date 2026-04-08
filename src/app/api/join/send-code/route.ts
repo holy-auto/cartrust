@@ -3,7 +3,7 @@ import { randomInt } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { emailSchema } from "@/lib/validation/schemas";
-import { sha256Hex } from "@/lib/customerPortalServer";
+import { sha256Hex, OTP_TTL_MIN } from "@/lib/customerPortalServer";
 import { apiValidationError, apiInternalError, apiError } from "@/lib/api/response";
 
 export const runtime = "nodejs";
@@ -120,7 +120,7 @@ export async function POST(req: Request) {
 
   // Generate and store code
   const code = genCode6();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min
+  const expiresAt = new Date(Date.now() + OTP_TTL_MIN * 60 * 1000).toISOString();
 
   const { error: insertErr } = await supabase
     .from("insurer_email_verifications")

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/api/auth";
 import { apiUnauthorized, apiForbidden, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { SIGNED_URL_TTL_SHORT_SECS } from "@/lib/constants";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -36,7 +37,7 @@ export async function POST(_request: NextRequest, ctx: RouteContext) {
     // Generate signed URL for download
     const { data: signedData, error: signErr } = await supabase.storage
       .from("agent-materials")
-      .createSignedUrl(material.storage_path, 300, {
+      .createSignedUrl(material.storage_path, SIGNED_URL_TTL_SHORT_SECS, {
         download: material.file_name,
       });
 

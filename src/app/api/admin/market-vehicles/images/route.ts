@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { MAX_PHOTO_BYTES } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
 const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"];
-const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20 MB
+const MAX_FILE_BYTES = MAX_PHOTO_BYTES;
 const MAX_IMAGES_PER_VEHICLE = 20;
 
 // ─── GET: List images for a vehicle ───

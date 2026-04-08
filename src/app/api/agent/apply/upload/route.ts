@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import crypto from "crypto";
+import { MAX_ATTACHMENT_BYTES } from "@/lib/constants";
 
 export const runtime = "nodejs";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = MAX_ATTACHMENT_BYTES;
 const MAX_FILES = 5;
 const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png"];
 

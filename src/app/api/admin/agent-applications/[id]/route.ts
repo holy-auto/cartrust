@@ -5,6 +5,7 @@ import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiForbidden, apiInternalError, apiNotFound, apiValidationError } from "@/lib/api/response";
 import { notifyApplicationApproved, notifyApplicationRejected } from "@/lib/agent/email";
 import crypto from "crypto";
+import { SIGNED_URL_TTL_LONG_SECS } from "@/lib/constants";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -34,7 +35,7 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
       documents.map(async (doc) => {
         const { data: signedData } = await admin.storage
           .from("agent-applications")
-          .createSignedUrl(doc.storage_path, 3600); // 1 hour
+          .createSignedUrl(doc.storage_path, SIGNED_URL_TTL_LONG_SECS);
         return { ...doc, url: signedData?.signedUrl || null };
       }),
     );

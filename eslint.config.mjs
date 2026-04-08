@@ -26,6 +26,21 @@ const eslintConfig = defineConfig([
       "react-hooks/component-hook-factories": "warn",
     },
   },
+  // Stricter rules for lib files — no new `any` without explicit eslint-disable comment
+  {
+    files: ["src/lib/**/*.ts", "src/lib/**/*.tsx"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "error",
+      // Disallow @ts-ignore in favour of @ts-expect-error (requires explanation)
+      "@typescript-eslint/ban-ts-comment": [
+        "error",
+        {
+          "ts-ignore": "allow-with-description",
+          "ts-expect-error": "allow-with-description",
+        },
+      ],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

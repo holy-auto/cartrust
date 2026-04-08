@@ -7,11 +7,12 @@ import { apiOk, apiInternalError, apiUnauthorized, apiValidationError, apiNotFou
 import { apiError } from "@/lib/api/response";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { checkRateLimit } from "@/lib/api/rateLimit";
+import { MAX_PHOTO_BYTES } from "@/lib/constants";
 
 export const runtime = "nodejs";
 
 const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
-const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20 MB per file
+const MAX_FILE_BYTES = MAX_PHOTO_BYTES;
 
 /** Validate file magic bytes against allowed image types */
 function validateMagicBytes(buffer: Buffer): string | null {

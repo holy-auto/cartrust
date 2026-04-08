@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/api/auth";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiForbidden, apiInternalError, apiNotFound } from "@/lib/api/response";
+import { SIGNED_URL_TTL_SHORT_SECS } from "@/lib/constants";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -32,7 +33,7 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
 
     const { data: signedData, error: signErr } = await admin.storage
       .from("agent-shared-files")
-      .createSignedUrl(data.signed_pdf_path, 300, {
+      .createSignedUrl(data.signed_pdf_path, SIGNED_URL_TTL_SHORT_SECS, {
         download: `${data.title}.pdf`,
       });
 
