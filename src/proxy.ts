@@ -2,6 +2,30 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
+/**
+ * Build a Content-Security-Policy header value for the given per-request nonce.
+ * Eliminates 'unsafe-inline' and 'unsafe-eval' from script-src by using:
+ * - 'nonce-X': grants explicit trust to the specific inline script in layout.tsx
+ * - 'strict-dynamic': propagates trust to scripts loaded by nonce-trusted scripts
+ * Host allowlist is kept as a fallback for older browsers without strict-dynamic.
+ */
+function buildCsp(nonce: string): string {
+  return [
+    "default-src 'self'",
+    `script-src 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com https://vercel.live https://*.vercel-scripts.com https://*.sentry-cdn.com`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://api.qrserver.com",
+    "font-src 'self' data: https://cdn.jsdelivr.net",
+    "connect-src 'self' https://*.supabase.co https://*.supabase.in https://api.stripe.com https://*.sentry.io https://*.ingest.sentry.io https://vercel.live https://*.vercel-scripts.com https://*.upstash.io",
+    "frame-src https://js.stripe.com https://hooks.stripe.com https://vercel.live",
+    "media-src 'none'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join("; ");
+}
+
 const PUBLIC_PREFIXES = [
   "/login",
   "/auth/callback",
@@ -91,36 +115,51 @@ function csrfCheck(request: NextRequest): NextResponse | null {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip static assets
+  // Skip static assets — CSP and session refresh are irrelevant for these.
   if (pathname.startsWith("/_next") || pathname === "/favicon.ico" || pathname === "/robots.txt" || pathname === "/sitemap.xml") {
     return NextResponse.next();
   }
 
-  // CSRF protection for API mutations
+  // Generate a per-request nonce for Content-Security-Policy.
+  // Server components read it from the x-nonce request header (set below).
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const cspHeader = buildCsp(nonce);
+
+  // Forward nonce to server components via a request header.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+
+  // CSRF protection for API mutations (no nonce needed on 403 responses).
   const csrfResponse = csrfCheck(request);
   if (csrfResponse) return csrfResponse;
 
-  // Block unreleased features — redirect to admin dashboard
+  // Block unreleased features — redirect to admin dashboard.
   if (HIDDEN_ADMIN_PREFIXES.some((p) => pathname.startsWith(p))) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/admin";
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Block unreleased market routes
+  // Block unreleased market routes.
   if (pathname.startsWith("/market") && !pathname.startsWith("/market/login") && !pathname.startsWith("/market/register")) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/";
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Marketing pages and public routes: pass through
+  let response: NextResponse;
+
+  // Marketing pages and public routes: pass through.
   if (MARKETING_PATHS.includes(pathname) || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
-    return refreshSession(request);
+    response = await refreshSession(request, requestHeaders);
+  } else {
+    // Protected routes: refresh session then check auth.
+    response = await refreshSessionAndProtect(request, requestHeaders);
   }
 
-  // Protected routes: refresh session then check auth
-  return refreshSessionAndProtect(request);
+  // Attach CSP to every HTML (non-redirect) response.
+  response.headers.set("Content-Security-Policy", cspHeader);
+  return response;
 }
 
 export default proxy;
@@ -139,8 +178,8 @@ export const config = {
 };
 
 /** Refresh Supabase session cookies only when token is near expiry */
-async function refreshSession(request: NextRequest) {
-  const response = NextResponse.next({ request });
+async function refreshSession(request: NextRequest, requestHeaders: Headers) {
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -184,9 +223,9 @@ async function refreshSession(request: NextRequest) {
 }
 
 /** Refresh session + redirect unauthenticated users */
-async function refreshSessionAndProtect(request: NextRequest) {
+async function refreshSessionAndProtect(request: NextRequest, requestHeaders: Headers) {
   const { pathname } = request.nextUrl;
-  const response = NextResponse.next({ request });
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

@@ -53,7 +53,7 @@ const nextConfig: NextConfig = {
 
   async headers() {
     // Content-Security-Policy is intentionally omitted here: it is generated
-    // per-request (with a unique nonce) by src/middleware.ts so that inline
+    // per-request (with a unique nonce) by src/proxy.ts so that inline
     // scripts can be trusted without 'unsafe-inline'.
     return [
       {
