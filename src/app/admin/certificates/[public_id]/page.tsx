@@ -7,6 +7,8 @@ import { logCertificateAction } from "@/lib/audit/certificateLog";
 import PageHeader from "@/components/ui/PageHeader";
 import AiExplainPanel from "@/components/certificates/AiExplainPanel";
 import SignatureRequestPanel from "./SignatureRequestPanel";
+import CertEditForm from "./CertEditForm";
+import CertEditHistory from "./CertEditHistory";
 import { formatDateTime } from "@/lib/format";
 
 type PageProps = {
@@ -55,7 +57,7 @@ export default async function Page({ params }: PageProps) {
   const { data: row, error } = await supabase
     .from("certificates")
     .select(
-      "id,tenant_id,vehicle_id,public_id,status,customer_name,vehicle_info_json,content_free_text,content_preset_json,expiry_type,expiry_value,logo_asset_path,created_at,updated_at",
+      "id,tenant_id,vehicle_id,public_id,status,customer_name,vehicle_info_json,content_free_text,content_preset_json,expiry_type,expiry_value,expiry_date,warranty_period_end,maintenance_date,warranty_exclusions,remarks,service_type,logo_asset_path,current_version,created_at,updated_at",
     )
     .eq("tenant_id", tenantId)
     .eq("public_id", publicId)
@@ -109,6 +111,46 @@ export default async function Page({ params }: PageProps) {
       };
     }),
   );
+
+  // Fetch edit history
+  const { data: editHistoryRaw } = await admin
+    .from("certificate_edit_histories")
+    .select("id, version, changes, edited_by, created_at")
+    .eq("certificate_id", row.id)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  // Resolve editor emails
+  const editorIds = [...new Set((editHistoryRaw ?? []).map((h: any) => h.edited_by).filter(Boolean))];
+  const editorMap: Record<string, string> = {};
+  for (const uid of editorIds) {
+    const { data: userData } = await admin.auth.admin.getUserById(uid as string);
+    if (userData?.user?.email) editorMap[uid as string] = userData.user.email;
+  }
+
+  const editHistory = (editHistoryRaw ?? []).map((h: any) => ({
+    id: h.id as string,
+    version: h.version as number,
+    changes: h.changes as Array<{ field: string; label: string; old: unknown; new: unknown }>,
+    edited_by: h.edited_by as string | null,
+    editor_email: h.edited_by ? (editorMap[h.edited_by as string] ?? null) : null,
+    created_at: h.created_at as string,
+  }));
+
+  // Prepare cert data for edit form
+  const certForEdit = {
+    public_id: row.public_id as string,
+    customer_name: (row.customer_name as string) ?? "",
+    vehicle_info_json: asObj(row.vehicle_info_json),
+    content_free_text: row.content_free_text as string | null,
+    expiry_value: row.expiry_value as string | null,
+    expiry_date: row.expiry_date as string | null,
+    warranty_period_end: row.warranty_period_end as string | null,
+    maintenance_date: row.maintenance_date as string | null,
+    warranty_exclusions: row.warranty_exclusions as string | null,
+    remarks: row.remarks as string | null,
+    service_type: row.service_type as string | null,
+  };
 
   return (
     <div className="space-y-6">
@@ -233,6 +275,13 @@ export default async function Page({ params }: PageProps) {
             </div>
           </section>
 
+          {/* ── 編集フォーム ── */}
+          {!isVoid && (
+            <section>
+              <CertEditForm cert={certForEdit} />
+            </section>
+          )}
+
           <section className="glass-card p-5 space-y-4">
             <div>
               <div className="text-xs font-semibold tracking-[0.18em] text-muted">ATTACHED IMAGES</div>
@@ -288,6 +337,18 @@ export default async function Page({ params }: PageProps) {
               <SignatureRequestPanel certificateId={row.id as string} />
             </section>
           )}
+
+          {/* 編集履歴 */}
+          <section className="glass-card p-5 space-y-4">
+            <div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">EDIT HISTORY</div>
+              <div className="mt-1 text-lg font-semibold text-primary">編集履歴</div>
+              {row.current_version && Number(row.current_version) > 1 && (
+                <div className="mt-1 text-xs text-muted">現在 v{String(row.current_version)}</div>
+              )}
+            </div>
+            <CertEditHistory entries={editHistory} />
+          </section>
 
           <section className="glass-card p-5 space-y-4">
             <div>
