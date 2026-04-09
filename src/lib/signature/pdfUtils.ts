@@ -212,7 +212,8 @@ export async function generateCertificatePdfBytes(
   const cert = await fetchCertData(certificateId);
   const doc  = buildCertDocument(cert);
 
-  const buf = await renderToBuffer(doc as React.ReactElement);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const buf = await renderToBuffer(doc as any);
 
   // renderToBuffer は Buffer を返す。Uint8Array に変換して返す。
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
