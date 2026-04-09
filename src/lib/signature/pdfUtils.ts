@@ -241,7 +241,8 @@ export async function regenerateSignedPdf(
   try {
     const cert = await fetchCertData(certificateId);
     const doc  = buildCertDocument(cert, signatureInfo);
-    const buf  = await renderToBuffer(doc as React.ReactElement);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const buf  = await renderToBuffer(doc as any);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const b2 = buf as any;
