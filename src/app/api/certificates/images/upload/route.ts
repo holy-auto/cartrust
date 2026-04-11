@@ -168,8 +168,9 @@ export async function POST(req: NextRequest) {
         deepfakeOk: null,
       });
 
-      await admin.from("certificate_images").insert({
+      const { error: insertError } = await admin.from("certificate_images").insert({
         certificate_id: cert.id,
+        tenant_id: tenantId,
         storage_path: storagePath,
         file_name: file.name || `photo_${i + 1}.${ext}`,
         content_type: mime,
@@ -182,6 +183,11 @@ export async function POST(req: NextRequest) {
         exif_gps_stripped: exif.gpsStripped,
         authenticity_grade: grade,
       });
+
+      if (insertError) {
+        console.error("certificate_images insert error", insertError);
+        continue;
+      }
 
       uploaded++;
     }
