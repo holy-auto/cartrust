@@ -40,10 +40,13 @@ export async function GET(req: NextRequest) {
       .is("read_at", null);
 
     const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
-    return NextResponse.json({
-      notifications: data ?? [],
-      unread_count: count ?? 0,
-    }, { headers });
+    return NextResponse.json(
+      {
+        notifications: data ?? [],
+        unread_count: count ?? 0,
+      },
+      { headers },
+    );
   } catch (e) {
     return apiInternalError(e, "list notifications");
   }

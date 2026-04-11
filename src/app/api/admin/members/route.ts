@@ -17,11 +17,7 @@ async function resolveCallerWithPlan(supabase: Awaited<ReturnType<typeof createS
   const caller = await resolveCallerWithRole(supabase);
   if (!caller) return null;
 
-  const { data: tenant } = await supabase
-    .from("tenants")
-    .select("id, plan_tier")
-    .eq("id", caller.tenantId)
-    .single();
+  const { data: tenant } = await supabase.from("tenants").select("id, plan_tier").eq("id", caller.tenantId).single();
 
   return {
     ...caller,
@@ -52,7 +48,9 @@ export async function GET(req: NextRequest) {
     }
 
     // ユーザー情報を admin API で一括取得 (N+1 回避)
-    const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 });
+    const {
+      data: { users },
+    } = await admin.auth.admin.listUsers({ perPage: 1000 });
     const userMap = new Map(users.map((u) => [u.id, u]));
 
     const enriched = (members ?? []).map((m) => {
@@ -97,7 +95,7 @@ export async function POST(req: NextRequest) {
       return apiForbidden("メンバー追加の権限がありません。");
     }
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const email = (body?.email ?? "").trim().toLowerCase();
     const displayName = (body?.display_name ?? "").trim() || null;
     const role = (body?.role ?? "").trim() || null; // null → DB default
@@ -126,7 +124,9 @@ export async function POST(req: NextRequest) {
     const currentCount = count ?? 0;
     if (!canAddMember(caller.planTier, currentCount)) {
       const limit = memberLimit(caller.planTier);
-      return apiForbidden(`現在のプラン（${caller.planTier}）ではメンバーは${limit}人までです。プランをアップグレードしてください。`);
+      return apiForbidden(
+        `現在のプラン（${caller.planTier}）ではメンバーは${limit}人までです。プランをアップグレードしてください。`,
+      );
     }
 
     const userMeta = displayName ? { display_name: displayName } : undefined;
@@ -147,7 +147,10 @@ export async function POST(req: NextRequest) {
         const { data: page_data } = await admin.auth.admin.listUsers({ page, perPage: 100 });
         if (!page_data?.users?.length) break;
         const match = page_data.users.find((u) => u.email === email);
-        if (match) { found = match; break; }
+        if (match) {
+          found = match;
+          break;
+        }
         if (page_data.users.length < 100) break;
         page++;
       }
@@ -185,9 +188,7 @@ export async function POST(req: NextRequest) {
     };
     if (role) row.role = role; // null の場合は DB デフォルトに任せる
 
-    const { error: insertErr } = await admin
-      .from("tenant_memberships")
-      .insert(row);
+    const { error: insertErr } = await admin.from("tenant_memberships").insert(row);
 
     if (insertErr) {
       return apiInternalError(insertErr, "members POST insert");
@@ -217,7 +218,7 @@ export async function PUT(req: NextRequest) {
       return apiForbidden("ロール変更の権限がありません。");
     }
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const targetUserId = (body?.user_id ?? "").trim();
     const newRole = (body?.role ?? "").trim();
 
@@ -286,7 +287,7 @@ export async function DELETE(req: NextRequest) {
       return apiForbidden("メンバー削除の権限がありません。");
     }
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const targetUserId = (body?.user_id ?? "").trim();
 
     if (!targetUserId) {

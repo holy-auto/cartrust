@@ -45,9 +45,7 @@ export function validateRequiredEnvVars(): void {
   }
 
   if (warnings.length > 0) {
-    console.warn(
-      `[env-validation] Optional env vars not set (some features disabled): ${warnings.join(", ")}`,
-    );
+    console.warn(`[env-validation] Optional env vars not set (some features disabled): ${warnings.join(", ")}`);
   }
 
   if (missing.length > 0) {

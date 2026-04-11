@@ -8,17 +8,17 @@
  *       現時点では型定義と骨格のみ提供する。
  */
 
-import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 /** PDF に埋め込む署名情報 */
 export interface PdfSignatureInfo {
-  signedAt:             string;
-  signerEmail:          string;       // 表示用（マスク済み）
-  signerName?:          string;
-  signaturePreview:     string;       // 署名値の省略形（先頭20文字 + "..."）
+  signedAt: string;
+  signerEmail: string; // 表示用（マスク済み）
+  signerName?: string;
+  signaturePreview: string; // 署名値の省略形（先頭20文字 + "..."）
   publicKeyFingerprint: string;
-  verifyUrl:            string;
-  documentHash:         string;
+  verifyUrl: string;
+  documentHash: string;
 }
 
 /**
@@ -33,16 +33,14 @@ export interface PdfSignatureInfo {
  *
  * TODO: Phase 5 で pdfCertificate.tsx の renderToBuffer を使って実装
  */
-export async function generateCertificatePdfBytes(
-  certificateId: string,
-): Promise<Uint8Array> {
+export async function generateCertificatePdfBytes(certificateId: string): Promise<Uint8Array> {
   const supabase = getSupabaseAdmin();
 
   // 証明書の存在確認
   const { data: cert, error } = await supabase
-    .from('certificates')
-    .select('id, public_id')
-    .eq('id', certificateId)
+    .from("certificates")
+    .select("id, public_id")
+    .eq("id", certificateId)
     .single();
 
   if (error || !cert) {
@@ -61,9 +59,7 @@ export async function generateCertificatePdfBytes(
   //
   // ── Phase 5 実装まではプレースホルダーとして公開 ID の UTF-8 バイト列を返す ──
   // （実際のハッシュ計算では使用しないこと）
-  const placeholder = new TextEncoder().encode(
-    `PLACEHOLDER_PDF_${cert.public_id}_TODO_REPLACE_IN_PHASE5`,
-  );
+  const placeholder = new TextEncoder().encode(`PLACEHOLDER_PDF_${cert.public_id}_TODO_REPLACE_IN_PHASE5`);
   return placeholder;
 }
 
@@ -78,16 +74,12 @@ export async function generateCertificatePdfBytes(
  *
  * TODO: Phase 5 で pdfCertificate.tsx に ElectronicSignatureSection を追加後に実装
  */
-export async function regenerateSignedPdf(
-  certificateId: string,
-  signatureInfo:  PdfSignatureInfo,
-): Promise<void> {
+export async function regenerateSignedPdf(certificateId: string, signatureInfo: PdfSignatureInfo): Promise<void> {
   // TODO: Phase 5 で実装
   // 1. 証明書データを Supabase から取得
   // 2. signatureInfo を含む PdfCertificate コンポーネントで PDF を再生成
   // 3. Supabase Storage の certificates/{certificateId}/signed_certificate.pdf に保存
-  console.info(
-    `[pdfUtils] regenerateSignedPdf called for ${certificateId} (Phase 5 TODO)`,
-    { verifyUrl: signatureInfo.verifyUrl },
-  );
+  console.info(`[pdfUtils] regenerateSignedPdf called for ${certificateId} (Phase 5 TODO)`, {
+    verifyUrl: signatureInfo.verifyUrl,
+  });
 }

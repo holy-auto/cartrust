@@ -59,12 +59,10 @@ export async function POST(request: NextRequest) {
           const safeName = record.title.replace(/[^a-zA-Z0-9._-]/g, "_");
           const storagePath = `${record.agent_id}/signed/${record.id}_${safeName}.pdf`;
 
-          await admin.storage
-            .from("agent-shared-files")
-            .upload(storagePath, pdfBuffer, {
-              contentType: "application/pdf",
-              upsert: true,
-            });
+          await admin.storage.from("agent-shared-files").upload(storagePath, pdfBuffer, {
+            contentType: "application/pdf",
+            upsert: true,
+          });
 
           await admin
             .from("agent_signing_requests")
@@ -91,10 +89,7 @@ export async function POST(request: NextRequest) {
       case "document.viewed": {
         // Only update if still in "sent" status
         if (record.status === "sent") {
-          await admin
-            .from("agent_signing_requests")
-            .update({ status: "viewed" })
-            .eq("id", record.id);
+          await admin.from("agent_signing_requests").update({ status: "viewed" }).eq("id", record.id);
         }
         break;
       }
@@ -112,10 +107,7 @@ export async function POST(request: NextRequest) {
       }
 
       case "document.expired": {
-        await admin
-          .from("agent_signing_requests")
-          .update({ status: "expired" })
-          .eq("id", record.id);
+        await admin.from("agent_signing_requests").update({ status: "expired" }).eq("id", record.id);
         break;
       }
 

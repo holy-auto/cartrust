@@ -76,7 +76,8 @@ export async function GET(req: NextRequest) {
     const customerId = url.searchParams.get("customer_id") ?? "";
     const { page, perPage, from, to } = parsePagination(req, { maxPerPage: 200 });
 
-    const selectCols = "id, tenant_id, customer_id, doc_type, doc_number, issued_at, due_date, status, subtotal, tax, total, tax_rate, note, is_invoice_compliant, source_document_id, show_seal, show_logo, show_bank_info, recipient_name, created_at, updated_at";
+    const selectCols =
+      "id, tenant_id, customer_id, doc_type, doc_number, issued_at, due_date, status, subtotal, tax, total, tax_rate, note, is_invoice_compliant, source_document_id, show_seal, show_logo, show_bank_info, recipient_name, created_at, updated_at";
 
     let query = supabase
       .from("documents")
@@ -89,9 +90,18 @@ export async function GET(req: NextRequest) {
       .select("*", { count: "exact", head: true })
       .eq("tenant_id", caller.tenantId);
 
-    if (docType) { query = query.eq("doc_type", docType); countQuery = countQuery.eq("doc_type", docType); }
-    if (status && status !== "all") { query = query.eq("status", status); countQuery = countQuery.eq("status", status); }
-    if (customerId) { query = query.eq("customer_id", customerId); countQuery = countQuery.eq("customer_id", customerId); }
+    if (docType) {
+      query = query.eq("doc_type", docType);
+      countQuery = countQuery.eq("doc_type", docType);
+    }
+    if (status && status !== "all") {
+      query = query.eq("status", status);
+      countQuery = countQuery.eq("status", status);
+    }
+    if (customerId) {
+      query = query.eq("customer_id", customerId);
+      countQuery = countQuery.eq("customer_id", customerId);
+    }
 
     if (page > 0) {
       query = query.range(from, to);
@@ -106,11 +116,10 @@ export async function GET(req: NextRequest) {
     const customerIds = [...new Set((docs ?? []).map((d) => d.customer_id).filter(Boolean))];
     const customerNames: Record<string, string> = {};
     if (customerIds.length > 0) {
-      const { data: customers } = await supabase
-        .from("customers")
-        .select("id, name")
-        .in("id", customerIds);
-      for (const c of customers ?? []) { customerNames[c.id] = c.name; }
+      const { data: customers } = await supabase.from("customers").select("id, name").in("id", customerIds);
+      for (const c of customers ?? []) {
+        customerNames[c.id] = c.name;
+      }
     }
 
     const enriched = (docs ?? []).map((d) => ({
@@ -151,7 +160,7 @@ export async function POST(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const docType = (body?.doc_type ?? "").trim() as DocType;
     if (!DOC_TYPES[docType]) {
       return apiValidationError("invalid doc_type");
@@ -199,7 +208,13 @@ export async function POST(req: NextRequest) {
       show_bank_info: showBankInfo,
     };
 
-    const { data, error } = await supabase.from("documents").insert(row).select("id, tenant_id, customer_id, recipient_name, doc_type, doc_number, issued_at, due_date, status, subtotal, tax, total, tax_rate, items_json, note, meta_json, is_invoice_compliant, source_document_id, show_seal, show_logo, show_bank_info, created_at, updated_at").single();
+    const { data, error } = await supabase
+      .from("documents")
+      .insert(row)
+      .select(
+        "id, tenant_id, customer_id, recipient_name, doc_type, doc_number, issued_at, due_date, status, subtotal, tax, total, tax_rate, items_json, note, meta_json, is_invoice_compliant, source_document_id, show_seal, show_logo, show_bank_info, created_at, updated_at",
+      )
+      .single();
     if (error) {
       return apiInternalError(error, "documents POST");
     }
@@ -217,7 +232,7 @@ export async function PUT(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const id = (body?.id ?? "").trim();
     if (!id) return apiValidationError("id is required");
 
@@ -251,7 +266,9 @@ export async function PUT(req: NextRequest) {
       .update(updates)
       .eq("id", id)
       .eq("tenant_id", caller.tenantId)
-      .select("id, tenant_id, customer_id, recipient_name, doc_type, doc_number, issued_at, due_date, status, subtotal, tax, total, tax_rate, items_json, note, meta_json, is_invoice_compliant, source_document_id, show_seal, show_logo, show_bank_info, created_at, updated_at")
+      .select(
+        "id, tenant_id, customer_id, recipient_name, doc_type, doc_number, issued_at, due_date, status, subtotal, tax, total, tax_rate, items_json, note, meta_json, is_invoice_compliant, source_document_id, show_seal, show_logo, show_bank_info, created_at, updated_at",
+      )
       .single();
 
     if (error) {
@@ -271,7 +288,7 @@ export async function DELETE(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const id = (body?.id ?? "").trim();
     if (!id) return apiValidationError("id is required");
 
@@ -288,11 +305,7 @@ export async function DELETE(req: NextRequest) {
       return apiValidationError("下書きステータスの帳票のみ削除できます。");
     }
 
-    const { error } = await supabase
-      .from("documents")
-      .delete()
-      .eq("id", id)
-      .eq("tenant_id", caller.tenantId);
+    const { error } = await supabase.from("documents").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) {
       return apiInternalError(error, "documents DELETE");

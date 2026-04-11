@@ -75,7 +75,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         .update({ status: nextStatus })
         .eq("id", id)
         .eq("tenant_id", caller.tenantId)
-        .select("id, status, customer_id, vehicle_id, title, scheduled_date, start_time, end_time, created_at, updated_at")
+        .select(
+          "id, status, customer_id, vehicle_id, title, scheduled_date, start_time, end_time, created_at, updated_at",
+        )
         .single();
 
       if (error) return apiInternalError(error, "advance legacy update");

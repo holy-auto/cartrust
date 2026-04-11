@@ -60,7 +60,10 @@ export async function POST(req: Request) {
       await markCodeAttempt(row.id, nextAttempts);
       if (nextAttempts >= 5) {
         await markCodeUsed(row.id);
-        return NextResponse.json({ error: "too_many_attempts", message: "試行回数の上限に達しました。再度コードを送信してください。" }, { status: 429 });
+        return NextResponse.json(
+          { error: "too_many_attempts", message: "試行回数の上限に達しました。再度コードを送信してください。" },
+          { status: 429 },
+        );
       }
       return apiValidationError("invalid code");
     }
