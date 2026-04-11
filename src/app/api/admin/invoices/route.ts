@@ -3,6 +3,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { parsePagination } from "@/lib/api/pagination";
+import { apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ certificates: certs ?? [] });
     }
 
-    const selectCols = "id, tenant_id, customer_id, doc_number, issued_at, due_date, status, subtotal, tax, total, tax_rate, note, payment_date, created_at, updated_at";
+    const selectCols =
+      "id, tenant_id, customer_id, doc_number, issued_at, due_date, status, subtotal, tax, total, tax_rate, note, payment_date, created_at, updated_at";
 
     let query = supabase
       .from("documents")
@@ -89,18 +91,14 @@ export async function GET(req: NextRequest) {
 
     const [{ data: docs, error }, { count: totalCount }] = await Promise.all([query, countQuery]);
     if (error) {
-      console.error("[invoices] db_error:", error.message);
-      return NextResponse.json({ error: "db_error" }, { status: 500 });
+      return apiInternalError(error.message, "invoice_list_db");
     }
 
     // 顧客名を取得
     const customerIds = [...new Set((docs ?? []).map((i) => i.customer_id).filter(Boolean))];
     let customerNames: Record<string, string> = {};
     if (customerIds.length > 0) {
-      const { data: customers } = await supabase
-        .from("customers")
-        .select("id, name")
-        .in("id", customerIds);
+      const { data: customers } = await supabase.from("customers").select("id, name").in("id", customerIds);
       (customers ?? []).forEach((c) => {
         customerNames[c.id] = c.name;
       });
@@ -120,9 +118,7 @@ export async function GET(req: NextRequest) {
     const unpaidAmount = allInvoices
       .filter((i) => i.status === "sent" || i.status === "overdue")
       .reduce((sum, i) => sum + (i.total ?? 0), 0);
-    const thisMonthIssued = allInvoices.filter(
-      (i) => i.issued_at && i.issued_at >= thisMonthStart
-    ).length;
+    const thisMonthIssued = allInvoices.filter((i) => i.issued_at && i.issued_at >= thisMonthStart).length;
 
     return NextResponse.json({
       invoices: enriched,
@@ -140,9 +136,8 @@ export async function GET(req: NextRequest) {
         },
       }),
     });
-  } catch (e: any) {
-    console.error("invoices list failed", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+  } catch (e) {
+    return apiInternalError(e, "invoice_list");
   }
 }
 
@@ -156,7 +151,7 @@ export async function POST(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
 
     const docNumber = body?.invoice_number?.trim() || (await generateInvoiceNumber(supabase, caller.tenantId));
     const customerId = body?.customer_id?.trim() || null;
@@ -223,15 +218,13 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await supabase.from("documents").insert(row).select().single();
     if (error) {
-      console.error("[invoices] insert_failed:", error.message);
-      return NextResponse.json({ error: "insert_failed" }, { status: 500 });
+      return apiInternalError(error.message, "invoice_insert");
     }
 
     // 後方互換: invoice_number エイリアス
     return NextResponse.json({ ok: true, invoice: { ...data, invoice_number: data.doc_number } });
-  } catch (e: any) {
-    console.error("invoice create failed", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+  } catch (e) {
+    return apiInternalError(e, "invoice_create");
   }
 }
 
@@ -242,7 +235,7 @@ export async function PUT(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const id = (body?.id ?? "").trim();
     if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
 
@@ -301,14 +294,12 @@ export async function PUT(req: NextRequest) {
       .single();
 
     if (error) {
-      console.error("[invoices] update_failed:", error.message);
-      return NextResponse.json({ error: "update_failed" }, { status: 500 });
+      return apiInternalError(error.message, "invoice_update_db");
     }
 
     return NextResponse.json({ ok: true, invoice: { ...data, invoice_number: data.doc_number } });
-  } catch (e: any) {
-    console.error("invoice update failed", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+  } catch (e) {
+    return apiInternalError(e, "invoice_update");
   }
 }
 
@@ -323,7 +314,7 @@ export async function DELETE(req: NextRequest) {
     }
     const caller = { userId: callerWithRole.userId, tenantId: callerWithRole.tenantId };
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const id = (body?.id ?? "").trim();
     if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
 
@@ -339,26 +330,23 @@ export async function DELETE(req: NextRequest) {
     if (!inv) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
     if (inv.status !== "draft") {
-      return NextResponse.json({
-        error: "not_draft",
-        message: "下書きステータスの請求書のみ削除できます。",
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "not_draft",
+          message: "下書きステータスの請求書のみ削除できます。",
+        },
+        { status: 400 },
+      );
     }
 
-    const { error } = await supabase
-      .from("documents")
-      .delete()
-      .eq("id", id)
-      .eq("tenant_id", caller.tenantId);
+    const { error } = await supabase.from("documents").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) {
-      console.error("[invoices] delete_failed:", error.message);
-      return NextResponse.json({ error: "delete_failed" }, { status: 500 });
+      return apiInternalError(error.message, "invoice_delete_db");
     }
 
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    console.error("invoice delete failed", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+  } catch (e) {
+    return apiInternalError(e, "invoice_delete");
   }
 }
