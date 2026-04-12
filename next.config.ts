@@ -12,7 +12,11 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
 
-  serverExternalPackages: ["@react-pdf/renderer"],
+  serverExternalPackages: [
+    "@react-pdf/renderer",
+    // Native binary module — cannot be bundled by Turbopack
+    "@contentauth/c2pa-node",
+  ],
 
   // Pin Turbopack root to this directory to prevent path resolution issues in worktrees
   turbopack: {
