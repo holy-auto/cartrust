@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { formatDateTime } from "@/lib/format";
@@ -504,9 +505,9 @@ export default function CustomerListPage() {
             <div className="font-semibold text-primary">この加盟店では表示できる情報が見つかりませんでした。</div>
             <div className="mt-2">他の加盟店で発行された証明書や予約がある可能性があります。</div>
             <div className="mt-4 flex flex-wrap gap-3">
-              <a href="/my/shops" className="rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white">
+              <Link href="/my/shops" className="rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white">
                 ご利用中の加盟店一覧を見る
-              </a>
+              </Link>
               {shops.length > 1 ? (
                 <button
                   onClick={() => router.push("/my/shops")}

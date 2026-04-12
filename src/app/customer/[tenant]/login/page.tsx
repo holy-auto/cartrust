@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 
@@ -105,9 +106,9 @@ export default function CustomerLoginPage() {
 
       <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-4 text-sm text-blue-700 dark:border-blue-800/50 dark:bg-blue-950 dark:text-blue-400">
         複数の加盟店をご利用中の場合は、共通の{" "}
-        <a href={`/my?tenant=${encodeURIComponent(tenant)}`} className="font-semibold underline">
+        <Link href={`/my?tenant=${encodeURIComponent(tenant)}`} className="font-semibold underline">
           Ledraマイページ
-        </a>{" "}
+        </Link>{" "}
         からログインすると、あとで加盟店を切り替えられます。
       </div>
     </main>
