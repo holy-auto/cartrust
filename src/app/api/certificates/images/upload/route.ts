@@ -10,6 +10,7 @@ import { checkRateLimit } from "@/lib/api/rateLimit";
 import { hashSha256, computePerceptualHash } from "@/lib/anchoring/imageHashing";
 import { stripGpsAndReadExif } from "@/lib/anchoring/imageExif";
 import { computeAuthenticityGrade } from "@/lib/anchoring/authenticityGrade";
+import { invokeAllUploadProviders } from "@/lib/anchoring/providers";
 
 export const runtime = "nodejs";
 
@@ -160,12 +161,22 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      // ── Phase 3a: verification providers (all disabled by default) ──
+      const providers = await invokeAllUploadProviders(uploadBuffer, mime, sha256);
+
+      const c2paMode = (process.env.C2PA_MODE ?? "disabled") as "disabled" | "dev-signed" | "production";
       const grade = computeAuthenticityGrade({
         hasSha256: true,
         hasExif: exif.gpsStripped,
-        hasC2pa: false,
-        deviceOk: false,
-        deepfakeOk: null,
+        hasC2pa: providers.c2pa.verified,
+        c2paKind: c2paMode === "disabled" ? "none" : c2paMode,
+        deviceOk: providers.deviceAttestation.verified,
+        deepfakeOk:
+          providers.deepfake.verdict === "likely_real"
+            ? true
+            : providers.deepfake.verdict === "likely_fake"
+              ? false
+              : null,
       });
 
       const { error: insertError } = await admin.from("certificate_images").insert({
@@ -181,6 +192,12 @@ export async function POST(req: NextRequest) {
         exif_captured_at: exif.capturedAt ? exif.capturedAt.toISOString() : null,
         exif_device_model: exif.deviceModel,
         exif_gps_stripped: exif.gpsStripped,
+        c2pa_manifest_cid: providers.c2pa.manifestCid,
+        c2pa_verified: providers.c2pa.verified,
+        device_attestation_provider: providers.deviceAttestation.provider,
+        device_attestation_verified: providers.deviceAttestation.verified,
+        deepfake_score: providers.deepfake.score,
+        deepfake_verdict: providers.deepfake.verdict,
         authenticity_grade: grade,
       });
 
