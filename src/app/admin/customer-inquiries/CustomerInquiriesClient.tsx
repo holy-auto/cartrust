@@ -69,7 +69,7 @@ export default function CustomerInquiriesClient() {
       credentials: "include",
       body: JSON.stringify({ id, status: "read" }),
     }).catch(() => undefined);
-    setInquiries((prev) => prev.map((i) => (i.id === id ? { ...i, status: "read" } : i)));
+    setInquiries((prev: InquiryRow[]) => prev.map((i: InquiryRow) => (i.id === id ? { ...i, status: "read" } : i)));
   }
 
   async function sendReply(id: string) {
@@ -85,8 +85,8 @@ export default function CustomerInquiriesClient() {
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(j?.error ?? "送信に失敗しました");
-      setInquiries((prev) =>
-        prev.map((i) =>
+      setInquiries((prev: InquiryRow[]) =>
+        prev.map((i: InquiryRow) =>
           i.id === id
             ? { ...i, status: "replied", admin_reply: replyText.trim(), replied_at: new Date().toISOString() }
             : i,
