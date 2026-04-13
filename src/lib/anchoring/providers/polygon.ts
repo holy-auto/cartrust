@@ -204,7 +204,7 @@ export async function findAnchorTx(
     if (logs.length === 0) return null;
     // Take the earliest event (first anchor)
     const first = logs.reduce((acc, cur) =>
-      BigInt(cur.blockNumber ?? 0n) < BigInt(acc.blockNumber ?? 0n) ? cur : acc,
+      BigInt(cur.blockNumber ?? 0) < BigInt(acc.blockNumber ?? 0) ? cur : acc,
     );
 
     return { txHash: first.transactionHash as `0x${string}`, network: config.network };

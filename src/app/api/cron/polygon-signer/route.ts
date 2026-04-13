@@ -72,8 +72,8 @@ function parsePolThreshold(raw: string | undefined, fallback: number): number {
 
 /** 18 decimals の wei を POL 単位の小数文字列に変換 (精度維持のため BigInt 手計算) */
 function weiToPolString(wei: bigint): string {
-  const DECIMALS = 18n;
-  const base = 10n ** DECIMALS;
+  const DECIMALS = BigInt(18);
+  const base = BigInt(10) ** DECIMALS;
   const whole = wei / base;
   const frac = wei % base;
   const fracStr = frac.toString().padStart(18, "0").replace(/0+$/, "");
