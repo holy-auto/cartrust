@@ -55,7 +55,10 @@
       [
         "@stripe/stripe-terminal-react-native",
         {
-          "bluetoothBackgroundMode": false
+          "bluetoothBackgroundMode": false,
+          "locationWhenInUsePermission": "Stripe Terminal の利用に位置情報が必要です",
+          "bluetoothPeripheralPermission": "将来のカードリーダー接続にBluetoothを使用します",
+          "bluetoothAlwaysUsagePermission": "将来のカードリーダー接続にBluetoothを使用します"
         }
       ],
       [
