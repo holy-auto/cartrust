@@ -288,7 +288,7 @@ export default function InventoryClient() {
         }
       />
 
-      {err && <div className="glass-card p-4 text-sm text-red-500">{err}</div>}
+      {err && <div className="glass-card p-4 text-sm text-danger-text">{err}</div>}
 
       {data && (
         <>
@@ -302,7 +302,7 @@ export default function InventoryClient() {
             <div className="glass-card p-5">
               <div className="text-xs font-semibold tracking-[0.18em] text-muted">在庫不足</div>
               <div
-                className={`mt-2 text-2xl font-bold ${data.stats.low_stock_count > 0 ? "text-red-400" : "text-primary"}`}
+                className={`mt-2 text-2xl font-bold ${data.stats.low_stock_count > 0 ? "text-danger" : "text-primary"}`}
               >
                 {data.stats.low_stock_count}
               </div>
@@ -315,7 +315,7 @@ export default function InventoryClient() {
             </div>
           </section>
 
-          {msg && <div className={`text-sm ${msg.ok ? "text-emerald-400" : "text-red-500"}`}>{msg.text}</div>}
+          {msg && <div className={`text-sm ${msg.ok ? "text-success" : "text-danger"}`}>{msg.text}</div>}
 
           {/* Create */}
           {showForm && (
@@ -557,11 +557,11 @@ export default function InventoryClient() {
                               {!item.sku && !item.category && "-"}
                             </td>
                             <td className="px-5 py-3.5 text-right font-bold whitespace-nowrap">
-                              <span className={isLow ? "text-red-400" : "text-primary"}>
+                              <span className={isLow ? "text-danger" : "text-primary"}>
                                 {Number(item.current_stock)}
                               </span>
                               <span className="ml-1 text-xs text-muted">{item.unit}</span>
-                              {isLow && <div className="mt-0.5 text-[10px] font-semibold text-red-400">在庫不足</div>}
+                              {isLow && <div className="mt-0.5 text-[10px] font-semibold text-danger">在庫不足</div>}
                             </td>
                             <td className="hidden sm:table-cell px-5 py-3.5 text-right text-secondary">
                               {Number(item.min_stock)}
@@ -573,14 +573,14 @@ export default function InventoryClient() {
                               <div className="flex gap-1.5 flex-wrap">
                                 <button
                                   type="button"
-                                  className="btn-ghost px-2 py-1 text-xs border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                                  className="btn-ghost px-2 py-1 text-xs border border-success/30 text-success hover:bg-success-dim"
                                   onClick={() => openMove(item, "in")}
                                 >
                                   + 入庫
                                 </button>
                                 <button
                                   type="button"
-                                  className="btn-ghost px-2 py-1 text-xs border border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                                  className="btn-ghost px-2 py-1 text-xs border border-warning/30 text-warning hover:bg-warning-dim"
                                   onClick={() => openMove(item, "out")}
                                 >
                                   - 出庫
@@ -735,7 +735,7 @@ function Field({ label, required, children }: { label: string; required?: boolea
   return (
     <div className="space-y-1">
       <label className="text-xs text-muted">
-        {label} {required && <span className="text-red-500">*</span>}
+        {label} {required && <span className="text-danger">*</span>}
       </label>
       {children}
     </div>

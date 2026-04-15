@@ -75,7 +75,7 @@ export default function StorefrontInventory() {
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ text: string; ok: boolean } | null>(null);
 
   const openAction = (type: MoveType) => {
     setAction(type);
@@ -108,27 +108,52 @@ export default function StorefrontInventory() {
       setErr("数量を入力してください");
       return;
     }
+
+    const act = action;
+    const item = selectedItem;
+    const snapshot = data;
+
+    const prev = Number(item.current_stock);
+    const newStock = act === "in" ? prev + qty : act === "out" ? prev - qty : qty;
+
+    // 楽観的更新：モーダルは即閉じ、在庫数はすぐに反映
+    setToast({ text: `${item.name}：${MOVE_LABEL[act]}を記録しました`, ok: true });
+    window.setTimeout(() => setToast(null), 3000);
+    close();
+
+    if (snapshot) {
+      const nextItems = snapshot.items.map((i) => (i.id === item.id ? { ...i, current_stock: newStock } : i));
+      const nextLow = nextItems.filter(
+        (i) => Number(i.current_stock) <= Number(i.min_stock) && Number(i.min_stock) > 0,
+      ).length;
+      const nextValue = nextItems.reduce((s, i) => s + (i.unit_cost ?? 0) * Number(i.current_stock), 0);
+      mutate(
+        { items: nextItems, stats: { ...snapshot.stats, low_stock_count: nextLow, total_value: nextValue } },
+        { revalidate: false },
+      );
+    }
+
     setSaving(true);
-    setErr(null);
     try {
       const res = await fetch("/api/admin/inventory/movements", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          item_id: selectedItem.id,
-          type: action,
+          item_id: item.id,
+          type: act,
           quantity: qty,
           reason: reason.trim() || null,
         }),
       });
       const j = await res.json().catch(() => null);
       if (!res.ok) throw new Error(j?.message ?? `HTTP ${res.status}`);
-      setToast(`${selectedItem.name}：${MOVE_LABEL[action]}を記録しました`);
-      window.setTimeout(() => setToast(null), 3000);
-      close();
+      // サーバ応答と差異があった時のために背後で再検証
       mutate();
     } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : String(e));
+      if (snapshot) mutate(snapshot, { revalidate: false });
+      const msg = e instanceof Error ? e.message : String(e);
+      setToast({ text: `記録に失敗しました: ${msg}`, ok: false });
+      window.setTimeout(() => setToast(null), 4000);
     } finally {
       setSaving(false);
     }
@@ -207,8 +232,14 @@ export default function StorefrontInventory() {
       </POSSection>
 
       {toast && (
-        <div className="rounded-xl border border-success/30 bg-success-dim px-4 py-3 text-sm font-semibold text-success-text">
-          {toast}
+        <div
+          className={`rounded-xl border px-4 py-3 text-sm font-semibold ${
+            toast.ok
+              ? "border-success/30 bg-success-dim text-success-text"
+              : "border-danger/30 bg-danger-dim text-danger-text"
+          }`}
+        >
+          {toast.text}
         </div>
       )}
 

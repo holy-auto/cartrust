@@ -159,6 +159,7 @@ export default function StorefrontJobWorkflow({ reservation, customer, vehicle, 
     const params = new URLSearchParams();
     if (reservation.customer_id) params.set("customer_id", reservation.customer_id);
     if (reservation.vehicle_id) params.set("vehicle_id", reservation.vehicle_id);
+    if (reservation.id) params.set("reservation_id", reservation.id);
     const qs = params.toString();
     return `/admin/invoices/new${qs ? `?${qs}` : ""}`;
   })();

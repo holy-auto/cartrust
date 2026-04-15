@@ -110,7 +110,31 @@ export default function StorefrontReservations() {
   const inProgress = useMemo(() => filtered.filter((x) => x.status === "in_progress"), [filtered]);
   const completed = useMemo(() => filtered.filter((x) => x.status === "completed"), [filtered]);
 
+  // 本日の未受付（range に関わらず常に表示）
+  const todayKey = useMemo(() => dateRange("today").start, []);
+  const todayUnreceived = useMemo(
+    () => all.filter((x) => x.status === "confirmed" && x.scheduled_date === todayKey),
+    [all, todayKey],
+  );
+
   async function advance(id: string) {
+    const snapshot = data;
+    // 楽観的更新：ステータスを次の段階に即時反映
+    if (snapshot) {
+      const next = snapshot.reservations.map((x) => {
+        if (x.id !== id) return x;
+        const nextStatus =
+          x.status === "confirmed"
+            ? "arrived"
+            : x.status === "arrived"
+              ? "in_progress"
+              : x.status === "in_progress"
+                ? "completed"
+                : x.status;
+        return { ...x, status: nextStatus };
+      });
+      mutate({ reservations: next }, { revalidate: false });
+    }
     setAdvancingId(id);
     setErr(null);
     try {
@@ -119,8 +143,10 @@ export default function StorefrontReservations() {
         const j = await res.json().catch(() => null);
         throw new Error(j?.error ?? j?.message ?? `HTTP ${res.status}`);
       }
-      await mutate();
+      // 背後でサーバ状態と再同期
+      mutate();
     } catch (e: unknown) {
+      if (snapshot) mutate(snapshot, { revalidate: false });
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
       setAdvancingId(null);
@@ -174,6 +200,48 @@ export default function StorefrontReservations() {
 
       {err && (
         <div className="rounded-lg border border-danger/20 bg-danger-dim px-3 py-2 text-xs text-danger-text">{err}</div>
+      )}
+
+      {/* ─── 本日の未受付（最優先で表示） ─── */}
+      {todayUnreceived.length > 0 && (
+        <POSSection title={`本日の未受付 (${todayUnreceived.length}件)`} description="1 タップで受付完了にできます">
+          <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {todayUnreceived.map((x) => (
+              <li
+                key={x.id}
+                className="flex items-center justify-between gap-3 rounded-2xl border border-warning/40 bg-warning-dim p-4"
+              >
+                <button
+                  type="button"
+                  onClick={() => router.push(`/admin/jobs/${x.id}`)}
+                  className="min-w-0 flex-1 text-left"
+                >
+                  <div className="truncate text-lg font-bold text-warning-text">
+                    {x.customer_name || x.title || "(無題)"}
+                  </div>
+                  <div className="mt-0.5 truncate text-xs text-warning-text/80">
+                    {x.vehicle_label ? `${x.vehicle_label} · ` : ""}
+                    {fmtTime(x.start_time, x.end_time, x.scheduled_date)}
+                  </div>
+                  {x.estimated_amount != null && (
+                    <div className="mt-0.5 text-[11px] text-warning-text/70">見積 {formatJpy(x.estimated_amount)}</div>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => advance(x.id)}
+                  disabled={advancingId === x.id}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                  {advancingId === x.id ? "受付中..." : "受付完了"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </POSSection>
       )}
 
       {/* ─── カンバン ─── */}
