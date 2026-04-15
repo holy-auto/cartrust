@@ -17,6 +17,8 @@ import type { JobCustomer, JobReservation, JobVehicle } from "./types";
  * レンダリング戦略:
  * 1) reservation / customer / vehicle の軽量データは即時フェッチし、
  *    <JobStatusPanel> (ステッパー + 次アクション) を先に描画
+ *    ※ 店頭モードでは StorefrontJobWorkflow が独自にステータス領域を持つため
+ *      JobStatusPanel 側は自身で非表示化する。
  * 2) certificates / documents の取得はやや重いため、
  *    <Suspense> で包んだ <JobTabsLoader> から並列取得してストリーミング
  *
@@ -26,20 +28,12 @@ import type { JobCustomer, JobReservation, JobVehicle } from "./types";
 async function getMyTenantId(supabase: any) {
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) return null;
-  const { data, error } = await supabase
-    .from("tenant_memberships")
-    .select("tenant_id")
-    .limit(1)
-    .single();
+  const { data, error } = await supabase.from("tenant_memberships").select("tenant_id").limit(1).single();
   if (error || !data) return null;
   return data.tenant_id as string;
 }
 
-export default async function JobWorkflowPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function JobWorkflowPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
   const { data: userRes } = await supabase.auth.getUser();
@@ -50,9 +44,7 @@ export default async function JobWorkflowPage({
     return (
       <div className="space-y-6">
         <PageHeader tag="JOB" title="案件ワークフロー" />
-        <div className="glass-card p-4 text-sm text-danger">
-          テナントが見つかりません。
-        </div>
+        <div className="glass-card p-4 text-sm text-danger">テナントが見つかりません。</div>
       </div>
     );
   }
@@ -77,9 +69,7 @@ export default async function JobWorkflowPage({
             </Link>
           }
         />
-        <div className="glass-card p-4 text-sm text-danger">
-          指定された案件 (予約) が見つかりません。
-        </div>
+        <div className="glass-card p-4 text-sm text-danger">指定された案件 (予約) が見つかりません。</div>
       </div>
     );
   }
@@ -119,14 +109,14 @@ export default async function JobWorkflowPage({
         }
       />
 
-      {/* ステッパー + 次アクション: 軽量データのみで即時描画 */}
+      {/* ステッパー + 次アクション: 軽量データのみで即時描画 (店頭モードでは非表示) */}
       <JobStatusPanel
         reservation={reservation as JobReservation}
         customerId={reservation.customer_id}
         vehicleId={reservation.vehicle_id}
       />
 
-      {/* 証明書 / 請求 / 見積書: ストリーミング配信 */}
+      {/* 証明書 / 請求 / 見積書: ストリーミング配信 (モードに応じて UI 切替) */}
       <Suspense fallback={<TabsSkeleton />}>
         <JobTabsLoader
           reservation={reservation as JobReservation}
@@ -145,19 +135,13 @@ function TabsSkeleton() {
       {/* タブヘッダ */}
       <div className="flex items-center gap-2 border-b border-border-subtle">
         {[0, 1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="h-9 w-28 rounded-t-md bg-[rgba(0,0,0,0.06)] mb-0"
-          />
+          <div key={i} className="h-9 w-28 rounded-t-md bg-[rgba(0,0,0,0.06)] mb-0" />
         ))}
       </div>
       {/* コンテンツ: 2カラムカード風 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {[0, 1].map((i) => (
-          <div
-            key={i}
-            className="rounded-xl border border-border-subtle bg-surface p-5 space-y-3"
-          >
+          <div key={i} className="rounded-xl border border-border-subtle bg-surface p-5 space-y-3">
             <div className="h-3 w-20 bg-[rgba(0,0,0,0.06)] rounded" />
             <div className="h-4 w-full bg-[rgba(0,0,0,0.04)] rounded" />
             <div className="h-4 w-5/6 bg-[rgba(0,0,0,0.04)] rounded" />

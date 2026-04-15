@@ -295,9 +295,14 @@ export default function ReservationsClient() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ workflow_template_id: workflowTemplateId }),
       });
-      if (!res.ok) throw new Error("Failed");
-      mutate();
-      setDetailId(null);
+      const j = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(j?.error ?? "Failed");
+      // ワークフロー開始直後にドロワーを閉じずに、そのままステッパーを表示させる。
+      // 返却された steps を即座に反映して「次へ」ボタンで来店→証明書発行→会計と進行できるようにする。
+      if (Array.isArray(j?.steps)) setDetailSteps(j.steps);
+      setDetailStepLogs([]);
+      setWorkflowTemplateId("");
+      await mutate();
     } catch (e: unknown) {
       alert("ワークフロー開始に失敗: " + (e instanceof Error ? e.message : String(e)));
     }
@@ -918,8 +923,14 @@ export default function ReservationsClient() {
                                     )}
                                   </div>
 
-                                  {/* Title */}
-                                  <div className="text-sm font-bold text-primary mb-1">{r.title}</div>
+                                  {/* Title — clickable link to the dedicated job/workflow page */}
+                                  <Link
+                                    href={`/admin/jobs/${r.id}`}
+                                    className="block text-sm font-bold text-primary mb-1 hover:text-accent hover:underline transition-colors"
+                                    title="案件ワークフローを開く"
+                                  >
+                                    {r.title}
+                                  </Link>
 
                                   {/* Meta */}
                                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
@@ -978,7 +989,15 @@ export default function ReservationsClient() {
 
                                 {/* Right: actions */}
                                 <div className="flex flex-col items-end gap-1.5 shrink-0">
-                                  {/* Detail button */}
+                                  {/* Open dedicated job workflow page */}
+                                  <Link
+                                    href={`/admin/jobs/${r.id}`}
+                                    className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-accent/30 bg-accent-dim text-accent-text hover:bg-accent/10 transition-colors whitespace-nowrap"
+                                    title="案件ワークフローを別画面で開く"
+                                  >
+                                    🧭 案件を開く
+                                  </Link>
+                                  {/* Detail button (inline drawer) */}
                                   <button
                                     onClick={() => {
                                       if (detailId === r.id) {

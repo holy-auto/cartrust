@@ -5,12 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
-import {
-  STATUS_FLOW,
-  STATUS_LABEL,
-  STATUS_HINT,
-  type JobReservation,
-} from "./types";
+import { useViewMode } from "@/lib/view-mode/ViewModeContext";
+import { STATUS_FLOW, STATUS_LABEL, STATUS_HINT, type JobReservation } from "./types";
 
 /**
  * JobStatusPanel
@@ -18,6 +14,9 @@ import {
  * 案件ワークフロー画面の「上部エリア」: ステータスステッパー +
  * 次アクションパネル。reservation/customer/vehicle の軽量データだけで
  * 即座に描画できるため Suspense の外側に配置する。
+ *
+ * 店頭 (storefront) モードでは <StorefrontJobWorkflow> が独自の大型ボタン式
+ * ステータスパネルを持つため、本コンポーネントは非表示となる。
  */
 
 interface Props {
@@ -26,24 +25,21 @@ interface Props {
   vehicleId: string | null;
 }
 
-export default function JobStatusPanel({
-  reservation,
-  customerId,
-  vehicleId,
-}: Props) {
+export default function JobStatusPanel({ reservation, customerId, vehicleId }: Props) {
   const router = useRouter();
+  const { mode, hydrated } = useViewMode();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  // 店頭モードでは StorefrontJobWorkflow が独自ステータス UI を持つため描画しない
+  if (hydrated && mode === "storefront") {
+    return null;
+  }
+
   const currentStatus = reservation.status;
   const isCancelled = currentStatus === "cancelled";
-  const currentIndex = STATUS_FLOW.indexOf(
-    currentStatus as (typeof STATUS_FLOW)[number],
-  );
-  const nextStatus =
-    currentIndex >= 0 && currentIndex < STATUS_FLOW.length - 1
-      ? STATUS_FLOW[currentIndex + 1]
-      : null;
+  const currentIndex = STATUS_FLOW.indexOf(currentStatus as (typeof STATUS_FLOW)[number]);
+  const nextStatus = currentIndex >= 0 && currentIndex < STATUS_FLOW.length - 1 ? STATUS_FLOW[currentIndex + 1] : null;
 
   async function advanceStatus(target: string) {
     setBusy(true);
@@ -74,33 +70,19 @@ export default function JobStatusPanel({
     return `/admin/certificates/new${qs ? `?${qs}` : ""}`;
   })();
 
-  const invoiceNewUrl = customerId
-    ? `/admin/invoices/new?customer_id=${customerId}`
-    : `/admin/invoices/new`;
+  const invoiceNewUrl = customerId ? `/admin/invoices/new?customer_id=${customerId}` : `/admin/invoices/new`;
 
   return (
     <div className="space-y-6">
       <Card padding="default">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="space-y-1">
-            <div className="text-[11px] font-semibold tracking-[0.18em] text-muted uppercase">
-              Status
-            </div>
+            <div className="text-[11px] font-semibold tracking-[0.18em] text-muted uppercase">Status</div>
             <div className="flex items-center gap-2">
-              <Badge
-                variant={
-                  isCancelled
-                    ? "danger"
-                    : currentStatus === "completed"
-                      ? "success"
-                      : "info"
-                }
-              >
+              <Badge variant={isCancelled ? "danger" : currentStatus === "completed" ? "success" : "info"}>
                 {STATUS_LABEL[currentStatus] ?? currentStatus}
               </Badge>
-              <span className="text-[13px] text-secondary">
-                {STATUS_HINT[currentStatus] ?? ""}
-              </span>
+              <span className="text-[13px] text-secondary">{STATUS_HINT[currentStatus] ?? ""}</span>
             </div>
           </div>
           {nextStatus && !isCancelled && (
@@ -119,10 +101,7 @@ export default function JobStatusPanel({
             const active = !isCancelled && i === currentIndex;
             const done = !isCancelled && i < currentIndex;
             return (
-              <li
-                key={s}
-                className="flex items-center gap-2 whitespace-nowrap"
-              >
+              <li key={s} className="flex items-center gap-2 whitespace-nowrap">
                 <div
                   className={`flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium ${
                     active
@@ -137,9 +116,7 @@ export default function JobStatusPanel({
                   </span>
                   {STATUS_LABEL[s]}
                 </div>
-                {i < STATUS_FLOW.length - 1 && (
-                  <span className="text-muted">→</span>
-                )}
+                {i < STATUS_FLOW.length - 1 && <span className="text-muted">→</span>}
               </li>
             );
           })}
@@ -153,39 +130,25 @@ export default function JobStatusPanel({
       </Card>
 
       <Card padding="default">
-        <div className="text-[11px] font-semibold tracking-[0.18em] text-muted uppercase mb-3">
-          Next Actions
-        </div>
+        <div className="text-[11px] font-semibold tracking-[0.18em] text-muted uppercase mb-3">Next Actions</div>
         <div className="flex flex-wrap gap-2">
-          <Link
-            href={certificateNewUrl}
-            className="btn-primary text-sm px-4 py-2"
-          >
+          <Link href={certificateNewUrl} className="btn-primary text-sm px-4 py-2">
             🪪 証明書を発行
           </Link>
           <Link href={invoiceNewUrl} className="btn-secondary text-sm px-4 py-2">
             💰 請求書を作成
           </Link>
           {customerId && (
-            <Link
-              href={`/admin/customers/${customerId}`}
-              className="btn-secondary text-sm px-4 py-2"
-            >
+            <Link href={`/admin/customers/${customerId}`} className="btn-secondary text-sm px-4 py-2">
               👤 顧客詳細
             </Link>
           )}
           {vehicleId && (
-            <Link
-              href={`/admin/vehicles/${vehicleId}`}
-              className="btn-secondary text-sm px-4 py-2"
-            >
+            <Link href={`/admin/vehicles/${vehicleId}`} className="btn-secondary text-sm px-4 py-2">
               🚗 車両詳細
             </Link>
           )}
-          <Link
-            href={`/admin/reservations?focus=${reservation.id}`}
-            className="btn-secondary text-sm px-4 py-2"
-          >
+          <Link href={`/admin/reservations?focus=${reservation.id}`} className="btn-secondary text-sm px-4 py-2">
             📅 予約画面で編集
           </Link>
         </div>

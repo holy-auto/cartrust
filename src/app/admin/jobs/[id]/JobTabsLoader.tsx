@@ -1,22 +1,17 @@
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import JobDetailTabs from "./JobDetailTabs";
-import type {
-  JobReservation,
-  JobCustomer,
-  JobVehicle,
-  JobCertificate,
-  JobDocument,
-} from "./types";
+import JobWorkflowModeSwitch from "./JobWorkflowModeSwitch";
+import type { JobReservation, JobCustomer, JobVehicle, JobCertificate, JobDocument } from "./types";
 
 /**
  * JobTabsLoader
  * ------------------------------------------------------------
  * 証明書 (certificates) と書類 (documents) を並列取得し、
- * JobDetailTabs を描画する async Server Component。
+ * モード別ビュー (管理 = タブ / 店頭 = 大ボタン) を描画する
+ * async Server Component。
  *
  * page.tsx からは <Suspense> で包んで呼び出され、
  * ステータスパネル (上部) の即時描画を妨げずに、
- * 下部タブのデータをストリーミング配信する。
+ * 下部コンテンツのデータをストリーミング配信する。
  */
 
 interface Props {
@@ -26,12 +21,7 @@ interface Props {
   tenantId: string;
 }
 
-export default async function JobTabsLoader({
-  reservation,
-  customer,
-  vehicle,
-  tenantId,
-}: Props) {
+export default async function JobTabsLoader({ reservation, customer, vehicle, tenantId }: Props) {
   const supabase = await createSupabaseServerClient();
 
   // 証明書 (vehicle_id 優先、無ければ customer_id)
@@ -65,24 +55,15 @@ export default async function JobTabsLoader({
       .select("id, doc_number, doc_type, status, total, issued_at, due_date")
       .eq("tenant_id", tenantId)
       .eq("customer_id", reservation.customer_id)
-      .in("doc_type", [
-        "invoice",
-        "consolidated_invoice",
-        "estimate",
-        "receipt",
-        "delivery",
-      ])
+      .in("doc_type", ["invoice", "consolidated_invoice", "estimate", "receipt", "delivery"])
       .order("created_at", { ascending: false });
     return (data ?? []) as JobDocument[];
   })();
 
-  const [certificates, documents] = await Promise.all([
-    certificatesPromise,
-    documentsPromise,
-  ]);
+  const [certificates, documents] = await Promise.all([certificatesPromise, documentsPromise]);
 
   return (
-    <JobDetailTabs
+    <JobWorkflowModeSwitch
       reservation={reservation}
       customer={customer}
       vehicle={vehicle}
