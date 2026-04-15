@@ -203,6 +203,20 @@ const NAV_GROUPS: NavGroup[] = [
         ),
       },
       {
+        href: "/admin/inventory",
+        label: "在庫管理",
+        requiredPermission: "menu_items:manage",
+        icon: (
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M20.25 7.5l-7.5-4.5-7.5 4.5m15 0l-7.5 4.5m7.5-4.5v9l-7.5 4.5m0-9L4.5 7.5m7.5 4.5v9m-7.5-13.5v9l7.5 4.5"
+            />
+          </svg>
+        ),
+      },
+      {
         href: "/admin/nfc",
         label: "NFC管理",
         requiredPermission: "vehicles:view",
