@@ -11,6 +11,7 @@ import ThemeToggle from "@/lib/theme/ThemeToggle";
 import SidebarShell from "@/components/ui/SidebarShell";
 import NotificationBell from "@/components/ui/NotificationBell";
 import ContextSwitcher from "@/components/ui/ContextSwitcher";
+import ViewModeToggle from "@/components/ui/ViewModeToggle";
 
 /* ------------------------------------------------------------------ */
 /*  Badge counts hook                                                  */
@@ -197,6 +198,20 @@ const NAV_GROUPS: NavGroup[] = [
               strokeLinecap="round"
               strokeLinejoin="round"
               d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z"
+            />
+          </svg>
+        ),
+      },
+      {
+        href: "/admin/inventory",
+        label: "在庫管理",
+        requiredPermission: "menu_items:manage",
+        icon: (
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M20.25 7.5l-7.5-4.5-7.5 4.5m15 0l-7.5 4.5m7.5-4.5v9l-7.5 4.5m0-9L4.5 7.5m7.5 4.5v9m-7.5-13.5v9l7.5 4.5"
             />
           </svg>
         ),
@@ -932,6 +947,12 @@ export default function Sidebar() {
           <ContextSwitcher />
           <NotificationBell />
         </div>
+      </div>
+
+      {/* View Mode Toggle (店頭 / 管理) */}
+      <div className="flex items-center justify-between gap-2 border-b border-border-subtle px-4 py-2">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">モード</span>
+        <ViewModeToggle />
       </div>
 
       {/* Store Selector */}
