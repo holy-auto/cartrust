@@ -534,6 +534,8 @@ export default async function CertificatePublicPage({ params, searchParams }: Pa
                     src={String(img.url)}
                     alt={img.file_name || `image_${img.sort_order ?? ""}`}
                     className="h-[180px] w-full rounded-lg border border-border-default bg-base object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                   <div className="mt-2 text-xs text-muted">{img.file_name || `image_${img.sort_order ?? "-"}`}</div>
                 </a>
