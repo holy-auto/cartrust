@@ -38,8 +38,12 @@ function useSidebarBadges(intervalMs = 60_000): BadgeCounts {
   }, []);
 
   useEffect(() => {
-    fetchBadges();
-    timerRef.current = setInterval(fetchBadges, intervalMs);
+    // Delay initial fetch by 3 s so badge API doesn't compete with the page's
+    // own data requests on mount (prevents TTFB / INP regression).
+    const initTimer = setTimeout(() => {
+      fetchBadges();
+      timerRef.current = setInterval(fetchBadges, intervalMs);
+    }, 3_000);
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -55,6 +59,7 @@ function useSidebarBadges(intervalMs = 60_000): BadgeCounts {
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
+      clearTimeout(initTimer);
       if (timerRef.current) clearInterval(timerRef.current);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };

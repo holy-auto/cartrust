@@ -30,15 +30,14 @@ export default function NotificationBell() {
   }, []);
 
   useEffect(() => {
-    fetchNotifications();
-    const timer = setInterval(fetchNotifications, 60_000);
-
-    const handleFocus = () => fetchNotifications();
-    window.addEventListener("focus", handleFocus);
+    // Delay initial fetch by 3 s so it doesn't compete with the page's own
+    // data requests on mount (prevents INP / TTFB regression on admin routes).
+    const initTimer = setTimeout(fetchNotifications, 3_000);
+    const pollTimer = setInterval(fetchNotifications, 60_000);
 
     return () => {
-      clearInterval(timer);
-      window.removeEventListener("focus", handleFocus);
+      clearTimeout(initTimer);
+      clearInterval(pollTimer);
     };
   }, [fetchNotifications]);
 
