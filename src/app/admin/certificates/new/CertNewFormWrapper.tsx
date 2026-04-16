@@ -354,7 +354,7 @@ export default function CertNewFormWrapper({
 
           {/* AI下書き適用通知 */}
           {draftApplied && (
-            <div className="rounded-xl border border-green-300 bg-green-50 px-3 py-2 text-xs text-green-700">
+            <div className="rounded-xl border border-success/30 bg-success-dim px-3 py-2 text-xs text-success-text">
               ✅ AI下書きをフォームに適用しました。内容を確認・編集してください。
             </div>
           )}
