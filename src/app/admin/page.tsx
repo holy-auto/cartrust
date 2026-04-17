@@ -8,6 +8,8 @@ import DashboardCharts from "./DashboardCharts";
 import OnboardingTour from "./OnboardingTour";
 import DashboardModeSwitch from "./DashboardModeSwitch";
 
+export const dynamic = "force-dynamic";
+
 // ── Partner Rank System ──
 interface PartnerRank {
   key: string;

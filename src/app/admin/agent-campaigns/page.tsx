@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import PageHeader from "@/components/ui/PageHeader";
 
+export const dynamic = "force-dynamic";
+
 const AdminCampaignsClient = dynamic(() => import("./AdminCampaignsClient"), {
   loading: () => <div className="animate-pulse h-40 rounded-2xl bg-border-subtle dark:bg-[rgba(255,255,255,0.06)]" />,
 });

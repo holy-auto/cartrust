@@ -1,5 +1,7 @@
 import dynamic from "next/dynamic";
 
+export const dynamic = "force-dynamic";
+
 const PosClient = dynamic(() => import("./PosClient"), {
   loading: () => (
     <div className="flex items-center justify-center py-20">

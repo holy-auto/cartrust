@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
 export type ThemeMode = "light" | "dark" | "system";
 
@@ -30,40 +30,46 @@ function getSystemTheme(): "light" | "dark" {
 
 function applyTheme(resolved: "light" | "dark") {
   document.documentElement.setAttribute("data-theme", resolved);
-  // Set cookie for SSR flash prevention
   document.cookie = `${COOKIE_KEY}=${resolved};path=/;max-age=31536000;SameSite=Lax`;
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<ThemeMode>("system");
   const [resolved, setResolved] = useState<"light" | "dark">("light");
+  // Prevents the [mode] effect from firing before localStorage is read on mount
+  const skipInitialModeEffect = useRef(true);
 
-  // Initialize from localStorage
+  // Read localStorage once on mount, apply correct theme immediately
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY) as ThemeMode | null;
-    if (saved && ["light", "dark", "system"].includes(saved)) {
-      setModeState(saved);
-    }
+    const m = (saved && ["light", "dark", "system"].includes(saved) ? saved : "system") as ThemeMode;
+    const r = m === "system" ? getSystemTheme() : m;
+    setModeState(m);
+    setResolved(r);
+    applyTheme(r);
   }, []);
 
-  // Resolve and apply theme
+  // Apply theme when mode changes — skips the very first run to avoid
+  // overwriting the correct theme with the uninitialized "system" default
   useEffect(() => {
-    const resolvedTheme = mode === "system" ? getSystemTheme() : mode;
-    setResolved(resolvedTheme);
-    applyTheme(resolvedTheme);
+    if (skipInitialModeEffect.current) {
+      skipInitialModeEffect.current = false;
+      return;
+    }
+    const r = mode === "system" ? getSystemTheme() : mode;
+    setResolved(r);
+    applyTheme(r);
   }, [mode]);
 
   // Listen for OS theme changes when in system mode
   useEffect(() => {
     if (mode !== "system") return;
-
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = (e: MediaQueryListEvent) => {
       const r = e.matches ? "dark" : "light";
       setResolved(r);
       applyTheme(r);
     };
-
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, [mode]);

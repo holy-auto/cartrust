@@ -1,6 +1,8 @@
 import PageHeader from "@/components/ui/PageHeader";
 import HearingClient from "./HearingClient";
 
+export const dynamic = "force-dynamic";
+
 export default function HearingPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">

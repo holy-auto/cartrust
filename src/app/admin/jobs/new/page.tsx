@@ -3,6 +3,8 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import PageHeader from "@/components/ui/PageHeader";
 import WalkinJobClient from "./WalkinJobClient";
 
+export const dynamic = "force-dynamic";
+
 /**
  * 飛び込み案件開始 (Walk-in Job Intake)
  * ------------------------------------------------------------

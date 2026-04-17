@@ -12,6 +12,8 @@ import PageHeader from "@/components/ui/PageHeader";
 import { escapeIlike, escapePostgrestValue } from "@/lib/sanitize";
 import CertificatesModeSwitch from "./CertificatesModeSwitch";
 
+export const dynamic = "force-dynamic";
+
 type SearchParams = { q?: string };
 
 async function getMyTenantId(supabase: any) {

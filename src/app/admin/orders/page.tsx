@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import dynamic from "next/dynamic";
 
+export const dynamic = "force-dynamic";
+
 const OrdersClient = dynamic(() => import("./OrdersClient"), {
   loading: () => (
     <div className="flex items-center justify-center py-20">

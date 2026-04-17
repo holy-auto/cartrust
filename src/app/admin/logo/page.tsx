@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import AdminFeatureGuard from "@/app/admin/AdminFeatureGuard";
 import { FEATURES } from "@/lib/billing/featureKeys";
+
+export const dynamic = "force-dynamic";
 export default async function Page({
   searchParams,
 }: {

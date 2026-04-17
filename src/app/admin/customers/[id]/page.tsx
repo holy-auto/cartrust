@@ -5,6 +5,8 @@ import PageHeader from "@/components/ui/PageHeader";
 import CustomerDetailClient from "./CustomerDetailClient";
 import CustomerTabs from "./CustomerTabs";
 
+export const dynamic = "force-dynamic";
+
 /**
  * 顧客詳細 (360° ビュー)
  * ------------------------------------------------------------

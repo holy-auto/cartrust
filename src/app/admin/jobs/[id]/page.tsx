@@ -7,6 +7,8 @@ import JobStatusPanel from "./JobStatusPanel";
 import JobTabsLoader from "./JobTabsLoader";
 import type { JobCustomer, JobReservation, JobVehicle } from "./types";
 
+export const dynamic = "force-dynamic";
+
 /**
  * 案件ワークフロー (Job Workflow) 画面
  * ------------------------------------------------------------

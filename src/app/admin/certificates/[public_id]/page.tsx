@@ -14,6 +14,8 @@ import { formatDateTime } from "@/lib/format";
 import { buildExplorerUrl } from "@/lib/anchoring/providers";
 import { normalizePlanTier, PHOTO_LIMITS } from "@/lib/billing/planFeatures";
 
+export const dynamic = "force-dynamic";
+
 type PageProps = {
   params: Promise<{ public_id: string }>;
 };

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { qrSvgDataUrl } from "@/lib/qr";
 
+export const dynamic = "force-dynamic";
+
 export default async function Page({ searchParams }: { searchParams: Promise<{ pid?: string }> }) {
   const sp = await searchParams;
   const pid = sp.pid || "";

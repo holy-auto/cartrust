@@ -1,6 +1,8 @@
 import PageHeader from "@/components/ui/PageHeader";
 import BrandingHearingClient from "./BrandingHearingClient";
 
+export const dynamic = "force-dynamic";
+
 export default function BrandingHearingPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">

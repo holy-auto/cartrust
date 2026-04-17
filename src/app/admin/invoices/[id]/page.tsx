@@ -4,6 +4,8 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import PageHeader from "@/components/ui/PageHeader";
 import InvoiceDetailClient from "./InvoiceDetailClient";
 
+export const dynamic = "force-dynamic";
+
 async function getMyTenantId(supabase: any) {
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) return null;

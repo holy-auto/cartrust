@@ -4,6 +4,8 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import PageHeader from "@/components/ui/PageHeader";
 import Card from "@/components/ui/Card";
 
+export const dynamic = "force-dynamic";
+
 /**
  * 取引ハブ (Trades Hub)
  * ------------------------------------------------------------
