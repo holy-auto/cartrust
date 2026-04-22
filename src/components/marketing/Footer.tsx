@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Container } from "./Container";
+import { NewsletterForm } from "./NewsletterForm";
 
 const footerLinks = [
   {
@@ -40,11 +41,14 @@ export function Footer() {
             <Link href="/" className="text-lg font-bold tracking-tight">
               Ledra
             </Link>
-            <p className="mt-4 text-sm text-white/40 leading-relaxed max-w-[200px]">
+            <p className="mt-4 text-sm text-white/40 leading-relaxed max-w-[220px]">
               施工証明をデジタルで。
               <br />
               信頼を、かんたんに。
             </p>
+            <div className="mt-8 max-w-[260px]">
+              <NewsletterForm />
+            </div>
           </div>
 
           {/* Link columns */}
