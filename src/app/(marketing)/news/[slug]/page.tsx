@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Section } from "@/components/marketing/Section";
 import { MarkdownBody } from "@/components/marketing/MarkdownBody";
 import { CTABanner } from "@/components/marketing/CTABanner";
+import { ArticleHero } from "@/components/marketing/ArticleHero";
 import { getContentBySlug, listContent } from "@/lib/marketing/content";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -39,6 +40,13 @@ export default async function NewsDetailPage({ params }: Props) {
           >
             ← お知らせ一覧に戻る
           </Link>
+          <div className="mt-8">
+            <ArticleHero
+              seed={entry.frontmatter.slug}
+              tag={entry.frontmatter.tags?.[0] ?? "NEWS"}
+              className="aspect-[5/2]"
+            />
+          </div>
           <div className="mt-6 flex flex-wrap items-center gap-3 text-xs text-white/40">
             {entry.frontmatter.publishedAt && (
               <time dateTime={entry.frontmatter.publishedAt}>

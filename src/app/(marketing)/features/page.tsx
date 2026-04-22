@@ -4,6 +4,8 @@ import { SectionHeading } from "@/components/marketing/SectionHeading";
 import { FeatureGrid } from "@/components/marketing/FeatureGrid";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
 import { CTABanner } from "@/components/marketing/CTABanner";
+import { ScrollReveal } from "@/components/marketing/ScrollReveal";
+import { FourPortalDiagram } from "@/components/marketing/diagrams/FourPortalDiagram";
 
 export const metadata = {
   title: "機能一覧",
@@ -238,6 +240,19 @@ export default function FeaturesPage() {
             </a>
           ))}
         </nav>
+      </Section>
+
+      {/* 4ポータルの全体像 */}
+      <Section>
+        <SectionHeading
+          title="ひとつの記録を、4ポータルで共有"
+          subtitle="施工店・代理店・保険会社・顧客は、同じ『事実』を役割に応じた最適な形で受け取ります。"
+        />
+        <ScrollReveal variant="fade-up">
+          <div className="mx-auto mt-8 max-w-4xl rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 md:p-8">
+            <FourPortalDiagram className="w-full h-auto" />
+          </div>
+        </ScrollReveal>
       </Section>
 
       {groups.map((g, idx) => (

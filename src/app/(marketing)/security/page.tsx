@@ -4,6 +4,8 @@ import { Section } from "@/components/marketing/Section";
 import { SectionHeading } from "@/components/marketing/SectionHeading";
 import { ScrollReveal } from "@/components/marketing/ScrollReveal";
 import { CTABanner } from "@/components/marketing/CTABanner";
+import { SecurityLayersDiagram } from "@/components/marketing/diagrams/SecurityLayersDiagram";
+import { PolygonAnchoringDiagram } from "@/components/marketing/diagrams/PolygonAnchoringDiagram";
 
 export const metadata = {
   title: "セキュリティ",
@@ -188,6 +190,19 @@ export default function SecurityPage() {
         </nav>
       </Section>
 
+      {/* 3層モデルの全体図 */}
+      <Section>
+        <SectionHeading
+          title="Ledra のセキュリティ3層モデル"
+          subtitle="通信・保存・ペイロードの3層で、独立に働く防御を重ねています。"
+        />
+        <ScrollReveal variant="fade-up">
+          <div className="mx-auto mt-8 max-w-4xl rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 md:p-8">
+            <SecurityLayersDiagram className="w-full h-auto" />
+          </div>
+        </ScrollReveal>
+      </Section>
+
       {blocks.map((b, idx) => (
         <Section key={b.id} id={b.id} bg={idx % 2 === 0 ? "white" : "alt"}>
           <SectionHeading title={b.title} subtitle={b.lead} />
@@ -204,6 +219,18 @@ export default function SecurityPage() {
                 </div>
               </ScrollReveal>
             ))}
+
+            {/* Polygon anchoring のフロー図 — 改ざん防止ブロックの末尾に */}
+            {b.id === "tamper-prevention" && (
+              <ScrollReveal variant="fade-up" delay={b.items.length * 50}>
+                <div className="mt-8 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 md:p-8">
+                  <p className="mb-4 text-center text-xs font-medium uppercase tracking-widest text-blue-300">
+                    Polygon anchoring フロー
+                  </p>
+                  <PolygonAnchoringDiagram className="w-full h-auto" />
+                </div>
+              </ScrollReveal>
+            )}
           </div>
         </Section>
       ))}

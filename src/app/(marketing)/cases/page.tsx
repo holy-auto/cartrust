@@ -4,6 +4,7 @@ import { Section } from "@/components/marketing/Section";
 import { ScrollReveal } from "@/components/marketing/ScrollReveal";
 import { CTABanner } from "@/components/marketing/CTABanner";
 import { CTAButton } from "@/components/marketing/CTAButton";
+import { CasesEmptyIllustration } from "@/components/marketing/CasesEmptyIllustration";
 import { listContent } from "@/lib/marketing/content";
 
 export const metadata = {
@@ -28,6 +29,7 @@ export default async function CasesPage() {
         {entries.length === 0 ? (
           <div className="mx-auto max-w-2xl">
             <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-10 md:p-14 text-center">
+              <CasesEmptyIllustration className="mx-auto mb-8 max-w-[360px] w-full" />
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium text-blue-300 bg-blue-500/10 border border-blue-500/20">
                 COMING SOON
               </div>

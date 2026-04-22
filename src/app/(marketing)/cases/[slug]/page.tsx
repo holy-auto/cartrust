@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Section } from "@/components/marketing/Section";
 import { MarkdownBody } from "@/components/marketing/MarkdownBody";
 import { CTABanner } from "@/components/marketing/CTABanner";
+import { ArticleHero } from "@/components/marketing/ArticleHero";
 import { getContentBySlug, listContent } from "@/lib/marketing/content";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -39,6 +40,13 @@ export default async function CaseDetailPage({ params }: Props) {
           >
             ← 事例一覧に戻る
           </Link>
+          <div className="mt-8">
+            <ArticleHero
+              seed={entry.frontmatter.slug}
+              tag={(entry.frontmatter.industry as string) ?? "CASE"}
+              className="aspect-[5/2]"
+            />
+          </div>
           <div className="mt-6 flex flex-wrap items-center gap-3 text-xs text-white/50">
             {entry.frontmatter.industry && (
               <span className="inline-flex items-center rounded-full border border-white/[0.08] px-2.5 py-0.5 font-medium">
