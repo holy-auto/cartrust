@@ -67,7 +67,7 @@ const groups: FeatureGroup[] = [
       {
         title: "車検証OCR",
         description:
-          "車検証をカメラで撮影するだけで車両情報を自動入力。Google Cloud Vision と Claude で二段階解析。",
+          "車検証をカメラで撮影するだけで車両情報を自動入力。Claude Vision で画像から構造化データを直接抽出。",
       },
       {
         title: "サービス履歴タイムライン",
