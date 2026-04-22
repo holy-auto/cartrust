@@ -147,11 +147,38 @@ async function upsert<T extends Record<string, unknown>>(
   rows: T[],
   onConflict: string,
 ): Promise<void> {
-  const { error } = await admin.from(table).upsert(rows, { onConflict });
-  if (error) {
+  // Schema drift is common across Supabase projects (columns added / removed
+  // by later migrations). If the upsert fails because a column doesn't exist
+  // in the target schema, strip that column and retry — up to 6 times.
+  let current = rows as Record<string, unknown>[];
+  const dropped = new Set<string>();
+
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const { error } = await admin.from(table).upsert(current, { onConflict });
+    if (!error) {
+      if (dropped.size > 0) {
+        console.log(`  ℹ️ schema に無いカラムをスキップ: ${[...dropped].join(", ")}`);
+      }
+      return;
+    }
+
+    // PGRST204: "Could not find the 'X' column of 'Y' in the schema cache"
+    const missingColumn = error.message.match(/Could not find the '([^']+)' column/);
+    if (missingColumn && !dropped.has(missingColumn[1])) {
+      const col = missingColumn[1];
+      dropped.add(col);
+      current = current.map((row) => {
+        const copy = { ...row };
+        delete copy[col];
+        return copy;
+      });
+      continue;
+    }
+
     console.error(`❌ ${table} upsert failed:`, error.message);
     throw error;
   }
+  throw new Error(`${table} upsert: too many schema mismatches`);
 }
 
 async function reset(): Promise<void> {
