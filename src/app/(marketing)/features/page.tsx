@@ -67,7 +67,7 @@ const groups: FeatureGroup[] = [
       {
         title: "車検証OCR",
         description:
-          "車検証をカメラで撮影するだけで車両情報を自動入力。Google Cloud Vision と Claude で二段階解析。",
+          "車検証をカメラで撮影するだけで車両情報を自動入力。Claude Vision で画像から構造化データを直接抽出。",
       },
       {
         title: "サービス履歴タイムライン",
@@ -161,9 +161,9 @@ const groups: FeatureGroup[] = [
           "エンドユーザーが自分の証明書をスマホで閲覧。QRコード・URLからアクセス。",
       },
       {
-        title: "CloudSign連携",
+        title: "電子署名（自前実装）",
         description:
-          "代理店契約・NDAを電子署名で締結。テンプレートから送信し、完了をWebhookで受信。",
+          "代理店契約・NDAを ECDSA P-256 ベースの自前電子署名で締結。電子署名法準拠、鍵ローテーション・監査ログ対応。",
       },
     ],
   },
