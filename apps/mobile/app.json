@@ -15,6 +15,9 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ledra.app",
+      "entitlements": {
+        "com.apple.developer.proximity-reader.payment.acceptance": true
+      },
       "infoPlist": {
         "NFCReaderUsageDescription": "Ledraは証明書NFCタグの読み取りと書き込みに使用します",
         "NSCameraUsageDescription": "Ledraは施工写真の撮影に使用します",
@@ -64,8 +67,7 @@
         {
           "photosPermission": "Ledraは施工写真の選択に使用します"
         }
-      ],
-      "./plugins/withRemoveTapToPayEntitlement"
+      ]
     ]
   }
 }
