@@ -6,7 +6,14 @@ import useSWR from "swr";
 import PageHeader from "@/components/ui/PageHeader";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
-import CalendarView from "./CalendarView";
+import dynamic from "next/dynamic";
+
+const CalendarView = dynamic(() => import("./CalendarView"), {
+  ssr: false,
+  loading: () => (
+    <div className="glass-card h-96 animate-pulse bg-surface-hover rounded-2xl" />
+  ),
+});
 import { formatDate, formatJpy } from "@/lib/format";
 import { fetcher } from "@/lib/swr";
 import WorkflowStepper from "@/components/workflow/WorkflowStepper";
