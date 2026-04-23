@@ -293,6 +293,7 @@ async function main(): Promise<void> {
     const count = 3 + (certIdx % 3);
     return Array.from({ length: count }).map((_, i) => ({
       id: uuid("cf01", certIdx * 10 + i + 1),
+      tenant_id: TENANT_ID,
       certificate_id: cert.id,
       storage_path: `demo/placeholder-${((certIdx * 10 + i) % 5) + 1}.jpg`,
       file_name: `${cert.public_id}-${String(i + 1).padStart(2, "0")}.jpg`,
