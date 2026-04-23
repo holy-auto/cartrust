@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
   certMeta: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-end",
+    alignItems: "flex-start",
     marginBottom: 16,
   },
   certNumberLabel: {
@@ -530,7 +530,7 @@ export async function renderCertificatePdf(
         <Text style={styles.heroTitle}>{certTitle}</Text>
         <Text style={styles.heroSub}>Certificate of Construction Record</Text>
 
-        {/* Cert metadata */}
+        {/* Cert metadata + QR */}
         <View style={styles.certMeta}>
           <View>
             <Text style={styles.certNumberLabel}>Certificate No.</Text>
@@ -538,6 +538,12 @@ export async function renderCertificatePdf(
             {(row.current_version ?? 1) > 1 && (
               <Text style={styles.reissue}>再発行版 (第{row.current_version}版)</Text>
             )}
+          </View>
+          <View style={{ alignItems: "center" }}>
+            <View style={styles.qrInner}>
+              <Image src={qrDataUrl} style={{ width: 80, height: 80 }} />
+            </View>
+            <Text style={styles.qrCaption}>Scan to verify</Text>
           </View>
           <View style={{ alignItems: "flex-end" }}>
             <Text style={styles.certDateLabel}>Issued</Text>
@@ -740,14 +746,6 @@ export async function renderCertificatePdf(
         <View style={styles.card}>
           <Text style={styles.cardEyebrow}>有効条件 · Validity</Text>
           <Text style={styles.cardBody}>{[row.expiry_type, row.expiry_value].filter(Boolean).join(": ") || "—"}</Text>
-        </View>
-
-        {/* QR to verify */}
-        <View style={styles.qrWrap}>
-          <View style={styles.qrInner}>
-            <Image src={qrDataUrl} style={styles.qr} />
-          </View>
-          <Text style={styles.qrCaption}>Scan to verify · 本証明書を確認</Text>
         </View>
 
         <Text style={styles.tagline}>記録を、業界の共通言語にする。</Text>
