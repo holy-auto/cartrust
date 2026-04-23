@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { Client } from "@upstash/qstash";
 
 export const runtime = "nodejs";
@@ -22,7 +22,7 @@ function getBaseUrl(): string {
 async function refreshSquareToken(
   connectionId: string,
   refreshToken: string,
-  admin: ReturnType<typeof createAdminClient>,
+  admin: ReturnType<typeof createTenantScopedAdmin>["admin"],
 ): Promise<string | null> {
   try {
     const res = await fetch("https://connect.squareup.com/oauth2/token", {
@@ -60,27 +60,26 @@ async function refreshSquareToken(
 
 async function handler(req: NextRequest) {
   const body = await req.json();
-  const { job_id, tenant_id, cursor: resumeCursor } = body as {
+  const {
+    job_id,
+    tenant_id,
+    cursor: resumeCursor,
+  } = body as {
     job_id: string;
     tenant_id: string;
     cursor?: string;
   };
 
-  const admin = createAdminClient();
+  const { admin } = createTenantScopedAdmin(tenant_id);
 
-  await admin
-    .from("square_sync_runs")
-    .update({ status: "processing" })
-    .eq("id", job_id);
+  await admin.from("square_sync_runs").update({ status: "processing" }).eq("id", job_id);
 
   try {
     // 接続情報と sync_run の日付範囲を並行取得
     const [{ data: conn }, { data: syncRun }] = await Promise.all([
       admin
         .from("square_connections")
-        .select(
-          "id, square_access_token, square_refresh_token, square_token_expires_at, square_location_ids",
-        )
+        .select("id, square_access_token, square_refresh_token, square_token_expires_at, square_location_ids")
         .eq("tenant_id", tenant_id)
         .eq("status", "active")
         .maybeSingle(),
@@ -107,11 +106,7 @@ async function handler(req: NextRequest) {
     let accessToken = conn.square_access_token as string;
     const expiresAt = new Date(conn.square_token_expires_at as string);
     if (expiresAt <= new Date()) {
-      const refreshed = await refreshSquareToken(
-        conn.id as string,
-        conn.square_refresh_token as string,
-        admin,
-      );
+      const refreshed = await refreshSquareToken(conn.id as string, conn.square_refresh_token as string, admin);
       if (!refreshed) {
         await admin
           .from("square_sync_runs")
@@ -202,11 +197,8 @@ async function handler(req: NextRequest) {
           const taxMoney = order.total_tax_money?.amount ?? 0;
           const discountMoney = order.total_discount_money?.amount ?? 0;
           const tipMoney = order.total_tip_money?.amount ?? 0;
-          const paymentMethods: string[] = (order.tenders ?? []).map(
-            (t: any) => t.type ?? "UNKNOWN",
-          );
-          const receiptUrl =
-            (order.tenders ?? []).find((t: any) => t.receipt_url)?.receipt_url ?? null;
+          const paymentMethods: string[] = (order.tenders ?? []).map((t: any) => t.type ?? "UNKNOWN");
+          const receiptUrl = (order.tenders ?? []).find((t: any) => t.receipt_url)?.receipt_url ?? null;
 
           return {
             tenant_id,
@@ -268,9 +260,7 @@ async function handler(req: NextRequest) {
         })
         .eq("id", job_id);
 
-      console.info(
-        `[square-sync] job=${job_id} page done fetched=${orders.length} cursor=${nextCursor}`,
-      );
+      console.info(`[square-sync] job=${job_id} page done fetched=${orders.length} cursor=${nextCursor}`);
 
       return NextResponse.json({ success: true, continuing: true });
     }
@@ -296,9 +286,7 @@ async function handler(req: NextRequest) {
       .update({ last_synced_at: new Date().toISOString() })
       .eq("tenant_id", tenant_id);
 
-    console.info(
-      `[square-sync] job=${job_id} completed total_fetched=${prevFetched + orders.length}`,
-    );
+    console.info(`[square-sync] job=${job_id} completed total_fetched=${prevFetched + orders.length}`);
 
     return NextResponse.json({ success: true });
   } catch (e) {

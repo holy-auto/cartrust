@@ -1,5 +1,5 @@
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { apiValidationError, apiInternalError } from "@/lib/api/response";
 
 /**
@@ -35,7 +35,7 @@ async function handler(request: Request) {
     return apiValidationError("missing certificate_id or tenant_id");
   }
 
-  const admin = createAdminClient();
+  const { admin } = createTenantScopedAdmin(tenant_id);
 
   try {
     // 1. Get tenant info for context

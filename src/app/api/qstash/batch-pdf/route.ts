@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { renderCertificatePdf } from "@/lib/pdfCertificate";
 
 export const runtime = "nodejs";
@@ -27,7 +27,7 @@ async function handler(req: NextRequest) {
     public_ids: string[];
   };
 
-  const admin = createAdminClient();
+  const { admin } = createTenantScopedAdmin(tenant_id);
 
   await admin
     .from("batch_pdf_jobs")
@@ -43,9 +43,8 @@ async function handler(req: NextRequest) {
       .single();
 
     const alreadyProcessed = currentJob?.processed_count ?? 0;
-    const resultUrls: Array<
-      { public_id: string; pdf_url: string } | { public_id: string; error: string }
-    > = (currentJob?.result_urls as any[]) ?? [];
+    const resultUrls: Array<{ public_id: string; pdf_url: string } | { public_id: string; error: string }> =
+      (currentJob?.result_urls as any[]) ?? [];
 
     // 未処理分のみ対象
     const remainingIds = public_ids.slice(alreadyProcessed);
@@ -118,12 +117,10 @@ async function handler(req: NextRequest) {
             const pdfBytes = new Uint8Array(pdfBuffer as any);
 
             const storagePath = `batch-pdf/${tenant_id}/${pid}-${Date.now()}.pdf`;
-            const { error: uploadErr } = await admin.storage
-              .from("certificates")
-              .upload(storagePath, pdfBytes, {
-                contentType: "application/pdf",
-                upsert: true,
-              });
+            const { error: uploadErr } = await admin.storage.from("certificates").upload(storagePath, pdfBytes, {
+              contentType: "application/pdf",
+              upsert: true,
+            });
 
             if (uploadErr) {
               return { public_id: pid, error: "PDF アップロードに失敗しました。" };

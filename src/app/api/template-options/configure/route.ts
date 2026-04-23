@@ -1,11 +1,15 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { resolveCallerFull } from "@/lib/api/auth";
 import {
-  apiOk, apiUnauthorized, apiValidationError,
-  apiInternalError, apiNotFound, apiForbidden,
+  apiOk,
+  apiUnauthorized,
+  apiValidationError,
+  apiInternalError,
+  apiNotFound,
+  apiForbidden,
 } from "@/lib/api/response";
 import { templateConfigSchema, sanitizeConfig } from "@/lib/template-options/configSchema";
 import { getTemplateOptionStatus } from "@/lib/template-options/templateOptionFeatures";
@@ -56,7 +60,7 @@ export async function POST(req: NextRequest) {
     }
 
     const optionType = optionStatus.optionType!;
-    const admin = createAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     // config を option_type に応じて補正
     const sanitized = sanitizeConfig(optionType, parsed.data.config);
@@ -127,7 +131,7 @@ export async function PUT(req: NextRequest) {
     const caller = await resolveCallerFull(supabase);
     if (!caller) return apiUnauthorized();
 
-    const admin = createAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     // 所有権チェック
     const { data: config } = await admin
@@ -145,10 +149,7 @@ export async function PUT(req: NextRequest) {
     };
     if (is_active) update.published_at = new Date().toISOString();
 
-    const { error } = await admin
-      .from("tenant_template_configs")
-      .update(update)
-      .eq("id", config_id);
+    const { error } = await admin.from("tenant_template_configs").update(update).eq("id", config_id);
 
     if (error) throw error;
 

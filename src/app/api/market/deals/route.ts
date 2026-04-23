@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const admin = createAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const body = await req.json().catch(() => ({}) as any);
 
     const inquiryId = (body?.inquiry_id ?? "").trim();
@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const admin = createAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const url = new URL(req.url);
     const status = url.searchParams.get("status") ?? "";
 

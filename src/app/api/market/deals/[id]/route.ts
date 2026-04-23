@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { notifyDealStatusChanged } from "@/lib/market/email";
 import { apiUnauthorized, apiNotFound, apiValidationError, apiInternalError } from "@/lib/api/response";
 
@@ -21,7 +21,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!caller) return apiUnauthorized();
 
     const { id: dealId } = await params;
-    const admin = createAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const body = await req.json().catch(() => ({}) as any);
 
     const newStatus = (body?.status ?? "").trim();

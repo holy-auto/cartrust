@@ -7,12 +7,12 @@ import { CERT_LIMITS, normalizePlanTier } from "@/lib/billing/planFeatures";
 import { logCertificateAction } from "@/lib/audit/certificateLog";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
-async function supaInsertCertificate(row: any) {
-  const admin = getSupabaseAdmin();
+async function supaInsertCertificate(tenantId: string, row: any) {
+  const { admin } = createTenantScopedAdmin(tenantId);
   const { data, error } = await admin
     .from("certificates")
     .insert(row)
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
 
   // ── 月間証明書発行上限チェック ──
   try {
-    const admin = getSupabaseAdmin();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const { data: tenant } = await admin
       .from("tenants")
       .select("plan_tier")
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
       footer_variant: b.footer_variant ?? "holy",
     };
 
-    const certificate = await supaInsertCertificate(insertRow);
+    const certificate = await supaInsertCertificate(caller.tenantId, insertRow);
 
     // Fire-and-forget audit log
     logCertificateAction({

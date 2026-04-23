@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiValidationError, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     const pid = req.nextUrl.searchParams.get("pid");
     if (!pid) return apiValidationError("pid は必須です。");
 
-    const supabase = getSupabaseAdmin();
+    const supabase = createServiceRoleAdmin("public certificate — lookup by public_id, no caller");
 
     const { data: cert, error } = await supabase
       .from("certificates")
@@ -43,10 +43,7 @@ export async function GET(req: NextRequest) {
 
     // Return unverified for non-existent IDs without revealing existence
     if (!cert) {
-      return NextResponse.json(
-        { verified: false },
-        { status: 200, headers: { "cache-control": "no-store" } },
-      );
+      return NextResponse.json({ verified: false }, { status: 200, headers: { "cache-control": "no-store" } });
     }
 
     // Fetch shop name

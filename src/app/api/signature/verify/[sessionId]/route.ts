@@ -13,7 +13,7 @@
  */
 
 import { NextRequest } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiOk, apiError, apiInternalError } from "@/lib/api/response";
 import { verifySignature } from "@/lib/signature/crypto";
 
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ sess
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
     const ua = req.headers.get("user-agent") ?? "unknown";
 
-    const supabase = getSupabaseAdmin();
+    const supabase = createServiceRoleAdmin("signature flow — opaque token lookup, customer is unauthenticated");
 
     // セッションと関連情報を取得
     const { data: session, error } = await supabase

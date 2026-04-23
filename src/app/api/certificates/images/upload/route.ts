@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { createAdminClient as createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { CERTIFICATE_IMAGE_BUCKET } from "@/lib/certificateImages";
 import { normalizePlanTier, PHOTO_LIMITS } from "@/lib/billing/planFeatures";
 import { apiOk, apiInternalError, apiUnauthorized, apiValidationError, apiNotFound } from "@/lib/api/response";
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Verify certificate belongs to this tenant ─────────────────
-    const admin = createSupabaseAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const { data: cert } = await admin
       .from("certificates")
       .select("id, tenant_id")
@@ -123,9 +123,7 @@ export async function POST(req: NextRequest) {
     let uploaded = 0;
     // Capture the last failure so we can return a specific error to the
     // client instead of a generic "invalid format or size" message.
-    let lastFailure:
-      | { code: "validation_error" | "db_error" | "internal_error"; message: string }
-      | null = null;
+    let lastFailure: { code: "validation_error" | "db_error" | "internal_error"; message: string } | null = null;
 
     for (let i = 0; i < toUpload.length; i++) {
       const file = toUpload[i];
@@ -133,7 +131,10 @@ export async function POST(req: NextRequest) {
 
       // Validate size
       if (file.size > MAX_FILE_BYTES) {
-        lastFailure = { code: "validation_error", message: `ファイルサイズが大きすぎます（上限 ${MAX_FILE_BYTES / 1024 / 1024}MB）。` };
+        lastFailure = {
+          code: "validation_error",
+          message: `ファイルサイズが大きすぎます（上限 ${MAX_FILE_BYTES / 1024 / 1024}MB）。`,
+        };
         continue;
       }
 
@@ -143,7 +144,10 @@ export async function POST(req: NextRequest) {
       // Validate magic bytes (not client-provided MIME)
       const detectedMime = validateMagicBytes(buffer);
       if (!detectedMime) {
-        lastFailure = { code: "validation_error", message: "対応していないファイル形式です（JPEG・PNG・WebP・HEIC のみ）。" };
+        lastFailure = {
+          code: "validation_error",
+          message: "対応していないファイル形式です（JPEG・PNG・WebP・HEIC のみ）。",
+        };
         continue;
       }
 
@@ -230,7 +234,10 @@ export async function POST(req: NextRequest) {
         console.error("certificate_images insert error", insertError);
         // Best-effort: remove the just-uploaded storage object so we don't
         // orphan it when the DB row can't be written.
-        admin.storage.from(CERTIFICATE_IMAGE_BUCKET).remove([storagePath]).catch(() => {});
+        admin.storage
+          .from(CERTIFICATE_IMAGE_BUCKET)
+          .remove([storagePath])
+          .catch(() => {});
         lastFailure = {
           code: "db_error",
           message: `データベースへの登録に失敗しました: ${insertError.message ?? "unknown"}`,

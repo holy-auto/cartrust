@@ -16,7 +16,7 @@
  */
 
 import { NextRequest } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiOk, apiError } from "@/lib/api/response";
 import { getValidSessionByToken } from "@/lib/signature/session";
 import { buildSigningPayload } from "@/lib/signature/hash";
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     return apiError({ code: "not_found", message: "署名リンクが無効または有効期限切れです", status: 404 });
   }
 
-  const supabase = getSupabaseAdmin();
+  const supabase = createServiceRoleAdmin("signature flow — opaque token lookup, customer is unauthenticated");
   const signedAt = new Date().toISOString();
   const normalizedEmail = signer_email.toLowerCase().trim();
 

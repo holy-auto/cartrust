@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin, createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
@@ -20,7 +20,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const admin = createAdminClient();
+    // Public inquiry form — the seller tenant is derived from the vehicle lookup below,
+    // so this initial query must be pre-resolution.
+    const admin = createServiceRoleAdmin("market public inquiry — seller tenant resolved from vehicle_id after lookup");
     const body = await req.json().catch(() => ({}) as any);
 
     const vehicleId = (body?.vehicle_id ?? "").trim();
@@ -81,7 +83,7 @@ export async function GET(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const admin = createAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const url = new URL(req.url);
     const status = url.searchParams.get("status") ?? "";
 

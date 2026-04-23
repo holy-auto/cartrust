@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { logCertificateAction, getRequestMeta } from "@/lib/audit/certificateLog";
 import { certificateVoidSchema } from "@/lib/validations/certificate";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     const tenantId = caller.tenantId;
 
     // Verify certificate belongs to this tenant
-    const admin = createAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const { data: cert, error: fetchErr } = await admin
       .from("certificates")
       .select("id, vehicle_id, status")

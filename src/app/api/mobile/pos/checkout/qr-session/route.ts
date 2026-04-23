@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createMobileClient, resolveMobileCaller } from "@/lib/supabase/mobile";
 import { requireMinRole } from "@/lib/auth/checkRole";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 
     // テナントの Stripe Connect アカウント取得
     // ※ tenants テーブルのカラムは stripe_connect_account_id / stripe_connect_onboarded
-    const admin = createAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const { data: tenantRow } = await admin
       .from("tenants")
       .select("stripe_connect_account_id, stripe_connect_onboarded")

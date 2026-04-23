@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { anchorToPolygon, verifyAnchor, findAnchorTx } from "@/lib/anchoring/providers";
-import {
-  computeAuthenticityGrade,
-  type AuthenticityGrade,
-  type C2paKind,
-} from "@/lib/anchoring/authenticityGrade";
+import { computeAuthenticityGrade, type AuthenticityGrade, type C2paKind } from "@/lib/anchoring/authenticityGrade";
 import { Client } from "@upstash/qstash";
 
 export const runtime = "nodejs";
@@ -29,7 +25,7 @@ async function handler(req: NextRequest) {
   const body = await req.json();
   const { job_id, tenant_id } = body as { job_id: string; tenant_id: string };
 
-  const admin = createAdminClient();
+  const { admin } = createTenantScopedAdmin(tenant_id);
 
   await admin
     .from("polygon_backfill_jobs")
@@ -37,10 +33,7 @@ async function handler(req: NextRequest) {
     .eq("id", job_id);
 
   try {
-    const c2paMode = (process.env.C2PA_MODE ?? "disabled") as
-      | "disabled"
-      | "dev-signed"
-      | "production";
+    const c2paMode = (process.env.C2PA_MODE ?? "disabled") as "disabled" | "dev-signed" | "production";
 
     // バッチサイズ分だけ未アンカー画像を取得（nonce 競合防止のため逐次処理を維持）
     const { data: candidates, error: fetchErr } = await admin
@@ -62,25 +55,16 @@ async function handler(req: NextRequest) {
       const sha = String(img.sha256 ?? "");
       if (!sha) continue;
 
-      const gradeBefore = (
-        (img as { authenticity_grade?: string }).authenticity_grade ?? "unverified"
-      ) as AuthenticityGrade;
-      const deepfakeVerdict =
-        (img as { deepfake_verdict?: string | null }).deepfake_verdict ?? null;
-      const deepfakeOk =
-        deepfakeVerdict === "likely_real"
-          ? true
-          : deepfakeVerdict === "likely_fake"
-            ? false
-            : null;
+      const gradeBefore = ((img as { authenticity_grade?: string }).authenticity_grade ??
+        "unverified") as AuthenticityGrade;
+      const deepfakeVerdict = (img as { deepfake_verdict?: string | null }).deepfake_verdict ?? null;
+      const deepfakeOk = deepfakeVerdict === "likely_real" ? true : deepfakeVerdict === "likely_fake" ? false : null;
       const gradeAfter = computeAuthenticityGrade({
         hasSha256: true,
         hasExif: Boolean((img as { exif_gps_stripped?: boolean }).exif_gps_stripped),
         hasC2pa: Boolean((img as { c2pa_verified?: boolean }).c2pa_verified),
         c2paKind: (c2paMode === "disabled" ? "none" : c2paMode) as C2paKind,
-        deviceOk: Boolean(
-          (img as { device_attestation_verified?: boolean }).device_attestation_verified,
-        ),
+        deviceOk: Boolean((img as { device_attestation_verified?: boolean }).device_attestation_verified),
         deepfakeOk,
       });
 
@@ -175,9 +159,7 @@ async function handler(req: NextRequest) {
         .eq("id", job_id);
     }
 
-    console.info(
-      `[polygon-backfill] job=${job_id} batch=${processedCount} remaining=${remaining ?? 0}`,
-    );
+    console.info(`[polygon-backfill] job=${job_id} batch=${processedCount} remaining=${remaining ?? 0}`);
 
     return NextResponse.json({ success: true, processed: processedCount });
   } catch (e) {

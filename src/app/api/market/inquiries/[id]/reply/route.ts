@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { notifyInquiryReply } from "@/lib/market/email";
 import { apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!caller) return apiUnauthorized();
 
     const { id: inquiryId } = await params;
-    const admin = createAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const body = await req.json().catch(() => ({}) as any);
 
     const message = (body?.message ?? "").trim();
@@ -102,7 +102,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     if (!caller) return apiUnauthorized();
 
     const { id: inquiryId } = await params;
-    const admin = createAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     // Verify the caller owns this inquiry
     const { data: inquiry, error: iqErr } = await admin

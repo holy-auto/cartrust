@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiValidationError, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     const pid = req.nextUrl.searchParams.get("pid");
     if (!pid) return apiValidationError("pid は必須です。");
 
-    const supabase = getSupabaseAdmin();
+    const supabase = createServiceRoleAdmin("public certificate — lookup by public_id, no caller");
 
     const { data: cert, error } = await supabase
       .from("certificates")
@@ -79,22 +79,21 @@ export async function GET(req: NextRequest) {
         .limit(1)
         .maybeSingle();
       if (vehicle) {
-        vehicleLabel = [
-          (vehicle as any).maker,
-          (vehicle as any).model,
-        ].filter(Boolean).join(" ");
+        vehicleLabel = [(vehicle as any).maker, (vehicle as any).model].filter(Boolean).join(" ");
       }
     }
 
-    const serviceLabel =
-      SERVICE_TYPE_LABELS[(cert.service_type as string) ?? ""] ?? "施工証明";
+    const serviceLabel = SERVICE_TYPE_LABELS[(cert.service_type as string) ?? ""] ?? "施工証明";
     const issuedAt = cert.created_at ? cert.created_at.slice(0, 10) : "不明";
 
     const statusLabel =
-      cert.status === "active" ? "有効" :
-      cert.status === "void" ? "無効" :
-      cert.status === "expired" ? "期限切れ" :
-      String(cert.status ?? "不明");
+      cert.status === "active"
+        ? "有効"
+        : cert.status === "void"
+          ? "無効"
+          : cert.status === "expired"
+            ? "期限切れ"
+            : String(cert.status ?? "不明");
 
     const title = `Ledra 証明書 - ${serviceLabel}`;
 
