@@ -78,7 +78,9 @@ export async function POST(req: Request) {
     if (!sess) return apiUnauthorized();
 
     // 顧客名を取得（ベストエフォート）
-    const profile = await getCustomerProfile(sess.tenantId, sess.phoneHash, undefined, sess.email).catch(() => null);
+    const profile = await getCustomerProfile(sess.tenantId, sess.phoneHash, undefined, sess.email).catch(
+      (): null => null,
+    );
     const customerName = profile?.name ?? null;
 
     const { data, error } = await getSupabaseAdmin()
