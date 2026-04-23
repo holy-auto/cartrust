@@ -180,7 +180,10 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const pid = (searchParams.get("pid") ?? "").trim();
 
-  if (!/^[a-f0-9]{32}$/i.test(pid)) {
+  // public_id の形式は過去に 32桁 hex だったが、新規発行やシード用途で
+  // "LEDRA-DEMO-0001" のような英数ハイフン形式も許可する。
+  // 長さ 6〜64、英数字とハイフンのみ、先頭は英数。
+  if (!/^([a-f0-9]{32}|[A-Za-z0-9][A-Za-z0-9-]{5,63})$/.test(pid)) {
     return apiValidationError("無効な公開IDです。");
   }
 
