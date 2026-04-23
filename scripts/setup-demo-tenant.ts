@@ -38,10 +38,13 @@ const TENANT_ID = "00000000-0000-0000-0000-de0000000010";
 const TENANT_SLUG = "ledra-motors-demo";
 
 function uuid(ns: string, n: number): string {
-  // Derive a stable UUID v4-ish identifier. We only need uniqueness within
-  // this script's seed namespace; the Supabase columns accept any UUID shape.
-  const idx = String(n).padStart(12, "0");
-  return `00000000-0000-0000-0000-${ns.padStart(4, "0")}${idx.slice(-8)}`;
+  // Derive a stable UUID-shaped identifier. Postgres validates the final
+  // 12-char block as hex, so we sanitize non-hex chars in the namespace to
+  // '0' — this keeps the uuid well-formed regardless of what label we
+  // chose for the namespace.
+  const hex = ns.replace(/[^0-9a-f]/gi, "0").padStart(4, "0").slice(0, 4);
+  const idx = String(n).padStart(8, "0").slice(-8);
+  return `00000000-0000-0000-0000-${hex}${idx}`;
 }
 
 // ─── Seed data ─────────────────────────────────────────────
