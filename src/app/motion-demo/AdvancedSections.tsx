@@ -592,13 +592,174 @@ function LineGraph() {
   );
 }
 
+function DonutChart() {
+  const { ref, on } = useIsVisible<HTMLDivElement>();
+  const segments = [
+    { label: "発行済", value: 62, color: "var(--accent-blue)" },
+    { label: "下書き", value: 24, color: "var(--accent-violet)" },
+    { label: "署名中", value: 14, color: "var(--accent-emerald)" },
+  ];
+  let acc = 0;
+  return (
+    <div ref={ref} className={styles.donut}>
+      <svg viewBox="0 0 120 120" className={styles.donutSvg}>
+        <circle cx="60" cy="60" r="42" fill="none" stroke="var(--border-default)" strokeWidth="12" />
+        {segments.map((s, i) => {
+          const offset = -acc;
+          acc += s.value;
+          return (
+            <circle
+              key={i}
+              cx="60"
+              cy="60"
+              r="42"
+              fill="none"
+              stroke={s.color}
+              strokeWidth="12"
+              strokeLinecap="butt"
+              pathLength={100}
+              strokeDasharray={on ? `${s.value} ${100 - s.value}` : `0 100`}
+              strokeDashoffset={offset}
+              transform="rotate(-90 60 60)"
+              style={{
+                transition: `stroke-dasharray 900ms ${120 + i * 180}ms var(--ease-out)`,
+              }}
+            />
+          );
+        })}
+      </svg>
+      <div className={styles.donutCenter}>
+        <span className={styles.donutValue}>{on ? 100 : 0}<span className={styles.donutUnit}>%</span></span>
+        <span className={styles.donutLabel}>稼働率</span>
+      </div>
+      <ul className={styles.donutLegend}>
+        {segments.map((s) => (
+          <li key={s.label}>
+            <span className={styles.donutDot} style={{ background: s.color }} /> {s.label} {s.value}%
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function Sparkline() {
+  const { ref, on } = useIsVisible<HTMLDivElement>();
+  const points = [40, 28, 34, 22, 30, 18, 26, 14, 20, 10, 16, 8];
+  const path = points
+    .map((p, i) => `${(i / (points.length - 1)) * 100},${p}`)
+    .reduce((acc, pt, i) => acc + (i === 0 ? `M${pt}` : ` L${pt}`), "");
+  const last = points[points.length - 1];
+  return (
+    <div ref={ref} className={styles.spark}>
+      <div className={styles.sparkHeader}>
+        <span className={styles.sparkLabel}>今月の発行数</span>
+        <span className={styles.sparkVal}>
+          <CountTo to={128} active={on} />
+          <span className={styles.sparkTrend}>▲ 12%</span>
+        </span>
+      </div>
+      <svg viewBox="0 0 100 50" className={styles.sparkSvg} preserveAspectRatio="none">
+        <path
+          d={`${path} L100,50 L0,50 Z`}
+          fill="url(#sparkFill)"
+          style={{ opacity: on ? 1 : 0, transition: "opacity 700ms 700ms" }}
+        />
+        <defs>
+          <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--accent-blue)" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="var(--accent-blue)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path
+          d={path}
+          fill="none"
+          stroke="var(--accent-blue)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          pathLength={1}
+          strokeDasharray="1"
+          strokeDashoffset={on ? 0 : 1}
+          style={{ transition: "stroke-dashoffset 1400ms var(--ease-out)" }}
+          vectorEffect="non-scaling-stroke"
+        />
+        <circle cx="100" cy={last} r="2.5" fill="var(--accent-blue)" className={on ? styles.sparkDot : ""} />
+      </svg>
+    </div>
+  );
+}
+
+function CountTo({ to, active }: { to: number; active: boolean }) {
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    const start = performance.now();
+    const dur = 1200;
+    let raf = 0;
+    const step = (t: number) => {
+      const p = Math.min(1, (t - start) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setV(Math.round(to * eased));
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [to, active]);
+  return <>{v}</>;
+}
+
+function Heatmap() {
+  const { ref, on } = useIsVisible<HTMLDivElement>();
+  const cells = [
+    0, 1, 2, 1, 0, 2, 3,
+    2, 3, 4, 2, 3, 1, 2,
+    1, 2, 3, 4, 3, 2, 3,
+    3, 4, 4, 3, 2, 3, 4,
+    2, 1, 3, 4, 4, 3, 2,
+    1, 2, 2, 3, 4, 4, 3,
+    0, 1, 2, 3, 3, 2, 1,
+  ];
+  const days = ["日", "月", "火", "水", "木", "金", "土"];
+  return (
+    <div ref={ref} className={styles.heatmap}>
+      <div className={styles.heatDays}>
+        {days.map((d, i) => (
+          <span key={i}>{d}</span>
+        ))}
+      </div>
+      <div className={styles.heatGrid}>
+        {cells.map((lvl, i) => (
+          <span
+            key={i}
+            className={styles.heatCell}
+            data-level={lvl}
+            style={{
+              opacity: on ? 1 : 0,
+              transform: on ? "scale(1)" : "scale(0.6)",
+              transitionDelay: `${i * 14}ms`,
+            }}
+          />
+        ))}
+      </div>
+      <div className={styles.heatLegend}>
+        <span>少</span>
+        {[0, 1, 2, 3, 4].map((l) => (
+          <span key={l} className={styles.heatCell} data-level={l} />
+        ))}
+        <span>多</span>
+      </div>
+    </div>
+  );
+}
+
 function DataSection() {
   return (
     <Section
       id="data"
       tag="12 · Data"
       title="データビジュアライゼーション"
-      description="数字を「動きながら読ませる」。棒グラフ、ゲージ、折れ線の段階描画。"
+      description="数字を「動きながら読ませる」。棒グラフ・ゲージ・折れ線に加え、ドーナツ・スパークライン・ヒートマップ。"
     >
       <div className={styles.grid3}>
         <div className={styles.card}>
@@ -612,6 +773,18 @@ function DataSection() {
         <div className={styles.card}>
           <p className={styles.cardLabel}>折れ線グラフ</p>
           <LineGraph />
+        </div>
+        <div className={styles.card}>
+          <p className={styles.cardLabel}>ドーナツ（セグメント）</p>
+          <DonutChart />
+        </div>
+        <div className={styles.card}>
+          <p className={styles.cardLabel}>スパークライン（KPI）</p>
+          <Sparkline />
+        </div>
+        <div className={styles.card}>
+          <p className={styles.cardLabel}>ヒートマップ（週×曜日）</p>
+          <Heatmap />
         </div>
       </div>
     </Section>
@@ -667,13 +840,70 @@ function ShakeButton() {
   );
 }
 
+function RippleButton() {
+  const [ripples, setRipples] = useState<{ id: number; x: number; y: number }[]>([]);
+  const onClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const id = Date.now() + Math.random();
+    setRipples((r) => [...r, { id, x: e.clientX - rect.left, y: e.clientY - rect.top }]);
+    window.setTimeout(() => {
+      setRipples((r) => r.filter((p) => p.id !== id));
+    }, 700);
+  };
+  return (
+    <button type="button" className={styles.rippleBtn} onClick={onClick}>
+      <span>CLICK ME</span>
+      {ripples.map((r) => (
+        <span key={r.id} className={styles.ripple} style={{ left: r.x, top: r.y }} />
+      ))}
+    </button>
+  );
+}
+
+function LiquidBlob() {
+  return (
+    <div className={styles.blobWrap}>
+      <svg viewBox="0 0 200 200" className={styles.blobSvg}>
+        <defs>
+          <linearGradient id="blobGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="var(--accent-blue)" />
+            <stop offset="100%" stopColor="var(--accent-violet)" />
+          </linearGradient>
+        </defs>
+        <path fill="url(#blobGrad)" className={styles.blobPath}>
+          <animate
+            attributeName="d"
+            dur="8s"
+            repeatCount="indefinite"
+            values="
+              M 40 110 Q 40 40 110 40 Q 180 40 160 100 Q 180 160 100 170 Q 30 170 40 110;
+              M 50 100 Q 30 30 100 30 Q 170 50 170 110 Q 170 170 90 160 Q 40 160 50 100;
+              M 30 100 Q 50 40 110 50 Q 170 40 170 100 Q 160 170 110 160 Q 30 170 30 100;
+              M 40 110 Q 40 40 110 40 Q 180 40 160 100 Q 180 160 100 170 Q 30 170 40 110
+            "
+          />
+        </path>
+      </svg>
+      <span className={styles.blobLabel}>Liquid</span>
+    </div>
+  );
+}
+
+function NeonFlicker({ text }: { text: string }) {
+  return (
+    <span className={styles.neon} data-text={text}>
+      {text}
+    </span>
+  );
+}
+
 function EffectsSection() {
   return (
     <Section
       id="effects"
       tag="13 · Effects"
       title="ゲーム的演出"
-      description="パーティクル・グリッチ・シェイク。インパクトを求める場面で。"
+      description="パーティクル・グリッチ・シェイクに加えて、リップル・液体ブロブ・ネオン点滅。"
     >
       <div className={styles.grid3}>
         <div className={styles.card}>
@@ -690,6 +920,22 @@ function EffectsSection() {
           <p className={styles.cardLabel}>シェイク（クリック）</p>
           <div className={styles.centerBox}>
             <ShakeButton />
+          </div>
+        </div>
+        <div className={styles.card}>
+          <p className={styles.cardLabel}>リップル（クリック位置から波紋）</p>
+          <div className={styles.centerBox}>
+            <RippleButton />
+          </div>
+        </div>
+        <div className={styles.card} style={{ padding: 0, overflow: "hidden" }}>
+          <p className={`${styles.cardLabel} ${styles.cardLabelOverlay}`}>液体ブロブ</p>
+          <LiquidBlob />
+        </div>
+        <div className={styles.card}>
+          <p className={styles.cardLabel}>ネオン点滅</p>
+          <div className={styles.centerBox} style={{ fontSize: "2rem", fontWeight: 700 }}>
+            <NeonFlicker text="LEDRA" />
           </div>
         </div>
       </div>
@@ -894,13 +1140,65 @@ function NoiseOverlay() {
   );
 }
 
+function StarField() {
+  const stars = Array.from({ length: 80 });
+  return (
+    <div className={styles.starField} aria-hidden>
+      {stars.map((_, i) => {
+        const size = 1 + Math.random() * 1.8;
+        const depth = Math.random();
+        return (
+          <span
+            key={i}
+            className={styles.star}
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              width: `${size}px`,
+              height: `${size}px`,
+              opacity: 0.4 + depth * 0.6,
+              animationDelay: `${-Math.random() * 6}s`,
+              animationDuration: `${3 + Math.random() * 4}s`,
+            }}
+          />
+        );
+      })}
+      <div className={styles.starDrift} />
+      <span className={styles.starLabel}>Starfield</span>
+    </div>
+  );
+}
+
+function AuroraFlow() {
+  return (
+    <div className={styles.aurora} aria-hidden>
+      <div className={`${styles.auroraBand} ${styles.auroraBand1}`} />
+      <div className={`${styles.auroraBand} ${styles.auroraBand2}`} />
+      <div className={`${styles.auroraBand} ${styles.auroraBand3}`} />
+      <span className={styles.auroraLabel}>Aurora flow</span>
+    </div>
+  );
+}
+
+function MeshGradient() {
+  return (
+    <div className={styles.mesh} aria-hidden>
+      <div className={styles.meshBlob} data-c="1" />
+      <div className={styles.meshBlob} data-c="2" />
+      <div className={styles.meshBlob} data-c="3" />
+      <div className={styles.meshBlob} data-c="4" />
+      <span className={styles.meshLabel}>Mesh gradient</span>
+    </div>
+  );
+}
+
 function AmbientSection() {
   return (
     <Section
       id="ambient"
       tag="15 · Ambient"
       title="環境演出"
-      description="スポットライト、呼吸するグラデーション、フィルムノイズ。空気感をつくる。"
+      description="スポットライト・グラデ・ノイズに加えて、星空・オーロラ・メッシュ。背景で空気感をつくる6種。"
     >
       <div className={styles.grid3}>
         <div className={styles.card} style={{ padding: 0, overflow: "hidden" }}>
@@ -911,6 +1209,15 @@ function AmbientSection() {
         </div>
         <div className={styles.card} style={{ padding: 0, overflow: "hidden" }}>
           <NoiseOverlay />
+        </div>
+        <div className={styles.card} style={{ padding: 0, overflow: "hidden" }}>
+          <StarField />
+        </div>
+        <div className={styles.card} style={{ padding: 0, overflow: "hidden" }}>
+          <AuroraFlow />
+        </div>
+        <div className={styles.card} style={{ padding: 0, overflow: "hidden" }}>
+          <MeshGradient />
         </div>
       </div>
     </Section>
