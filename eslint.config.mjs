@@ -41,8 +41,19 @@ const eslintConfig = defineConfig([
               name: "@/lib/supabase/admin",
               importNames: ["getSupabaseAdmin", "createAdminClient", "supabaseAdmin"],
               message:
-                "Prefer createTenantScopedAdmin(tenantId) or createInsurerScopedAdmin(insurerId). " +
+                "Prefer createTenantScopedAdmin(tenantId), createInsurerScopedAdmin(insurerId), " +
+                "or createServiceRoleAdmin(reason) for platform-wide cases. " +
                 "Raw admin clients bypass RLS across every tenant.",
+            },
+            {
+              // Back-door re-export that routed around the admin/* rule.
+              // Same contract as the direct raw imports above.
+              name: "@/lib/api/auth",
+              importNames: ["getAdminClient"],
+              message:
+                "getAdminClient is a legacy re-export of getSupabaseAdmin. " +
+                "Prefer createTenantScopedAdmin(tenantId), createInsurerScopedAdmin(insurerId), " +
+                "or createServiceRoleAdmin(reason) for platform-wide cases.",
             },
           ],
         },
