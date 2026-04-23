@@ -28,7 +28,11 @@ function getBaseUrl() {
   return baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`;
 }
 
-async function publish(path: string, payload: Record<string, unknown>) {
+async function publish(
+  path: string,
+  payload: Record<string, unknown>,
+  options?: { retries?: number },
+) {
   const client = getClient();
   if (!client) return null;
 
@@ -38,6 +42,7 @@ async function publish(path: string, payload: Record<string, unknown>) {
   const result = await client.publishJSON({
     url: targetUrl,
     body: payload,
+    ...(options?.retries !== undefined && { retries: options.retries }),
   });
 
   return result;
@@ -48,4 +53,29 @@ export async function enqueueInsuranceCaseCreated(
   payload: Record<string, unknown>
 ) {
   return publish("/api/qstash/insurance-case-created", payload);
+}
+
+/** Enqueue polygon backfill job for async processing */
+export async function enqueuePolygonBackfill(payload: {
+  job_id: string;
+  tenant_id: string;
+}) {
+  return publish("/api/qstash/polygon-backfill", payload, { retries: 2 });
+}
+
+/** Enqueue batch PDF generation job for async processing */
+export async function enqueueBatchPdf(payload: {
+  job_id: string;
+  tenant_id: string;
+  public_ids: string[];
+}) {
+  return publish("/api/qstash/batch-pdf", payload, { retries: 2 });
+}
+
+/** Enqueue Square order sync job for async processing */
+export async function enqueueSquareSync(payload: {
+  job_id: string;
+  tenant_id: string;
+}) {
+  return publish("/api/qstash/square-sync", payload, { retries: 2 });
 }

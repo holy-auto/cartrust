@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -103,14 +104,8 @@ export default async function Page({
     <main className="min-h-screen flex items-center justify-center bg-base p-6">
       <div className="glass-card w-full max-w-sm space-y-6 p-8">
         {/* Branding */}
-        <div className="flex items-center justify-center gap-3">
-          <div
-            className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg"
-            style={{ background: "linear-gradient(135deg, var(--accent-blue), #5856d6)" }}
-          >
-            C
-          </div>
-          <span className="text-xl font-bold text-primary tracking-wide">Ledra</span>
+        <div className="flex items-center justify-center">
+          <Image src="/login-logo.png" alt="Ledra" width={200} height={87} className="h-auto w-[200px]" priority />
         </div>
 
         <h1 className="text-xl font-bold text-primary text-center">ログイン</h1>
