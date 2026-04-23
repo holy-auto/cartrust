@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { enforceBilling } from "@/lib/billing/guard";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiOk, apiUnauthorized, apiValidationError, apiForbidden, apiInternalError } from "@/lib/api/response";
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     const jobId = req.nextUrl.searchParams.get("job_id");
     if (!jobId) return apiValidationError("job_id は必須です。");
 
-    const admin = createAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const { data: job, error } = await admin
       .from("batch_pdf_jobs")
       .select("id, status, total_count, processed_count, result_urls, error_message, created_at, updated_at")
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
       return apiValidationError("有効な public_id がありません。");
     }
 
-    const admin = createAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     const { data: job, error: jobErr } = await admin
       .from("batch_pdf_jobs")

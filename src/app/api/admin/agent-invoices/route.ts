@@ -1,6 +1,6 @@
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getAdminClient } from "@/lib/api/auth";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
@@ -13,7 +13,7 @@ export async function GET() {
     if (!caller) return apiUnauthorized();
     if (!requireMinRole(caller, "admin")) return apiForbidden();
 
-    const admin = getAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const { data } = await admin
       .from("agent_invoices")
       .select(
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     if (!requireMinRole(caller, "admin")) return apiForbidden();
 
     const body = await request.json();
-    const admin = getAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     const subtotal = body.subtotal ?? 0;
     const taxRate = body.tax_rate ?? 10;

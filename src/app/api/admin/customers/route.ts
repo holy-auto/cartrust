@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { escapeIlike } from "@/lib/sanitize";
 import { enforceBilling } from "@/lib/billing/guard";
@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
     };
 
     // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
-    const admin = getSupabaseAdmin();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const { data, error } = await admin
       .from("customers")
       .insert(row)
@@ -199,7 +199,7 @@ export async function PUT(req: NextRequest) {
     };
 
     // RLS をバイパスしてサービスロールで UPDATE（tenant_id で必ずスコープ限定）
-    const admin = getSupabaseAdmin();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const { data, error } = await admin
       .from("customers")
       .update(updates)
@@ -257,7 +257,7 @@ export async function DELETE(req: NextRequest) {
     if (!id) return apiValidationError("id is required");
 
     // RLS をバイパスしてサービスロールで操作（tenant_id で必ずスコープ限定）
-    const admin = getSupabaseAdmin();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     // リンク済み証明書/請求書があるか確認（並列実行）
     const [{ count: certCount }, { count: invCount }] = await Promise.all([

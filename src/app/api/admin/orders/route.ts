@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { makePublicId } from "@/lib/publicId";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { enforceBilling } from "@/lib/billing/guard";
 import { apiUnauthorized, apiValidationError, apiNotFound, apiForbidden, apiInternalError } from "@/lib/api/response";
 
@@ -80,7 +80,8 @@ export async function GET(req: NextRequest) {
       // 自社のパートナースコアも返す
       let myScore = null;
       if (tenantId) {
-        const { data: ps } = await getSupabaseAdmin()
+        const { admin: scopedAdmin } = createTenantScopedAdmin(tenantId);
+        const { data: ps } = await scopedAdmin
           .from("partner_scores")
           .select("total_orders, completed_orders, on_time_orders, cancelled_orders, avg_rating, rating_count")
           .eq("tenant_id", tenantId)
@@ -97,7 +98,7 @@ export async function GET(req: NextRequest) {
 
     // ─── 公開案件ブラウズモード ───
     if (type === "browse") {
-      const admin = getSupabaseAdmin();
+      const { admin } = createTenantScopedAdmin(caller.tenantId);
       let query = admin
         .from("job_orders")
         .select(
@@ -199,7 +200,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Use admin client to bypass RLS (API already validated auth above)
-    const admin = getSupabaseAdmin();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     // Build insert payload — only include non-null fields to avoid
     // hitting unexpected NOT NULL constraints on columns with defaults
@@ -266,7 +267,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // Use admin client to bypass RLS
-    const admin = getSupabaseAdmin();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     // 現在の注文を取得
     const { data: current, error: fetchError } = await admin
@@ -373,7 +374,7 @@ export async function PATCH(req: NextRequest) {
       return apiValidationError("id is required");
     }
 
-    const admin = getSupabaseAdmin();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     // 注文取得
     const { data: order, error: fetchErr } = await admin

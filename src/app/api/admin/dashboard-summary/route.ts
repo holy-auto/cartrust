@@ -1,7 +1,7 @@
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { getAdminClient } from "@/lib/api/auth";
 import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 import { withCache } from "@/lib/cache";
 
@@ -18,7 +18,7 @@ export async function GET() {
     }
 
     const tenantId = caller.tenantId;
-    const admin = getAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     const result = await withCache(`dashboard-summary:${tenantId}`, 30, async () => {
       const now = new Date();

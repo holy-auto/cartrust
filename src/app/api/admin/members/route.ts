@@ -5,7 +5,7 @@ import { checkRateLimit } from "@/lib/api/rateLimit";
 import { normalizePlanTier } from "@/lib/billing/planFeatures";
 import { memberLimit, canAddMember } from "@/lib/billing/memberLimits";
 import { logAuditEvent } from "@/lib/audit/certificateLog";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ASSIGNABLE_ROLES, type Role } from "@/lib/auth/roles";
 import { apiUnauthorized, apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     const caller = await resolveCallerWithPlan(supabase);
     if (!caller) return apiUnauthorized();
 
-    const admin = getSupabaseAdmin();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     // tenant_memberships からメンバー取得
     const { data: members, error } = await admin
@@ -52,9 +52,7 @@ export async function GET(req: NextRequest) {
       data: { users },
     } = await admin.auth.admin.listUsers({ perPage: 1000 });
     const userMap = new Map(
-      (users as Array<{ id: string; email?: string; user_metadata?: Record<string, unknown> }>).map(
-        (u) => [u.id, u],
-      ),
+      (users as Array<{ id: string; email?: string; user_metadata?: Record<string, unknown> }>).map((u) => [u.id, u]),
     );
 
     const enriched = (members ?? []).map((m) => {
@@ -113,7 +111,7 @@ export async function POST(req: NextRequest) {
       return apiValidationError("無効なメールアドレスです。");
     }
 
-    const admin = getSupabaseAdmin();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     // 現在のメンバー数を確認
     const { count, error: countErr } = await admin
@@ -151,8 +149,7 @@ export async function POST(req: NextRequest) {
         const { data: page_data } = await admin.auth.admin.listUsers({ page, perPage: 100 });
         if (!page_data?.users?.length) break;
         const match = page_data.users.find(
-          (u: { id: string; email?: string; user_metadata?: Record<string, unknown> }) =>
-            u.email === email,
+          (u: { id: string; email?: string; user_metadata?: Record<string, unknown> }) => u.email === email,
         );
         if (match) {
           found = match;
@@ -243,7 +240,7 @@ export async function PUT(req: NextRequest) {
       return apiValidationError("自分のロールは変更できません。");
     }
 
-    const admin = getSupabaseAdmin();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     // owner のロール変更は不可
     const { data: targetMem } = await admin
@@ -306,7 +303,7 @@ export async function DELETE(req: NextRequest) {
       return apiValidationError("自分自身は削除できません。");
     }
 
-    const admin = getSupabaseAdmin();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     const { error } = await admin
       .from("tenant_memberships")

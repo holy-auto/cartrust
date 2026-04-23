@@ -1,6 +1,6 @@
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getAdminClient } from "@/lib/api/auth";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
@@ -13,7 +13,7 @@ export async function GET() {
     if (!caller) return apiUnauthorized();
     if (!requireMinRole(caller, "admin")) return apiForbidden();
 
-    const admin = getAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const [catRes, faqRes] = await Promise.all([
       admin.from("agent_faq_categories").select("id, name, sort_order, created_at, updated_at").order("sort_order"),
       admin
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     if (!requireMinRole(caller, "admin")) return apiForbidden();
 
     const body = await request.json();
-    const admin = getAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     const { data, error } = await admin
       .from("agent_faqs")

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
@@ -15,7 +15,8 @@ export async function GET(req: Request) {
     const status = searchParams.get("status") ?? "all";
     const cursor = searchParams.get("cursor");
 
-    let query = getSupabaseAdmin()
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
+    let query = admin
       .from("customer_inquiries")
       .select("id, customer_name, phone_last4_hash, subject, message, status, admin_reply, replied_at, created_at")
       .eq("tenant_id", caller.tenantId)
@@ -49,7 +50,8 @@ export async function PATCH(req: Request) {
     if (!id) return apiValidationError("missing id");
 
     // 所属テナントの問い合わせのみ更新可
-    const { data: existing } = await getSupabaseAdmin()
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
+    const { data: existing } = await admin
       .from("customer_inquiries")
       .select("id, tenant_id")
       .eq("id", id)
@@ -67,7 +69,7 @@ export async function PATCH(req: Request) {
       updates.replied_by = caller.userId;
     }
 
-    const { data, error } = await getSupabaseAdmin()
+    const { data, error } = await admin
       .from("customer_inquiries")
       .update(updates)
       .eq("id", id)

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { apiUnauthorized, apiValidationError, apiNotFound, apiInternalError, apiOk } from "@/lib/api/response";
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       return apiValidationError(parsed.error.issues[0]?.message ?? "入力値が不正です");
     }
 
-    const admin = getSupabaseAdmin();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     // is_default を立てる場合は同スコープ（tenant + doc_type）の既存デフォルトを下ろす
     if (parsed.data.is_default) {
@@ -113,7 +113,7 @@ export async function PUT(req: NextRequest) {
       return apiValidationError(parsed.error.issues[0]?.message ?? "入力値が不正です");
     }
 
-    const admin = getSupabaseAdmin();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (parsed.data.name !== undefined) updates.name = parsed.data.name;
     if (parsed.data.doc_type !== undefined) updates.doc_type = parsed.data.doc_type ?? null;
@@ -162,7 +162,7 @@ export async function DELETE(req: NextRequest) {
     const id = (body?.id ?? "").trim();
     if (!id) return apiValidationError("id is required");
 
-    const admin = getSupabaseAdmin();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const { error } = await admin.from("document_templates").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) return apiInternalError(error, "document_templates DELETE");

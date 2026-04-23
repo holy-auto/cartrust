@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { escapeIlike } from "@/lib/sanitize";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const q = url.searchParams.get("q")?.trim() ?? "";
 
-    const admin = createAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     let query = admin
       .from("tenants")

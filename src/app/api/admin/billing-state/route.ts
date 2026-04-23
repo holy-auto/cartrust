@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { billingStateSchema } from "@/lib/validations/stripe";
 import { apiInternalError, apiUnauthorized, apiValidationError, apiNotFound } from "@/lib/api/response";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,7 +22,9 @@ export async function POST(req: NextRequest) {
     }
 
     const { access_token } = parsed.data;
-    const admin = getSupabaseAdmin();
+    const admin = createServiceRoleAdmin(
+      "admin billing-state — validates caller's access_token then resolves their tenant, pre-resolution",
+    );
 
     // access_token を検証して user_id を確定
     const u = await admin.auth.getUser(access_token);

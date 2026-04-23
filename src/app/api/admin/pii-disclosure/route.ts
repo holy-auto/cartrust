@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   const certificateId = req.nextUrl.searchParams.get("certificate_id");
   if (!certificateId) return apiValidationError("certificate_id は必須です。");
 
-  const admin = createAdminClient();
+  const { admin } = createTenantScopedAdmin(caller.tenantId);
 
   const { data: cert } = await admin.from("certificates").select("tenant_id").eq("id", certificateId).maybeSingle();
 
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     return apiValidationError("certificate_id と insurer_id は必須です。");
   }
 
-  const admin = createAdminClient();
+  const { admin } = createTenantScopedAdmin(caller.tenantId);
 
   const { data: cert } = await admin.from("certificates").select("tenant_id").eq("id", certificate_id).maybeSingle();
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { getClientIp } from "@/lib/rateLimit";
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     return apiValidationError("confirm: true を指定して削除を確定してください");
   }
 
-  const admin = createAdminClient();
+  const { admin } = createTenantScopedAdmin(caller.tenantId);
 
   // Verify insurer exists
   const { data: insurer } = await admin

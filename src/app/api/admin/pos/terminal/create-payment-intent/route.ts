@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { apiUnauthorized, apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       body?.metadata && typeof body.metadata === "object" ? (body.metadata as Record<string, string>) : {};
 
     // テナントのStripe Connectアカウントを取得
-    const admin = createAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const { data: tenant } = await admin
       .from("tenants")
       .select("stripe_connect_account_id, stripe_connect_onboarded")
@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
     }
 
     // テナントのStripe Connectアカウントを取得
-    const admin = createAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const { data: tenant } = await admin
       .from("tenants")
       .select("stripe_connect_account_id, stripe_connect_onboarded")

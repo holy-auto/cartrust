@@ -1,7 +1,7 @@
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
-import { getAdminClient } from "@/lib/api/auth";
 import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
 
 /**
@@ -21,7 +21,7 @@ export async function GET() {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const admin = getAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     // Today's date in JST (UTC+9)
     const now = new Date();

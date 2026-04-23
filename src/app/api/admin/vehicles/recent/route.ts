@@ -1,7 +1,7 @@
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { getAdminClient } from "@/lib/api/auth";
 import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +17,7 @@ export async function GET() {
     }
 
     const tenantId = caller.tenantId;
-    const admin = getAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     // 証明書テーブルから vehicle_id ごとに最新の作成日と件数を取得
     // Supabase doesn't support GROUP BY directly, so we fetch recent certs with vehicle_id

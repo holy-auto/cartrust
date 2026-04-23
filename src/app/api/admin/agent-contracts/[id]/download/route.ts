@@ -1,6 +1,6 @@
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getAdminClient } from "@/lib/api/auth";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiForbidden, apiInternalError, apiNotFound } from "@/lib/api/response";
 
@@ -18,7 +18,7 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
     if (!caller) return apiUnauthorized();
     if (!requireMinRole(caller, "admin")) return apiForbidden();
 
-    const admin = getAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const { data, error } = await admin
       .from("agent_signing_requests")
       .select("id, signed_pdf_path, title, status")

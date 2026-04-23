@@ -1,6 +1,6 @@
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getAdminClient } from "@/lib/api/auth";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { apiUnauthorized, apiForbidden, apiInternalError, apiValidationError, apiNotFound } from "@/lib/api/response";
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
       return apiValidationError("message is required");
     }
 
-    const admin = getAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     // Verify ticket exists
     const { data: ticket, error: ticketError } = await admin

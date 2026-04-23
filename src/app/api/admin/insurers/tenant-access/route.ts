@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin, createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { getClientIp } from "@/lib/rateLimit";
@@ -24,7 +24,7 @@ async function logAdminAction(params: {
   ip?: string;
   userAgent?: string;
 }) {
-  const admin = createAdminClient();
+  const admin = createServiceRoleAdmin("admin audit log — writes platform-wide admin_audit_logs (no tenant scope)");
   await admin
     .from("admin_audit_logs")
     .insert({
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const insurerId = url.searchParams.get("insurer_id");
 
-  const admin = createAdminClient();
+  const { admin } = createTenantScopedAdmin(caller.tenantId);
 
   let query = admin
     .from("insurer_tenant_access")
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
     return apiValidationError("insurer_id and tenant_id are required");
   }
 
-  const admin = createAdminClient();
+  const { admin } = createTenantScopedAdmin(caller.tenantId);
 
   // Check if grant already exists (including revoked ones — reactivate)
   const { data: existing } = await admin
@@ -221,7 +221,7 @@ export async function PATCH(req: NextRequest) {
     return apiValidationError("id is required");
   }
 
-  const admin = createAdminClient();
+  const { admin } = createTenantScopedAdmin(caller.tenantId);
   const ip = getClientIp(req);
   const userAgent = req.headers.get("user-agent") ?? "";
 

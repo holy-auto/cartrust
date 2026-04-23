@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { apiUnauthorized, apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       return apiValidationError("tenantId と action は必須です");
     }
 
-    const admin = getSupabaseAdmin();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     // Verify tenant exists
     const { data: tenant, error: tenantError } = await admin

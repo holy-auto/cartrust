@@ -1,6 +1,6 @@
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getAdminClient } from "@/lib/api/auth";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
@@ -15,12 +15,14 @@ export async function GET(request: NextRequest) {
     if (!caller) return apiUnauthorized();
     if (!requireMinRole(caller, "admin")) return apiForbidden();
 
-    const admin = getAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const status = request.nextUrl.searchParams.get("status");
 
     let query = admin
       .from("agent_applications")
-      .select("id, application_number, company_name, contact_name, email, phone, industry, status, created_at, updated_at, rejection_reason")
+      .select(
+        "id, application_number, company_name, contact_name, email, phone, industry, status, created_at, updated_at, rejection_reason",
+      )
       .order("created_at", { ascending: false });
 
     if (status) {

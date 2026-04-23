@@ -1,7 +1,7 @@
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { randomBytes } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getAdminClient } from "@/lib/api/auth";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { apiUnauthorized, apiForbidden, apiInternalError, apiNotFound, apiValidationError } from "@/lib/api/response";
@@ -32,7 +32,7 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
     if (!caller) return apiUnauthorized();
     if (!isPlatformAdmin(caller)) return apiForbidden();
 
-    const admin = getAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const { data, error } = await admin
       .from("agent_signing_requests")
       .select(
@@ -64,7 +64,7 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
 
     const body = await request.json();
     const { action } = body;
-    const admin = getAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     const { data: record, error: fetchErr } = await admin
       .from("agent_signing_requests")

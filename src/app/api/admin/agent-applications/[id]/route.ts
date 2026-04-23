@@ -1,6 +1,6 @@
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getAdminClient } from "@/lib/api/auth";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { apiUnauthorized, apiForbidden, apiInternalError, apiNotFound, apiValidationError } from "@/lib/api/response";
@@ -21,7 +21,7 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
     if (!caller) return apiUnauthorized();
     if (!isPlatformAdmin(caller)) return apiForbidden();
 
-    const admin = getAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const { data, error } = await admin
       .from("agent_applications")
       .select(
@@ -66,7 +66,7 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
 
     const body = await request.json();
     const { status, rejection_reason } = body;
-    const admin = getAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     // --- Mark as under_review ---
     if (status === "under_review") {
@@ -156,8 +156,7 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
         // auth.users にメールが存在するか確認
         const { data: existingUsers } = await admin.auth.admin.listUsers();
         const matchedUser = existingUsers?.users?.find(
-          (u: { id: string; email?: string }) =>
-            u.email?.toLowerCase() === app.email.toLowerCase(),
+          (u: { id: string; email?: string }) => u.email?.toLowerCase() === app.email.toLowerCase(),
         );
 
         if (matchedUser) {

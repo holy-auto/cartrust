@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { DOC_TYPES, type DocType } from "@/types/document";
 import { checkRateLimit } from "@/lib/api/rateLimit";
@@ -230,7 +230,7 @@ export async function POST(req: NextRequest) {
     };
 
     // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
-    const admin = getSupabaseAdmin();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const { data, error } = await admin
       .from("documents")
       .insert(row)
@@ -296,7 +296,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // RLS をバイパスしてサービスロールで UPDATE（tenant_id で必ずスコープ限定）
-    const admin = getSupabaseAdmin();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const { data, error } = await admin
       .from("documents")
       .update(updates)
@@ -342,7 +342,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // RLS をバイパスしてサービスロールで DELETE（tenant_id で必ずスコープ限定）
-    const admin = getSupabaseAdmin();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const { error } = await admin.from("documents").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) {

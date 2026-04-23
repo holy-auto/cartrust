@@ -1,6 +1,6 @@
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getAdminClient } from "@/lib/api/auth";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
@@ -16,7 +16,7 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
     if (!isPlatformAdmin(caller)) return apiForbidden();
 
     const body = await request.json();
-    const admin = getAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const allowed = ["status", "issued_at", "paid_at", "notes"];
     const updates: Record<string, unknown> = {};
     for (const key of allowed) {
