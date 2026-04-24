@@ -5,19 +5,7 @@ import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { enforceBilling } from "@/lib/billing/guard";
 import { apiUnauthorized, apiValidationError, apiNotFound, apiForbidden, apiInternalError } from "@/lib/api/response";
-
-// ─── 有効なステータス一覧 ───
-const VALID_STATUSES = [
-  "pending",
-  "quoting",
-  "accepted",
-  "in_progress",
-  "approval_pending",
-  "payment_pending",
-  "completed",
-  "rejected",
-  "cancelled",
-] as const;
+import { orderAcceptSchema, orderCreateSchema, orderUpdateSchema } from "@/lib/validations/order";
 
 // ─── ステータス遷移ルール ───
 // key: 現在のステータス, value: { next: 次ステータス, side: "from" | "to" | "both" }[]
@@ -191,12 +179,11 @@ export async function POST(req: NextRequest) {
 
     const tenantId = caller.tenantId;
 
-    const body = await req.json();
-    const { to_tenant_id, title, description, category, budget, deadline, vehicle_id } = body;
-
-    if (!title) {
-      return apiValidationError("title is required");
+    const parsed = orderCreateSchema.safeParse(await req.json().catch(() => ({})));
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.issues[0]?.message ?? "invalid payload");
     }
+    const { to_tenant_id, title, description, category, budget, deadline, vehicle_id } = parsed.data;
 
     // Use admin client to bypass RLS (API already validated auth above)
     const admin = getSupabaseAdmin();
@@ -206,7 +193,7 @@ export async function POST(req: NextRequest) {
     const insertPayload: Record<string, unknown> = {
       public_id: makePublicId(),
       from_tenant_id: tenantId,
-      title: title.trim(),
+      title,
       status: "pending",
     };
     if (to_tenant_id) insertPayload.to_tenant_id = to_tenant_id;
@@ -254,16 +241,11 @@ export async function PUT(req: NextRequest) {
 
     const tenantId = caller.tenantId;
 
-    const body = await req.json();
-    const { id, status, cancel_reason } = body;
-
-    if (!id || !status) {
-      return apiValidationError("id and status are required");
+    const parsed = orderUpdateSchema.safeParse(await req.json().catch(() => ({})));
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.issues[0]?.message ?? "invalid payload");
     }
-
-    if (!VALID_STATUSES.includes(status)) {
-      return apiValidationError("Invalid status");
-    }
+    const { id, status, cancel_reason } = parsed.data;
 
     // Use admin client to bypass RLS
     const admin = getSupabaseAdmin();
@@ -373,12 +355,11 @@ export async function PATCH(req: NextRequest) {
 
     const tenantId = caller.tenantId;
 
-    const body = await req.json();
-    const { id } = body;
-
-    if (!id) {
-      return apiValidationError("id is required");
+    const parsed = orderAcceptSchema.safeParse(await req.json().catch(() => ({})));
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.issues[0]?.message ?? "invalid payload");
     }
+    const { id } = parsed.data;
 
     const admin = getSupabaseAdmin();
 
