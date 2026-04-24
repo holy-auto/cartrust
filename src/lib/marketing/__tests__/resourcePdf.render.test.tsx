@@ -6,7 +6,7 @@ describe("RESOURCE_PDFS rendering", () => {
   it.each(Object.entries(RESOURCE_PDFS))(
     "renders %s to a non-empty PDF buffer",
     async (_key, entry) => {
-      const doc = await entry.doc();
+      const doc = await entry.doc({ locale: "ja" });
       const buf = await renderToBuffer(doc);
       expect(buf.byteLength).toBeGreaterThan(1000);
       // PDF files start with %PDF-

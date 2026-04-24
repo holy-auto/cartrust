@@ -15,7 +15,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { apiNotFound, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { markLeadDownloaded } from "@/lib/marketing/leads";
-import { RESOURCE_PDFS } from "@/lib/marketing/resourcePdf";
+import { RESOURCE_PDFS, isSupportedPdfLocale, type PdfLocale } from "@/lib/marketing/resourcePdf";
 
 export const runtime = "nodejs";
 
@@ -46,15 +46,24 @@ export async function GET(request: Request, ctx: { params: Promise<{ key: string
     );
   }
 
+  const url = new URL(request.url);
+
+  // `?locale=<ja|en>` selects the PDF language. Missing or unsupported
+  // falls back to `ja`. Sending an unsupported locale is intentionally
+  // lenient (no 400) so bookmarked URLs keep working as translations come
+  // online.
+  const rawLocale = url.searchParams.get("locale");
+  const locale: PdfLocale = isSupportedPdfLocale(rawLocale) ? rawLocale : "ja";
+
   try {
     // `entry.doc` may be async (e.g. case-studies loads MDX entries).
-    const docElement = await entry.doc();
+    const docElement = await entry.doc({ locale });
     const buffer = await renderToBuffer(docElement);
 
     // Optional `?lead=<uuid>` lets the card pair a download with the lead
     // it came from, giving us the actual completion rate in the DB.
     // Fire-and-forget: the user's download must not wait on analytics.
-    const leadId = new URL(request.url).searchParams.get("lead");
+    const leadId = url.searchParams.get("lead");
     if (leadId) {
       markLeadDownloaded(leadId).catch((err) => {
         console.error("[resource pdf] markLeadDownloaded failed:", err);
@@ -65,7 +74,7 @@ export async function GET(request: Request, ctx: { params: Promise<{ key: string
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${entry.filename}"`,
+        "Content-Disposition": `attachment; filename="${entry.filename({ locale })}"`,
         "Cache-Control": "public, max-age=600, stale-while-revalidate=3600",
       },
     });

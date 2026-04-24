@@ -2082,39 +2082,63 @@ export function RoiTemplatePdf() {
  * downloadable resources; the API route `/api/marketing/resources/[key]/pdf`
  * reads from this map.
  */
+/**
+ * Locales the resource PDFs can render in. `ja` is the authored baseline.
+ * `en` is reserved: the registry currently throws for `en` because there
+ * is no English copy yet, but the API route and factory signatures are
+ * locale-aware so adding translations later is additive (not invasive).
+ */
+export const SUPPORTED_PDF_LOCALES = ["ja"] as const;
+export type PdfLocale = (typeof SUPPORTED_PDF_LOCALES)[number];
+
+export function isSupportedPdfLocale(raw: string | null | undefined): raw is PdfLocale {
+  return !!raw && (SUPPORTED_PDF_LOCALES as readonly string[]).includes(raw);
+}
+
+export type ResourcePdfOpts = { locale: PdfLocale };
+
 export type ResourcePdfEntry = {
-  filename: string;
+  /** Filename may vary by locale (e.g. `_en.pdf`). */
+  filename: (opts: ResourcePdfOpts) => string;
   /**
    * Factory for the Document react element. May be async — case-studies
    * loads MDX content at render time. The API route awaits before handing
    * to renderToBuffer.
    */
-  doc: () => React.ReactElement | Promise<React.ReactElement>;
+  doc: (opts: ResourcePdfOpts) => React.ReactElement | Promise<React.ReactElement>;
 };
+
+/**
+ * Map a baseline filename stem + locale to a concrete filename. `ja` uses
+ * the original stem; other locales append `_<locale>` before `.pdf`.
+ */
+function localizedFilename(stem: string, locale: PdfLocale): string {
+  return locale === "ja" ? `${stem}.pdf` : `${stem}_${locale}.pdf`;
+}
 
 export const RESOURCE_PDFS: Record<string, ResourcePdfEntry> = {
   "service-overview": {
-    filename: "Ledra_Service_Overview.pdf",
+    filename: ({ locale }) => localizedFilename("Ledra_Service_Overview", locale),
     doc: () => <ServiceOverviewPdf />,
   },
   "pricing-overview": {
-    filename: "Ledra_Pricing_Overview.pdf",
+    filename: ({ locale }) => localizedFilename("Ledra_Pricing_Overview", locale),
     doc: () => <PricingOverviewPdf />,
   },
   "features-deep-dive": {
-    filename: "Ledra_Features_Deep_Dive.pdf",
+    filename: ({ locale }) => localizedFilename("Ledra_Features_Deep_Dive", locale),
     doc: () => <FeaturesDeepDivePdf />,
   },
   "security-whitepaper": {
-    filename: "Ledra_Security_Whitepaper.pdf",
+    filename: ({ locale }) => localizedFilename("Ledra_Security_Whitepaper", locale),
     doc: () => <SecurityWhitepaperPdf />,
   },
   "case-studies": {
-    filename: "Ledra_Case_Studies.pdf",
+    filename: ({ locale }) => localizedFilename("Ledra_Case_Studies", locale),
     doc: () => CaseStudiesPdf(),
   },
   "roi-template": {
-    filename: "Ledra_ROI_Template.pdf",
+    filename: ({ locale }) => localizedFilename("Ledra_ROI_Template", locale),
     doc: () => <RoiTemplatePdf />,
   },
 };
