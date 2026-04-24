@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const body = await req.json().catch(() => ({}) as any);
+    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
 
     const docNumber = body?.invoice_number?.trim() || (await generateInvoiceNumber(supabase, caller.tenantId));
     const customerId = body?.customer_id?.trim() || null;
@@ -248,7 +248,7 @@ export async function PUT(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const body = await req.json().catch(() => ({}) as any);
+    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
     const id = (body?.id ?? "").trim();
     if (!id) return apiValidationError("missing_id");
 
@@ -331,7 +331,7 @@ export async function DELETE(req: NextRequest) {
     }
     const caller = { userId: callerWithRole.userId, tenantId: callerWithRole.tenantId };
 
-    const body = await req.json().catch(() => ({}) as any);
+    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
     const id = (body?.id ?? "").trim();
     if (!id) return apiValidationError("missing_id");
 

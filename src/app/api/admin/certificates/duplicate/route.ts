@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     const deny = await enforceBilling(req, { minPlan: "free", action: "create", tenantId: caller.tenantId });
     if (deny) return deny;
 
-    const body = await req.json().catch(() => ({}) as any);
+    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
     const sourcePublicId = (body?.source_public_id ?? "").trim();
     if (!sourcePublicId) {
       return apiValidationError("source_public_id は必須です。");
