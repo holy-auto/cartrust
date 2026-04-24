@@ -1,3 +1,4 @@
+import { parseJsonSafe } from "@/lib/api/safeJson";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
     });
     if (billingDeny) return billingDeny as any;
 
-    const body = await req.json().catch((): null => null);
+    const body = await parseJsonSafe(req);
     const publicIds: unknown = body?.public_ids;
 
     if (!Array.isArray(publicIds) || publicIds.length === 0) {

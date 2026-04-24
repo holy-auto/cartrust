@@ -1,3 +1,4 @@
+import { parseJsonSafe } from "@/lib/api/safeJson";
 import { NextRequest } from "next/server";
 import { resolveMobileCaller } from "@/lib/auth/mobileAuth";
 import { hasPermission } from "@/lib/auth/permissions";
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
     if (!caller) return apiUnauthorized();
     if (!hasPermission(caller.role, "reservations:create")) return apiForbidden();
 
-    const body = await request.json().catch((): null => null);
+    const body = await parseJsonSafe(request);
     if (!body) return apiValidationError("Invalid request body");
 
     const { scheduled_date, customer_id } = body;

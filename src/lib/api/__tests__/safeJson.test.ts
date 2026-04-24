@@ -1,0 +1,92 @@
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { parseJsonSafe, safeFetchJson } from "../safeJson";
+
+// Silence the logger during tests
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    child: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+  },
+}));
+
+describe("parseJsonSafe", () => {
+  it("returns parsed JSON on success", async () => {
+    const res = new Response(JSON.stringify({ foo: "bar" }));
+    const data = await parseJsonSafe<{ foo: string }>(res);
+    expect(data).toEqual({ foo: "bar" });
+  });
+
+  it("returns null when body is invalid JSON", async () => {
+    const res = new Response("<html>not json</html>");
+    const data = await parseJsonSafe(res);
+    expect(data).toBeNull();
+  });
+
+  it("returns null when body is empty", async () => {
+    const res = new Response("");
+    const data = await parseJsonSafe(res);
+    expect(data).toBeNull();
+  });
+
+  it("preserves generic type narrowing", async () => {
+    type Foo = { value: number };
+    const res = new Response(JSON.stringify({ value: 42 }));
+    const data = await parseJsonSafe<Foo>(res);
+    expect(data?.value).toBe(42);
+  });
+});
+
+describe("safeFetchJson", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("returns ok:true + data on 200 with JSON body", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(JSON.stringify({ hello: "world" }), { status: 200 })),
+    );
+    const result = await safeFetchJson<{ hello: string }>("/api/foo");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.status).toBe(200);
+      expect(result.data).toEqual({ hello: "world" });
+    }
+  });
+
+  it("returns ok:false + non_ok on 500 with JSON error body (body still exposed)", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: "boom" }), { status: 500 })));
+    const result = await safeFetchJson<{ error: string }>("/api/foo");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.kind).toBe("non_ok");
+      expect(result.status).toBe(500);
+      expect(result.data).toEqual({ error: "boom" });
+    }
+  });
+
+  it("returns ok:false + parse on HTML error page", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("<html>502 Bad Gateway</html>", { status: 502 })));
+    const result = await safeFetchJson("/api/foo");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.kind).toBe("parse");
+      expect(result.data).toBeNull();
+      expect(result.status).toBe(502);
+    }
+  });
+
+  it("returns ok:false + network on fetch rejection", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("failed to fetch")));
+    const result = await safeFetchJson("/api/foo");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.kind).toBe("network");
+      expect(result.status).toBe(0);
+      expect(result.error.message).toMatch(/failed to fetch/);
+    }
+  });
+});

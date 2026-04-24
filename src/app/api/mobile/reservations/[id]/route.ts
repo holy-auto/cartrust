@@ -1,3 +1,4 @@
+import { parseJsonSafe } from "@/lib/api/safeJson";
 import { NextRequest } from "next/server";
 import { resolveMobileCaller } from "@/lib/auth/mobileAuth";
 import { hasPermission } from "@/lib/auth/permissions";
@@ -42,7 +43,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (!hasPermission(caller.role, "reservations:edit")) return apiForbidden();
 
     const { id } = await params;
-    const body = await request.json().catch((): null => null);
+    const body = await parseJsonSafe(request);
     if (!body) return apiNotFound();
 
     // Only allow safe fields to be updated

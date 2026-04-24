@@ -1,3 +1,4 @@
+import { parseJsonSafe } from "@/lib/api/safeJson";
 import { NextRequest, NextResponse } from "next/server";
 import { enforceBilling } from "@/lib/billing/guard";
 import { apiValidationError, apiUnauthorized, apiInternalError } from "@/lib/api/response";
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest) {
     const deny = await enforceBilling(req, { minPlan: "free", action: "pdf_one", tenantId: caller.tenantId });
     if (deny) return deny as any;
 
-    const body = await req.json().catch((): null => null);
+    const body = await parseJsonSafe(req);
     const id = pickId(body);
 
     if (!id) {

@@ -1,3 +1,4 @@
+import { parseJsonSafe } from "@/lib/api/safeJson";
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
@@ -21,7 +22,7 @@ import {
  */
 export async function POST(req: Request) {
   try {
-    const json = await req.json().catch((): null => null);
+    const json = await parseJsonSafe(req);
     const parsed = certificateVoidSchema.safeParse(json);
     if (!parsed.success) {
       return apiValidationError(parsed.error.issues[0]?.message ?? "入力内容に誤りがあります。");
