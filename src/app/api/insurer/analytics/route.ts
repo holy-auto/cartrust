@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 
@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
       .map(([action, count]) => ({ action, count }))
       .sort((a, b) => b.count - a.count);
 
-    return NextResponse.json({ daily_counts, top_keywords, action_breakdown });
+    return apiJson({ daily_counts, top_keywords, action_breakdown });
   } catch (err) {
     return apiInternalError(err, "GET /api/insurer/analytics");
   }

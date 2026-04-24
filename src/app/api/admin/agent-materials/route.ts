@@ -2,7 +2,7 @@ import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +34,7 @@ export async function GET() {
       agent_material_categories: undefined,
     }));
 
-    return NextResponse.json({
+    return apiJson({
       categories: catResult.data ?? [],
       materials,
     });
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
       return apiInternalError(insertErr, "agent-materials insert");
     }
 
-    return NextResponse.json({ material }, { status: 201 });
+    return apiJson({ material }, { status: 201 });
   } catch (e) {
     return apiInternalError(e, "agent-materials POST");
   }

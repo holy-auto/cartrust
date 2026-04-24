@@ -5,7 +5,7 @@ import { checkRateLimit as checkUpstashRateLimit } from "@/lib/api/rateLimit";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { agentApplicationSchema, parseBody } from "@/lib/validation/schemas";
 import { notifyApplicationReceived } from "@/lib/agent/email";
-import { apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiValidationError, apiInternalError } from "@/lib/api/response";
 import crypto from "crypto";
 
 export const runtime = "nodejs";
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
   const rl = await checkRateLimit(`apply:${ip}`, { limit: 3, windowSec: 600 });
   if (!rl.allowed) {
-    return NextResponse.json(
+    return apiJson(
       { error: "rate_limited", message: "申請回数の上限に達しました。しばらくしてから再度お試しください。" },
       { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
     );
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
 
     if (existingAgentUser) {
       const agentStatus = (existingAgentUser.agents as { status?: string } | null)?.status;
-      return NextResponse.json(
+      return apiJson(
         {
           error: "already_registered",
           message: "このアカウントはすでに代理店として登録されています。",
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
           companyName: data.company_name,
           applicationNumber: retryNumber,
         }).catch((e) => console.error("[agent/apply] email error:", e));
-        return NextResponse.json(
+        return apiJson(
           {
             ok: true,
             application_number: retryNumber,
@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
     applicationNumber: applicationNumber,
   }).catch((e) => console.error("[agent/apply] email error:", e));
 
-  return NextResponse.json(
+  return apiJson(
     {
       ok: true,
       application_number: applicationNumber,

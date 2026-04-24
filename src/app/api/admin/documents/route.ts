@@ -5,7 +5,7 @@ import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { DOC_TYPES, type DocType } from "@/types/document";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { parsePagination } from "@/lib/api/pagination";
-import { apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -134,7 +134,7 @@ export async function GET(req: NextRequest) {
       .filter((d) => d.status === "sent" || d.status === "accepted")
       .reduce((sum, d) => sum + (d.total ?? 0), 0);
 
-    return NextResponse.json({
+    return apiJson({
       documents: enriched,
       stats: { total: totalCount ?? total, unpaid_amount: unpaidAmount },
       ...(page > 0 && {
@@ -242,7 +242,7 @@ export async function POST(req: NextRequest) {
       return apiInternalError(error, "documents POST");
     }
 
-    return NextResponse.json({ ok: true, document: data });
+    return apiJson({ ok: true, document: data });
   } catch (e) {
     return apiInternalError(e, "documents POST");
   }
@@ -311,7 +311,7 @@ export async function PUT(req: NextRequest) {
       return apiInternalError(error, "documents PUT");
     }
 
-    return NextResponse.json({ ok: true, document: data });
+    return apiJson({ ok: true, document: data });
   } catch (e) {
     return apiInternalError(e, "documents PUT");
   }
@@ -349,7 +349,7 @@ export async function DELETE(req: NextRequest) {
       return apiInternalError(error, "documents DELETE");
     }
 
-    return NextResponse.json({ ok: true });
+    return apiJson({ ok: true });
   } catch (e) {
     return apiInternalError(e, "documents DELETE");
   }

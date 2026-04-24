@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { billingStateSchema } from "@/lib/validations/stripe";
-import { apiInternalError, apiUnauthorized, apiValidationError, apiNotFound } from "@/lib/api/response";
+import { apiJson, apiInternalError, apiUnauthorized, apiValidationError, apiNotFound } from "@/lib/api/response";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ tenant: t.data, role: m.data.role ?? null, subscription });
+    return apiJson({ tenant: t.data, role: m.data.role ?? null, subscription });
   } catch (e) {
     return apiInternalError(e, "billing-state");
   }

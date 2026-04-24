@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
       .update({ status: "reserved", updated_at: new Date().toISOString() })
       .eq("id", vehicleId);
 
-    return NextResponse.json({ ok: true, deal });
+    return apiJson({ ok: true, deal });
   } catch (e: unknown) {
     return apiInternalError(e, "market-deals create");
   }
@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
       return apiInternalError(error, "market-deals list");
     }
 
-    return NextResponse.json({ deals: deals ?? [] });
+    return apiJson({ deals: deals ?? [] });
   } catch (e: unknown) {
     return apiInternalError(e, "market-deals list");
   }

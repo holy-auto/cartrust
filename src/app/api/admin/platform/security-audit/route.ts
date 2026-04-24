@@ -3,7 +3,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
       webhookTypes[t] = (webhookTypes[t] ?? 0) + 1;
     }
 
-    return NextResponse.json({
+    return apiJson({
       ok: true,
       period: { days, since },
       access: {

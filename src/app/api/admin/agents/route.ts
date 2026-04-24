@@ -2,7 +2,7 @@ import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
 
 export async function GET(request: NextRequest) {
   try {
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     }));
 
     const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
-    return NextResponse.json({ agents: enriched }, { headers });
+    return apiJson({ agents: enriched }, { headers });
   } catch (e) {
     return apiInternalError(e, "agents GET");
   }
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       return apiInternalError(error, "agents POST");
     }
 
-    return NextResponse.json({ agent: data }, { status: 201 });
+    return apiJson({ agent: data }, { status: 201 });
   } catch (e) {
     return apiInternalError(e, "agents POST");
   }

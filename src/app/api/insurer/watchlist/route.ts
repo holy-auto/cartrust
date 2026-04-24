@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       console.warn("[watchlist] GET error (table may not exist):", error.message);
-      return NextResponse.json({ items: [] });
+      return apiJson({ items: [] });
     }
 
     // Enrich items with target details
@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
       }),
     );
 
-    return NextResponse.json({ items: enriched });
+    return apiJson({ items: enriched });
   } catch (err) {
     return apiInternalError(err, "GET /api/insurer/watchlist");
   }
@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
       return apiValidationError(error.message);
     }
 
-    return NextResponse.json({ item: data }, { status: 201 });
+    return apiJson({ item: data }, { status: 201 });
   } catch (err) {
     return apiInternalError(err, "POST /api/insurer/watchlist");
   }
@@ -174,7 +174,7 @@ export async function DELETE(req: NextRequest) {
       return apiValidationError(error.message);
     }
 
-    return NextResponse.json({ ok: true });
+    return apiJson({ ok: true });
   } catch (err) {
     return apiInternalError(err, "DELETE /api/insurer/watchlist");
   }

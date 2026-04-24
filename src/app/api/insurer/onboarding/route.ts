@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import { apiUnauthorized, apiInternalError, apiNotFound, apiError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiInternalError, apiNotFound, apiError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const runtime = "nodejs";
@@ -35,7 +35,7 @@ export async function GET() {
       plan_selected: !!(insurer.plan_tier && insurer.plan_tier !== "basic"),
     };
 
-    return NextResponse.json({
+    return apiJson({
       completed: isComplete,
       completed_at: insurer.onboarding_completed_at,
       checklist,
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
       return apiInternalError(error, "insurer onboarding update");
     }
 
-    return NextResponse.json({ ok: true });
+    return apiJson({ ok: true });
   } catch (e) {
     return apiInternalError(e, "insurer onboarding complete");
   }

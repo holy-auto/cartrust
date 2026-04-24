@@ -4,7 +4,7 @@ import { createMobileClient, resolveMobileCaller } from "@/lib/supabase/mobile";
 import { requireMinRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/api/rateLimit";
-import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
     const token = await stripe.terminal.connectionTokens.create({}, stripeOptions);
 
-    return NextResponse.json({ secret: token.secret });
+    return apiJson({ secret: token.secret });
   } catch (e: unknown) {
     return apiInternalError(e, "mobile/pos/terminal/connection-token");
   }

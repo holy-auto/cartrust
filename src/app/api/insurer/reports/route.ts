@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 
@@ -100,7 +100,7 @@ export async function GET(req: NextRequest) {
     }
     const avg_resolution_hours = resolvedCount > 0 ? Math.round((totalHours / resolvedCount) * 10) / 10 : null;
 
-    return NextResponse.json({
+    return apiJson({
       period,
       period_trend,
       status_breakdown,

@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { apiUnauthorized, apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import {
+  apiJson,
+  apiUnauthorized,
+  apiForbidden,
+  apiValidationError,
+  apiNotFound,
+  apiInternalError,
+} from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const runtime = "nodejs";
@@ -36,7 +43,7 @@ export async function GET(req: NextRequest) {
 
   if (error) return apiInternalError(error, "GET /api/admin/pii-disclosure");
 
-  return NextResponse.json({ consents: consents ?? [] });
+  return apiJson({ consents: consents ?? [] });
 }
 
 export async function POST(req: NextRequest) {
@@ -86,5 +93,5 @@ export async function POST(req: NextRequest) {
   if (error) return apiInternalError(error, "POST /api/admin/pii-disclosure");
   if (!data) return apiNotFound("対象の開示リクエストが見つかりません。");
 
-  return NextResponse.json({ consent: data });
+  return apiJson({ consent: data });
 }

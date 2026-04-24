@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
-import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
       return apiInternalError(error, "menu-items list");
     }
 
-    const res = NextResponse.json({
+    const res = apiJson({
       items: data ?? [],
       stats: { total: data?.length ?? 0 },
     });
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
         return apiInternalError(error, "menu-items csv insert");
       }
 
-      return NextResponse.json({ ok: true, imported: data?.length ?? 0 });
+      return apiJson({ ok: true, imported: data?.length ?? 0 });
     }
 
     // 単一作成
@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
       return apiInternalError(error, "menu-items insert");
     }
 
-    return NextResponse.json({ ok: true, item: data });
+    return apiJson({ ok: true, item: data });
   } catch (e: unknown) {
     return apiInternalError(e, "menu-items POST");
   }
@@ -147,7 +147,7 @@ export async function PUT(req: NextRequest) {
       return apiInternalError(error, "menu-items update");
     }
 
-    return NextResponse.json({ ok: true, item: data });
+    return apiJson({ ok: true, item: data });
   } catch (e: unknown) {
     return apiInternalError(e, "menu-items PUT");
   }
@@ -176,7 +176,7 @@ export async function DELETE(req: NextRequest) {
       return apiInternalError(error, "menu-items delete");
     }
 
-    return NextResponse.json({ ok: true });
+    return apiJson({ ok: true });
   } catch (e: unknown) {
     return apiInternalError(e, "menu-items DELETE");
   }

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
-import { apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -37,7 +37,7 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
       return apiInternalError(msgError, "agent-support [id] GET messages");
     }
 
-    return NextResponse.json({ ticket, messages: messages ?? [] });
+    return apiJson({ ticket, messages: messages ?? [] });
   } catch (e) {
     return apiInternalError(e, "agent-support [id] GET");
   }
@@ -76,7 +76,7 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
       return apiInternalError(error, "agent-support [id] PUT");
     }
 
-    return NextResponse.json({ ticket: data });
+    return apiJson({ ticket: data });
   } catch (e) {
     return apiInternalError(e, "agent-support [id] PUT");
   }

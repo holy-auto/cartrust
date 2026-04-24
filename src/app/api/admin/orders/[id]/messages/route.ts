@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { apiUnauthorized, apiNotFound, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiNotFound, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 /**
  * GET /api/admin/orders/[id]/messages
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return apiInternalError(error, "messages fetch");
     }
 
-    return NextResponse.json({
+    return apiJson({
       messages: (messages ?? []).reverse(),
       has_more: (messages ?? []).length === limit,
     });
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return apiInternalError(error, "messages insert");
     }
 
-    return NextResponse.json({ message: data }, { status: 201 });
+    return apiJson({ message: data }, { status: 201 });
   } catch (e: unknown) {
     return apiInternalError(e, "messages POST");
   }

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
-import { apiUnauthorized, apiForbidden, apiInternalError, apiNotFound } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError, apiNotFound } from "@/lib/api/response";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -38,7 +38,7 @@ export async function DELETE(_request: NextRequest, ctx: RouteContext) {
 
     if (deleteErr) throw deleteErr;
 
-    return NextResponse.json({ ok: true });
+    return apiJson({ ok: true });
   } catch (e) {
     return apiInternalError(e, "admin/agent-shared-files DELETE");
   }

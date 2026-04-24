@@ -5,7 +5,7 @@ import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { escapeIlike } from "@/lib/sanitize";
 import { enforceBilling } from "@/lib/billing/guard";
 import { parsePagination } from "@/lib/api/pagination";
-import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
     const totalCerts = Object.values(certCounts).reduce((a, b) => a + b, 0);
 
     const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
-    return NextResponse.json(
+    return apiJson(
       {
         customers: enriched,
         stats: {
@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
       return apiInternalError(error, "customers POST");
     }
 
-    return NextResponse.json({ ok: true, customer: data });
+    return apiJson({ ok: true, customer: data });
   } catch (e) {
     return apiInternalError(e, "customers POST");
   }
@@ -232,7 +232,7 @@ export async function PUT(req: NextRequest) {
       console.warn("[customers] vehicle sync warning:", syncErr);
     }
 
-    return NextResponse.json({ ok: true, customer: data });
+    return apiJson({ ok: true, customer: data });
   } catch (e) {
     return apiInternalError(e, "customers PUT");
   }
@@ -284,7 +284,7 @@ export async function DELETE(req: NextRequest) {
       return apiInternalError(error, "customers DELETE");
     }
 
-    return NextResponse.json({ ok: true });
+    return apiJson({ ok: true });
   } catch (e) {
     return apiInternalError(e, "customers DELETE");
   }

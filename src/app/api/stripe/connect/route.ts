@@ -3,7 +3,7 @@ import Stripe from "stripe";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { apiUnauthorized, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
       type: "account_onboarding",
     });
 
-    return NextResponse.json({
+    return apiJson({
       ok: true,
       account_id: accountId,
       onboarding_url: accountLink.url,
@@ -93,7 +93,7 @@ export async function GET() {
 
     const accountId = tenant.stripe_connect_account_id as string | null;
     if (!accountId) {
-      return NextResponse.json({
+      return apiJson({
         connected: false,
         onboarded: false,
         account_id: null,
@@ -111,7 +111,7 @@ export async function GET() {
       await admin.from("tenants").update({ stripe_connect_onboarded: onboarded }).eq("id", caller.tenantId);
     }
 
-    return NextResponse.json({
+    return apiJson({
       connected: true,
       onboarded,
       account_id: accountId,

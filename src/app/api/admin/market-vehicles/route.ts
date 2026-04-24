@@ -3,7 +3,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { escapeIlike } from "@/lib/sanitize";
 import { enforceBilling } from "@/lib/billing/guard";
-import { apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 const MV_COLS =
   "id, tenant_id, maker, model, grade, year, mileage, color, color_code, plate_number, chassis_number, engine_type, displacement, transmission, drive_type, fuel_type, door_count, seating_capacity, body_type, inspection_date, repair_history, condition_grade, condition_note, asking_price, wholesale_price, description, features, status, listed_at, created_at, updated_at";
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
         imgs = data ?? [];
       }
       const enriched = (vehicles ?? []).map((v) => ({ ...v, images: imgs }));
-      return NextResponse.json({ vehicles: enriched, stats: { total: enriched.length, listed: 0, draft: 0 } });
+      return apiJson({ vehicles: enriched, stats: { total: enriched.length, listed: 0, draft: 0 } });
     }
 
     let query;
@@ -109,7 +109,7 @@ export async function GET(req: NextRequest) {
     const listed = allVehicles.filter((v) => v.status === "listed").length;
     const draft = allVehicles.filter((v) => v.status === "draft").length;
 
-    return NextResponse.json({
+    return apiJson({
       vehicles: enriched,
       stats: { total, listed, draft },
     });
@@ -183,7 +183,7 @@ export async function POST(req: NextRequest) {
       return apiInternalError(error, "market-vehicles insert");
     }
 
-    return NextResponse.json({ ok: true, vehicle: data });
+    return apiJson({ ok: true, vehicle: data });
   } catch (e: unknown) {
     return apiInternalError(e, "market-vehicles create");
   }
@@ -263,7 +263,7 @@ export async function PUT(req: NextRequest) {
       return apiInternalError(error, "market-vehicles update");
     }
 
-    return NextResponse.json({ ok: true, vehicle: data });
+    return apiJson({ ok: true, vehicle: data });
   } catch (e: unknown) {
     return apiInternalError(e, "market-vehicles update");
   }
@@ -325,7 +325,7 @@ export async function DELETE(req: NextRequest) {
       return apiInternalError(error, "market-vehicles delete");
     }
 
-    return NextResponse.json({ ok: true });
+    return apiJson({ ok: true });
   } catch (e: unknown) {
     return apiInternalError(e, "market-vehicles delete");
   }

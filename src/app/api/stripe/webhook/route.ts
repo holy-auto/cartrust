@@ -5,7 +5,7 @@ import { priceIdToPlanTier } from "@/lib/stripe/plan";
 import { insurerPriceIdToPlanTier } from "@/lib/stripe/insurerPlan";
 import { isTemplateOptionEvent } from "@/lib/template-options/stripe";
 import { confirmCampaignSlot } from "@/lib/billing/campaign";
-import { apiValidationError, apiInternalError, apiError } from "@/lib/api/response";
+import { apiJson, apiValidationError, apiInternalError, apiError } from "@/lib/api/response";
 import { logAuditEvent } from "@/lib/audit/certificateLog";
 
 export const runtime = "nodejs";
@@ -307,7 +307,7 @@ export async function POST(req: NextRequest) {
     // unique constraint violation = already claimed by another worker
     if (claimError.code === "23505") {
       console.info("webhook: duplicate event skipped", { id: event.id, type: event.type });
-      return NextResponse.json({ received: true, duplicate: true });
+      return apiJson({ received: true, duplicate: true });
     }
     // 他の DB エラー: claim できていない状態で処理を進めると二重課金・二重
     // サブスク更新を引き起こすため、503 を返して Stripe に再送させる。
@@ -618,5 +618,5 @@ export async function POST(req: NextRequest) {
     return apiInternalError(e, "stripe webhook handler");
   }
 
-  return NextResponse.json({ received: true });
+  return apiJson({ received: true });
 }

@@ -3,7 +3,7 @@ import Stripe from "stripe";
 import { createMobileClient, resolveMobileCaller } from "@/lib/supabase/mobile";
 import { requireMinRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
 
     const session = await stripe.checkout.sessions.create(sessionParams, stripeOptions);
 
-    return NextResponse.json({
+    return apiJson({
       url: session.url,
       session_id: session.id,
       connect_account: connectAccountId ?? null,

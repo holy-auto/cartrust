@@ -4,7 +4,7 @@ import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { escapeIlike } from "@/lib/sanitize";
-import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    return apiJson({
       ok: true,
       tenants: (data ?? []).map((t) => ({
         ...t,

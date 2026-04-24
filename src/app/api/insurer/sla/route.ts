@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 
@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
 
     if (casesErr) {
       console.error("[sla] Cases query error:", casesErr.message);
-      return NextResponse.json({ config, at_risk: [], overdue: [] });
+      return apiJson({ config, at_risk: [], overdue: [] });
     }
 
     // 3. Classify cases
@@ -108,7 +108,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ config, at_risk, overdue });
+    return apiJson({ config, at_risk, overdue });
   } catch (err) {
     return apiInternalError(err, "GET /api/insurer/sla");
   }
@@ -198,7 +198,7 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true });
+    return apiJson({ ok: true });
   } catch (err) {
     return apiInternalError(err, "PATCH /api/insurer/sla");
   }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { apiUnauthorized, apiNotFound, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiNotFound, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 /**
  * POST /api/admin/orders/[id]/confirm-payment
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       })
       .then(() => {}, console.error);
 
-    return NextResponse.json({ ok: true, order: data });
+    return apiJson({ ok: true, order: data });
   } catch (e: unknown) {
     return apiInternalError(e, "confirm-payment POST");
   }

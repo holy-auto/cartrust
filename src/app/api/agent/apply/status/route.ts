@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
-import { apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 export const runtime = "nodejs";
 
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
   const rl = await checkRateLimit(`apply-status:${ip}`, { limit: 10, windowSec: 60 });
   if (!rl.allowed) {
-    return NextResponse.json(
+    return apiJson(
       { error: "rate_limited", message: "しばらくしてから再度お試しください。" },
       { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
     );
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     return apiNotFound("該当する申請が見つかりません。申請番号とメールアドレスを確認してください。");
   }
 
-  return NextResponse.json({
+  return apiJson({
     status: data.status,
     created_at: data.created_at,
     updated_at: data.updated_at,

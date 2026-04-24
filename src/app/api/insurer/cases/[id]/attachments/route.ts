@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import { apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       user_agent: ua,
     });
 
-    return NextResponse.json({ attachment }, { status: 201 });
+    return apiJson({ attachment }, { status: 201 });
   } catch (err) {
     return apiInternalError(err, "POST /api/insurer/cases/[id]/attachments");
   }

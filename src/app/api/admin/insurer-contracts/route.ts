@@ -2,7 +2,14 @@ import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { apiUnauthorized, apiForbidden, apiValidationError, apiOk, apiInternalError } from "@/lib/api/response";
+import {
+  apiJson,
+  apiUnauthorized,
+  apiForbidden,
+  apiValidationError,
+  apiOk,
+  apiInternalError,
+} from "@/lib/api/response";
 import { isPlatformTenantId } from "@/lib/auth/platformAdmin";
 
 export const runtime = "nodejs";
@@ -98,7 +105,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) return apiInternalError(error, "insurer-contracts create");
-    return NextResponse.json({ contract: data }, { status: 201 });
+    return apiJson({ contract: data }, { status: 201 });
   } catch (e) {
     return apiInternalError(e, "insurer-contracts create");
   }

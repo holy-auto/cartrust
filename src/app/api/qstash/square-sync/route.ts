@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { apiJson } from "@/lib/api/response";
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { Client } from "@upstash/qstash";
@@ -99,7 +100,7 @@ async function handler(req: NextRequest) {
           finished_at: new Date().toISOString(),
         })
         .eq("id", job_id);
-      return NextResponse.json({ error: "No connection" }, { status: 400 });
+      return apiJson({ error: "No connection" }, { status: 400 });
     }
 
     // トークン期限チェック＆リフレッシュ
@@ -116,7 +117,7 @@ async function handler(req: NextRequest) {
             finished_at: new Date().toISOString(),
           })
           .eq("id", job_id);
-        return NextResponse.json({ error: "Token refresh failed" }, { status: 401 });
+        return apiJson({ error: "Token refresh failed" }, { status: 401 });
       }
       accessToken = refreshed;
     }
@@ -162,7 +163,7 @@ async function handler(req: NextRequest) {
           finished_at: new Date().toISOString(),
         })
         .eq("id", job_id);
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return apiJson({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (!res.ok) {
@@ -262,7 +263,7 @@ async function handler(req: NextRequest) {
 
       console.info(`[square-sync] job=${job_id} page done fetched=${orders.length} cursor=${nextCursor}`);
 
-      return NextResponse.json({ success: true, continuing: true });
+      return apiJson({ success: true, continuing: true });
     }
 
     // 全ページ完了
@@ -288,7 +289,7 @@ async function handler(req: NextRequest) {
 
     console.info(`[square-sync] job=${job_id} completed total_fetched=${prevFetched + orders.length}`);
 
-    return NextResponse.json({ success: true });
+    return apiJson({ success: true });
   } catch (e) {
     console.error("[square-sync] job failed:", e);
     await admin
@@ -299,7 +300,7 @@ async function handler(req: NextRequest) {
         finished_at: new Date().toISOString(),
       })
       .eq("id", job_id);
-    return NextResponse.json({ error: "Job failed" }, { status: 500 });
+    return apiJson({ error: "Job failed" }, { status: 500 });
   }
 }
 

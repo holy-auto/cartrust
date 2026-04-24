@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
         .gte("updated_at", new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
     ]);
 
-    return NextResponse.json({
+    return apiJson({
       open_count: openRes.count ?? 0,
       active_count: activeRes.count ?? 0,
       today_count: todayRes.count ?? 0,

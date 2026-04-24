@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/api/rateLimit";
-import { apiUnauthorized, apiValidationError, apiForbidden } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiForbidden } from "@/lib/api/response";
 
 export const runtime = "nodejs";
 
@@ -28,7 +28,7 @@ export async function GET() {
     .eq("is_active", true);
 
   if (!memberships || memberships.length === 0) {
-    return NextResponse.json({ insurers: [] });
+    return apiJson({ insurers: [] });
   }
 
   const insurerIds = memberships.map((m) => m.insurer_id);
@@ -48,7 +48,7 @@ export async function GET() {
     is_current: ins.id === activeId,
   }));
 
-  return NextResponse.json({ insurers: result });
+  return apiJson({ insurers: result });
 }
 
 /**
@@ -103,5 +103,5 @@ export async function POST(req: NextRequest) {
     maxAge: 365 * 24 * 60 * 60, // 1 year
   });
 
-  return NextResponse.json({ ok: true, active_insurer_id: insurer_id });
+  return apiJson({ ok: true, active_insurer_id: insurer_id });
 }

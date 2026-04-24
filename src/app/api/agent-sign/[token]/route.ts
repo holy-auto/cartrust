@@ -17,7 +17,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSign } from "crypto";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
-import { apiInternalError } from "@/lib/api/response";
+import { apiJson, apiInternalError } from "@/lib/api/response";
 import { getPrivateKey, getActiveKeyInfo } from "@/lib/signature/crypto";
 
 export const dynamic = "force-dynamic";
@@ -67,23 +67,23 @@ export async function GET(_req: NextRequest, ctx: RouteCtx) {
       .single();
 
     if (error || !record) {
-      return NextResponse.json({ status: "not_found", message: "署名リンクが見つかりません" }, { status: 404 });
+      return apiJson({ status: "not_found", message: "署名リンクが見つかりません" }, { status: 404 });
     }
 
     // 期限チェック
     if (record.sign_expires_at && new Date(record.sign_expires_at) < new Date()) {
-      return NextResponse.json({ status: "expired" }, { status: 200 });
+      return apiJson({ status: "expired" }, { status: 200 });
     }
 
     if (record.status === "signed") {
-      return NextResponse.json({ status: "already_signed" }, { status: 200 });
+      return apiJson({ status: "already_signed" }, { status: 200 });
     }
 
     if (record.status === "expired") {
-      return NextResponse.json({ status: "expired" }, { status: 200 });
+      return apiJson({ status: "expired" }, { status: 200 });
     }
 
-    return NextResponse.json({
+    return apiJson({
       status: "pending",
       request_id: record.id,
       template_type: record.template_type,
@@ -108,16 +108,16 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
     try {
       body = await req.json();
     } catch {
-      return NextResponse.json({ message: "リクエストが不正です" }, { status: 400 });
+      return apiJson({ message: "リクエストが不正です" }, { status: 400 });
     }
 
     const { signer_email, agreed } = body;
 
     if (!agreed) {
-      return NextResponse.json({ message: "内容に同意してください" }, { status: 400 });
+      return apiJson({ message: "内容に同意してください" }, { status: 400 });
     }
     if (!signer_email?.includes("@") || signer_email.length > 254) {
-      return NextResponse.json({ message: "有効なメールアドレスを入力してください" }, { status: 400 });
+      return apiJson({ message: "有効なメールアドレスを入力してください" }, { status: 400 });
     }
 
     const admin = createServiceRoleAdmin("agent flow — agent-scoped / token-based, not tenant-scoped");
@@ -130,19 +130,19 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
       .single();
 
     if (fetchErr || !record) {
-      return NextResponse.json({ message: "署名リンクが見つかりません" }, { status: 404 });
+      return apiJson({ message: "署名リンクが見つかりません" }, { status: 404 });
     }
 
     if (record.sign_expires_at && new Date(record.sign_expires_at) < new Date()) {
-      return NextResponse.json({ message: "署名リンクの有効期限が切れています" }, { status: 400 });
+      return apiJson({ message: "署名リンクの有効期限が切れています" }, { status: 400 });
     }
 
     if (record.status === "signed") {
-      return NextResponse.json({ message: "この契約書はすでに署名されています" }, { status: 400 });
+      return apiJson({ message: "この契約書はすでに署名されています" }, { status: 400 });
     }
 
     if (!["sent", "viewed"].includes(record.status)) {
-      return NextResponse.json({ message: "署名できない状態の契約書です" }, { status: 400 });
+      return apiJson({ message: "署名できない状態の契約書です" }, { status: 400 });
     }
 
     const signedAt = new Date().toISOString();
@@ -159,7 +159,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
       keyInfo = getActiveKeyInfo();
     } catch (err) {
       console.error("[agent-sign] Signing failed:", err);
-      return NextResponse.json({ message: "署名処理中にエラーが発生しました" }, { status: 500 });
+      return apiJson({ message: "署名処理中にエラーが発生しました" }, { status: 500 });
     }
 
     // 署名証跡を保存（status = 'pending' の楽観的ロックで二重署名防止）
@@ -182,10 +182,10 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
 
     if (updateErr) {
       console.error("[agent-sign] DB update failed:", updateErr);
-      return NextResponse.json({ message: "署名の保存中にエラーが発生しました" }, { status: 500 });
+      return apiJson({ message: "署名の保存中にエラーが発生しました" }, { status: 500 });
     }
 
-    return NextResponse.json({
+    return apiJson({
       success: true,
       signed_at: signedAt,
       session_id: record.id,

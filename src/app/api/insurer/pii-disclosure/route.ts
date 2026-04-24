@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import { apiUnauthorized, apiValidationError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError } from "@/lib/api/response";
 import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
 
   const disclosed = data && data.insurer_requested_at !== null && data.tenant_consented_at !== null;
 
-  return NextResponse.json({
+  return apiJson({
     consent: data,
     disclosed,
     insurer_requested: !!data?.insurer_requested_at,
@@ -88,5 +88,5 @@ export async function POST(req: NextRequest) {
     user_agent: req.headers.get("user-agent") ?? null,
   });
 
-  return NextResponse.json({ consent: data });
+  return apiJson({ consent: data });
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 import { escapeIlike, escapePostgrestValue } from "@/lib/sanitize";
@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
     if (error) return apiValidationError(error.message);
 
     const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
-    return NextResponse.json({ cases: data ?? [], total: count ?? 0 }, { headers });
+    return apiJson({ cases: data ?? [], total: count ?? 0 }, { headers });
   } catch (err) {
     return apiInternalError(err, "GET /api/insurer/cases");
   }
@@ -216,7 +216,7 @@ export async function POST(req: NextRequest) {
       user_agent: ua,
     });
 
-    return NextResponse.json({ case: newCase }, { status: 201 });
+    return apiJson({ case: newCase }, { status: 201 });
   } catch (err) {
     return apiInternalError(err, "POST /api/insurer/cases");
   }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 
@@ -29,7 +29,7 @@ export async function GET(req: Request) {
     const { data, error } = await query;
     if (error) return apiInternalError(error, "admin/customer-inquiries GET");
 
-    return NextResponse.json({ ok: true, inquiries: data ?? [] });
+    return apiJson({ ok: true, inquiries: data ?? [] });
   } catch (e) {
     return apiInternalError(e, "admin/customer-inquiries GET");
   }
@@ -78,7 +78,7 @@ export async function PATCH(req: Request) {
 
     if (error) return apiInternalError(error, "admin/customer-inquiries PATCH");
 
-    return NextResponse.json({ ok: true, inquiry: data });
+    return apiJson({ ok: true, inquiry: data });
   } catch (e) {
     return apiInternalError(e, "admin/customer-inquiries PATCH");
   }

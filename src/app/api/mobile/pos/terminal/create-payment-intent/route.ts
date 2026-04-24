@@ -4,7 +4,14 @@ import { createMobileClient, resolveMobileCaller } from "@/lib/supabase/mobile";
 import { requireMinRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/api/rateLimit";
-import { apiUnauthorized, apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import {
+  apiJson,
+  apiUnauthorized,
+  apiForbidden,
+  apiValidationError,
+  apiNotFound,
+  apiInternalError,
+} from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -75,7 +82,7 @@ export async function POST(req: NextRequest) {
       stripeOptions,
     );
 
-    return NextResponse.json({
+    return apiJson({
       client_secret: paymentIntent.client_secret,
       payment_intent_id: paymentIntent.id,
       connect_account: connectAccountId && isOnboarded ? connectAccountId : null,
@@ -130,7 +137,7 @@ export async function GET(req: NextRequest) {
       return apiNotFound("not_found");
     }
 
-    return NextResponse.json({
+    return apiJson({
       id: pi.id,
       status: pi.status,
       amount: pi.amount,

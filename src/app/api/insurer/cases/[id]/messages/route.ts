@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import { apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 import { sendCaseMessageNotification } from "@/lib/insurer/notifications";
@@ -78,7 +78,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
       sender_display_name: senderMap[m.sender_id] ?? null,
     }));
 
-    return NextResponse.json({ messages: enriched });
+    return apiJson({ messages: enriched });
   } catch (err) {
     return apiInternalError(err, "GET /api/insurer/cases/[id]/messages");
   }
@@ -233,7 +233,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       }
     })();
 
-    return NextResponse.json({ message }, { status: 201 });
+    return apiJson({ message }, { status: 201 });
   } catch (err) {
     return apiInternalError(err, "POST /api/insurer/cases/[id]/messages");
   }

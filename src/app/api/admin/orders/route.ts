@@ -4,7 +4,14 @@ import { makePublicId } from "@/lib/publicId";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { enforceBilling } from "@/lib/billing/guard";
-import { apiUnauthorized, apiValidationError, apiNotFound, apiForbidden, apiInternalError } from "@/lib/api/response";
+import {
+  apiJson,
+  apiUnauthorized,
+  apiValidationError,
+  apiNotFound,
+  apiForbidden,
+  apiInternalError,
+} from "@/lib/api/response";
 
 // ─── 有効なステータス一覧 ───
 const VALID_STATUSES = [
@@ -59,7 +66,7 @@ export async function GET(req: NextRequest) {
 
       if (memErr) {
         console.error("[orders] _tenants memberships failed:", memErr.message);
-        return NextResponse.json({ myTenants: [] });
+        return apiJson({ myTenants: [] });
       }
 
       const tenantIds = (memberships ?? []).map((m) => m.tenant_id as string);
@@ -89,7 +96,7 @@ export async function GET(req: NextRequest) {
         myScore = ps;
       }
 
-      return NextResponse.json({ myTenants, myScore });
+      return apiJson({ myTenants, myScore });
     }
 
     const type = searchParams.get("type"); // sent | received | all | browse
@@ -123,7 +130,7 @@ export async function GET(req: NextRequest) {
       const { data: orders, error } = await query.limit(100);
       if (error) {
         console.error("[orders] browse_failed:", error.message);
-        return NextResponse.json({ orders: [] });
+        return apiJson({ orders: [] });
       }
 
       // 発注元テナント名を付与
@@ -141,7 +148,7 @@ export async function GET(req: NextRequest) {
         from_company: tenantNameMap[o.from_tenant_id] ?? "",
       }));
 
-      return NextResponse.json({ orders: enriched });
+      return apiJson({ orders: enriched });
     }
 
     let query = supabase
@@ -168,10 +175,10 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       console.error("[orders] list_failed:", error.message, error.details);
-      return NextResponse.json({ orders: [], source: "empty" });
+      return apiJson({ orders: [], source: "empty" });
     }
 
-    return NextResponse.json({ orders: orders ?? [] });
+    return apiJson({ orders: orders ?? [] });
   } catch (e: unknown) {
     return apiInternalError(e, "orders GET");
   }
@@ -233,7 +240,7 @@ export async function POST(req: NextRequest) {
       return apiInternalError(error, "orders insert");
     }
 
-    return NextResponse.json({ order: data }, { status: 201 });
+    return apiJson({ order: data }, { status: 201 });
   } catch (e: unknown) {
     return apiInternalError(e, "orders POST");
   }
@@ -345,7 +352,7 @@ export async function PUT(req: NextRequest) {
         (e: unknown) => console.error("[orders] audit log failed:", e),
       );
 
-    return NextResponse.json({ ok: true, order: data });
+    return apiJson({ ok: true, order: data });
   } catch (e: unknown) {
     return apiInternalError(e, "orders PUT");
   }
@@ -394,7 +401,7 @@ export async function PATCH(req: NextRequest) {
 
     // 既に受注者がいる場合は不可
     if (order.to_tenant_id) {
-      return NextResponse.json({ error: "この案件は既に受注済みです" }, { status: 409 });
+      return apiJson({ error: "この案件は既に受注済みです" }, { status: 409 });
     }
 
     // pending 以外は不可
@@ -437,7 +444,7 @@ export async function PATCH(req: NextRequest) {
         (e: unknown) => console.error("[orders] audit log failed:", e),
       );
 
-    return NextResponse.json({ ok: true, order: data });
+    return apiJson({ ok: true, order: data });
   } catch (e: unknown) {
     return apiInternalError(e, "orders PATCH");
   }

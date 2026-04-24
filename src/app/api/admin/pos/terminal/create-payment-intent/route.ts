@@ -4,7 +4,14 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
-import { apiUnauthorized, apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import {
+  apiJson,
+  apiUnauthorized,
+  apiForbidden,
+  apiValidationError,
+  apiNotFound,
+  apiInternalError,
+} from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +22,7 @@ export async function POST(req: NextRequest) {
     const ip = getClientIp(req);
     const rl = await checkRateLimit(`terminal-pi:${ip}`, { limit: 30, windowSec: 60 });
     if (!rl.allowed) {
-      return NextResponse.json({ error: "rate_limited", retry_after: rl.retryAfterSec }, { status: 429 });
+      return apiJson({ error: "rate_limited", retry_after: rl.retryAfterSec }, { status: 429 });
     }
 
     const supabase = await createSupabaseServerClient();
@@ -70,7 +77,7 @@ export async function POST(req: NextRequest) {
       stripeOptions,
     );
 
-    return NextResponse.json({
+    return apiJson({
       client_secret: paymentIntent.client_secret,
       payment_intent_id: paymentIntent.id,
       connect_account: connectAccountId && isOnboarded ? connectAccountId : null,
@@ -117,7 +124,7 @@ export async function GET(req: NextRequest) {
       return apiNotFound("not_found");
     }
 
-    return NextResponse.json({
+    return apiJson({
       id: pi.id,
       status: pi.status,
       amount: pi.amount,

@@ -3,7 +3,7 @@ import { randomBytes } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ contracts: data ?? [] });
+    return apiJson({ contracts: data ?? [] });
   } catch (e) {
     return apiInternalError(e, "admin/agent-contracts GET");
   }
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
     // TODO: send email to signer_email with signUrl
     // await sendAgentContractEmail({ to: signer_email.trim(), name: signer_name.trim(), title, signUrl });
 
-    return NextResponse.json({ contract: record, sign_url: signUrl }, { status: 201 });
+    return apiJson({ contract: record, sign_url: signUrl }, { status: 201 });
   } catch (e) {
     return apiInternalError(e, "admin/agent-contracts POST");
   }

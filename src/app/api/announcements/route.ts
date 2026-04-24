@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { apiInternalError } from "@/lib/api/response";
+import { apiJson, apiInternalError } from "@/lib/api/response";
 
 // GET: Fetch published announcements (with read status)
 export async function GET() {
@@ -36,7 +36,7 @@ export async function GET() {
 
     const unreadCount = result.filter((a) => !a.is_read).length;
 
-    return NextResponse.json({ announcements: result, unread_count: unreadCount });
+    return apiJson({ announcements: result, unread_count: unreadCount });
   } catch (e: unknown) {
     return apiInternalError(e, "announcements");
   }

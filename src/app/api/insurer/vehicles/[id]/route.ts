@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import { apiUnauthorized, apiNotFound, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiNotFound, apiValidationError, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const runtime = "nodejs";
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (cErr) return apiValidationError(cErr.message);
 
-    return NextResponse.json({
+    return apiJson({
       vehicle: { ...vehicle, tenant_name: tenant?.name ?? "" },
       certificates: certs ?? [],
     });

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { apiUnauthorized } from "@/lib/api/response";
+import { apiJson, apiUnauthorized } from "@/lib/api/response";
 import { verifyCronRequest } from "@/lib/cronAuth";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 
@@ -133,5 +133,5 @@ export async function GET(req: NextRequest) {
   }
 
   console.info("[cron/monitor] daily check complete", summary);
-  return NextResponse.json(summary);
+  return apiJson(summary);
 }

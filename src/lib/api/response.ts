@@ -6,6 +6,10 @@ import { NextResponse } from "next/server";
  * - 本番環境では内部エラーの詳細をクライアントに漏らさない
  * - 一貫したレスポンス形式を保証
  * - apiInternalError は自動的に Sentry にエラーを送信
+ * - 既定で `Cache-Control: private, no-store, max-age=0` + `Vary: Cookie`
+ *   を付与 (共有 proxy / CDN / browser で認証済みレスポンスが別ユーザに
+ *   漏れるのを防止)。Cache-Control を明示したい場合は `cacheControl` を
+ *   option 経由で上書きする。
  */
 
 /** Lazily capture errors to Sentry without blocking the response */
@@ -40,9 +44,38 @@ interface ApiErrorOptions {
   code: ErrorCode;
   /** 追加データ（制限値など） */
   data?: Record<string, unknown>;
+  /**
+   * Cache-Control header. 既定値 "private, no-store, max-age=0"。
+   * キャッシュ対象にしたい場合のみ override する。
+   */
+  cacheControl?: string;
+  /** 追加 header (merge される) */
+  headers?: Record<string, string>;
 }
 
 const isProd = process.env.NODE_ENV === "production";
+
+/**
+ * Default response security headers. API 応答は既定で:
+ * - 共有 proxy / CDN に載せない (private, no-store)
+ * - cookie 変化で cache key 分離 (Vary: Cookie) — 万一どこかでキャッシュ
+ *   される場合でも別ユーザの応答を返さない
+ */
+const DEFAULT_API_SECURITY_HEADERS: Record<string, string> = {
+  "cache-control": "private, no-store, max-age=0",
+  vary: "Cookie",
+};
+
+function buildSecurityHeaders(overrides?: {
+  cacheControl?: string;
+  headers?: Record<string, string>;
+}): Record<string, string> {
+  return {
+    ...DEFAULT_API_SECURITY_HEADERS,
+    ...(overrides?.cacheControl ? { "cache-control": overrides.cacheControl } : {}),
+    ...(overrides?.headers ?? {}),
+  };
+}
 
 /** 統一エラーレスポンス */
 export function apiError(opts: ApiErrorOptions) {
@@ -52,13 +85,56 @@ export function apiError(opts: ApiErrorOptions) {
       message: opts.message,
       ...(opts.data ?? {}),
     },
-    { status: opts.status },
+    {
+      status: opts.status,
+      headers: buildSecurityHeaders({ cacheControl: opts.cacheControl, headers: opts.headers }),
+    },
   );
 }
 
 /** 統一成功レスポンス */
-export function apiOk<T extends Record<string, unknown>>(data: T, status = 200) {
-  return NextResponse.json({ ok: true, ...data }, { status });
+export function apiOk<T extends Record<string, unknown>>(
+  data: T,
+  status = 200,
+  opts?: { cacheControl?: string; headers?: Record<string, string> },
+) {
+  return NextResponse.json({ ok: true, ...data }, { status, headers: buildSecurityHeaders(opts) });
+}
+
+/**
+ * 生の JSON レスポンス (apiOk のような `{ ok: true, ... }` ラップなし)。
+ *
+ * apiOk の shape に合わない既存 API (例: 配列レスポンス、ダッシュ
+ * ボード用の aggregated data など) で同じ security headers を付けるための
+ * ヘルパー。新規コードは可能なら apiOk を使うこと。
+ */
+export function apiJson(
+  body: unknown,
+  opts?: { status?: number; cacheControl?: string; headers?: Record<string, string> },
+) {
+  return NextResponse.json(body, {
+    status: opts?.status ?? 200,
+    headers: buildSecurityHeaders({ cacheControl: opts?.cacheControl, headers: opts?.headers }),
+  });
+}
+
+/**
+ * 既存の NextResponse インスタンス (例: cookie 設定のために直接 new した
+ * logout レスポンス) に default security headers を適用する。
+ *
+ * 呼び出し側で Cache-Control を既に設定していても上書きしない。
+ */
+export function applySecurityHeaders(
+  response: NextResponse,
+  opts?: { cacheControl?: string; headers?: Record<string, string> },
+): NextResponse {
+  const secHeaders = buildSecurityHeaders(opts);
+  for (const [key, value] of Object.entries(secHeaders)) {
+    if (!response.headers.has(key)) {
+      response.headers.set(key, value);
+    }
+  }
+  return response;
 }
 
 /** 内部エラーを安全にハンドリング（本番ではメッセージを隠す） */

@@ -4,7 +4,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
-import { apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     const ip = getClientIp(req);
     const rl = await checkRateLimit(`checkout-session:${ip}`, { limit: 20, windowSec: 60 });
     if (!rl.allowed) {
-      return NextResponse.json({ error: "rate_limited", retry_after: rl.retryAfterSec }, { status: 429 });
+      return apiJson({ error: "rate_limited", retry_after: rl.retryAfterSec }, { status: 429 });
     }
 
     const supabase = await createSupabaseServerClient();
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
       stripeOptions,
     );
 
-    return NextResponse.json({
+    return apiJson({
       session_id: session.id,
       url: session.url,
     });
@@ -127,10 +127,10 @@ export async function GET(req: NextRequest) {
 
     // tenant_id チェック（自テナントのセッションのみ参照可能）
     if (session.metadata?.tenant_id !== caller.tenantId) {
-      return NextResponse.json({ error: "not_found" }, { status: 404 });
+      return apiJson({ error: "not_found" }, { status: 404 });
     }
 
-    return NextResponse.json({
+    return apiJson({
       id: session.id,
       status: session.status,
       payment_status: session.payment_status,

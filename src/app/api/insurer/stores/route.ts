@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import { apiUnauthorized, apiValidationError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const runtime = "nodejs";
@@ -38,9 +38,9 @@ export async function GET(req: NextRequest) {
 
     if (error) return apiValidationError(error.message);
 
-    return NextResponse.json({ rows: data ?? [] });
+    return apiJson({ rows: data ?? [] });
   } catch (e) {
     console.error("[insurer/stores]", e);
-    return NextResponse.json({ error: "internal_error", message: "内部エラーが発生しました" }, { status: 500 });
+    return apiJson({ error: "internal_error", message: "内部エラーが発生しました" }, { status: 500 });
   }
 }

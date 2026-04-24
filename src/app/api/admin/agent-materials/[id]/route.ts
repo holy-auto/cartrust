@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
-import { apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -41,7 +41,7 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
       return apiInternalError(error, "agent-materials PUT");
     }
 
-    return NextResponse.json({ material: data });
+    return apiJson({ material: data });
   } catch (e) {
     return apiInternalError(e, "agent-materials PUT");
   }
@@ -70,7 +70,7 @@ export async function DELETE(_request: NextRequest, ctx: RouteContext) {
       return apiInternalError(error, "agent-materials DELETE");
     }
 
-    return NextResponse.json({ ok: true });
+    return apiJson({ ok: true });
   } catch (e) {
     return apiInternalError(e, "agent-materials DELETE");
   }

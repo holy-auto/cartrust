@@ -4,7 +4,7 @@ import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { escapeIlike } from "@/lib/sanitize";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
-import { apiForbidden, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 export const runtime = "nodejs";
 
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
       return apiInternalError(error, "tenant-access/tenants GET");
     }
 
-    return NextResponse.json({ tenants: data ?? [] });
+    return apiJson({ tenants: data ?? [] });
   } catch (e) {
     return apiInternalError(e, "admin/insurers/tenant-access/tenants");
   }

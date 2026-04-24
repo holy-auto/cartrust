@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { phoneLast4Hash } from "@/lib/customerPortalServer";
 import { certificateCreateSchema } from "@/lib/validations/certificate";
-import { apiInternalError, apiValidationError, apiUnauthorized, apiForbidden, apiPlanLimit } from "@/lib/api/response";
+import {
+  apiJson,
+  apiInternalError,
+  apiValidationError,
+  apiUnauthorized,
+  apiForbidden,
+  apiPlanLimit,
+} from "@/lib/api/response";
 import { enforceBilling } from "@/lib/billing/guard";
 import { CERT_LIMITS, normalizePlanTier } from "@/lib/billing/planFeatures";
 import { logCertificateAction } from "@/lib/audit/certificateLog";
@@ -113,7 +120,7 @@ export async function POST(req: Request) {
       description: `顧客: ${b.customer_name}`,
     });
 
-    return NextResponse.json({ certificate }, { status: 200 });
+    return apiJson({ certificate }, { status: 200 });
   } catch (e) {
     return apiInternalError(e, "certificates/create");
   }

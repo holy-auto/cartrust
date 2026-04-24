@@ -3,7 +3,7 @@ import Stripe from "stripe";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +34,7 @@ export async function POST(_req: NextRequest) {
 
     const token = await stripe.terminal.connectionTokens.create({}, stripeOptions);
 
-    return NextResponse.json({ secret: token.secret });
+    return apiJson({ secret: token.secret });
   } catch (e: unknown) {
     return apiInternalError(e, "pos/terminal/connection-token");
   }

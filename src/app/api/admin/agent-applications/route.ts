@@ -2,7 +2,7 @@ import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 /**
  * GET /api/admin/agent-applications
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       return apiInternalError(error, "agent-applications GET");
     }
 
-    return NextResponse.json({ applications: data ?? [] });
+    return apiJson({ applications: data ?? [] });
   } catch (e) {
     return apiInternalError(e, "agent-applications GET");
   }

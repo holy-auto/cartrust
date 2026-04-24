@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 import { CUSTOMER_COOKIE, getTenantIdBySlug, validateSession, getCustomerProfile } from "@/lib/customerPortalServer";
 import { GLOBAL_PORTAL_COOKIE, resolvePortalTenantAccessByGlobalToken } from "@/lib/customerPortalGlobal";
 import { notifySlack } from "@/lib/slack";
@@ -57,7 +57,7 @@ export async function GET(req: Request) {
 
     if (error) return apiInternalError(error, "customer/inquiry GET");
 
-    return NextResponse.json({ ok: true, inquiries: data ?? [] });
+    return apiJson({ ok: true, inquiries: data ?? [] });
   } catch (e) {
     return apiInternalError(e, "customer/inquiry GET");
   }
@@ -115,7 +115,7 @@ export async function POST(req: Request) {
       console.error("[customer/inquiry] slack notify failed:", err);
     }
 
-    return NextResponse.json({ ok: true, id: data.id }, { status: 201 });
+    return apiJson({ ok: true, id: data.id }, { status: 201 });
   } catch (e) {
     return apiInternalError(e, "customer/inquiry POST");
   }

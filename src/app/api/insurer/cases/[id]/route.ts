@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import { apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 import { sendCaseStatusNotification } from "@/lib/insurer/notifications";
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
       .eq("case_id", id)
       .order("created_at", { ascending: true });
 
-    return NextResponse.json({
+    return apiJson({
       case: caseData,
       messages: messages ?? [],
       attachments: attachments ?? [],
@@ -216,7 +216,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       })();
     }
 
-    return NextResponse.json({ case: updated });
+    return apiJson({ case: updated });
   } catch (err) {
     return apiInternalError(err, "PATCH /api/insurer/cases/[id]");
   }

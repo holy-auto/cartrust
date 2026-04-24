@@ -4,7 +4,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
-import { apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     const ip = getClientIp(req);
     const rl = await checkRateLimit(`terminal-process:${ip}`, { limit: 30, windowSec: 60 });
     if (!rl.allowed) {
-      return NextResponse.json({ error: "rate_limited", retry_after: rl.retryAfterSec }, { status: 429 });
+      return apiJson({ error: "rate_limited", retry_after: rl.retryAfterSec }, { status: 429 });
     }
 
     const supabase = await createSupabaseServerClient();
@@ -59,14 +59,14 @@ export async function POST(req: NextRequest) {
       stripeOptions,
     );
 
-    return NextResponse.json({ reader });
+    return apiJson({ reader });
   } catch (e: unknown) {
     console.error("[pos/terminal/process] error:", e);
 
     // Stripe エラーの場合は詳細を返す
     if (e && typeof e === "object" && "type" in e) {
       const stripeError = e as { type: string; message?: string; code?: string };
-      return NextResponse.json(
+      return apiJson(
         {
           error: stripeError.message ?? "stripe_error",
           code: stripeError.code,

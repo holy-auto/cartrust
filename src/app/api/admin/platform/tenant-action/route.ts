@@ -3,7 +3,14 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { apiUnauthorized, apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import {
+  apiJson,
+  apiUnauthorized,
+  apiForbidden,
+  apiValidationError,
+  apiNotFound,
+  apiInternalError,
+} from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -128,7 +135,7 @@ export async function POST(req: NextRequest) {
       console.error("[platform/tenant-action] audit log failed:", auditErr);
     }
 
-    return NextResponse.json({ ok: true, action, ...result });
+    return apiJson({ ok: true, action, ...result });
   } catch (e: unknown) {
     return apiInternalError(e, "platform/tenant-action POST");
   }

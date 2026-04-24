@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 
@@ -44,10 +44,10 @@ export async function GET(req: NextRequest) {
     if (error) {
       // Table may not exist yet — return empty array gracefully
       console.warn("[templates] GET error (table may not exist):", error.message);
-      return NextResponse.json({ templates: [] });
+      return apiJson({ templates: [] });
     }
 
-    return NextResponse.json({ templates: data ?? [] });
+    return apiJson({ templates: data ?? [] });
   } catch (err) {
     return apiInternalError(err, "GET /api/insurer/templates");
   }
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
       return apiValidationError(error.message);
     }
 
-    return NextResponse.json({ template: data }, { status: 201 });
+    return apiJson({ template: data }, { status: 201 });
   } catch (err) {
     return apiInternalError(err, "POST /api/insurer/templates");
   }
@@ -148,7 +148,7 @@ export async function DELETE(req: NextRequest) {
       return apiValidationError(error.message);
     }
 
-    return NextResponse.json({ ok: true });
+    return apiJson({ ok: true });
   } catch (err) {
     return apiInternalError(err, "DELETE /api/insurer/templates");
   }

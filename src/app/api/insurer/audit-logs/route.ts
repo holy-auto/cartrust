@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import { apiUnauthorized, apiValidationError, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiForbidden, apiInternalError } from "@/lib/api/response";
 import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
     const { data, error } = await query;
     if (error) return apiValidationError(error.message);
 
-    return NextResponse.json({ logs: data ?? [], limit, offset });
+    return apiJson({ logs: data ?? [], limit, offset });
   } catch (e) {
     return apiInternalError(e, "GET /api/insurer/audit-logs");
   }

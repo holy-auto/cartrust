@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
-import { apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiValidationError, apiInternalError } from "@/lib/api/response";
 import { escapeHtml } from "@/lib/sanitize";
 
 async function sendPayoutFailedEmail(params: {
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
   if (claimError) {
     if (claimError.code === "23505") {
       console.info("connect-webhook: duplicate event skipped", { id: event.id, type: event.type });
-      return NextResponse.json({ received: true, duplicate: true });
+      return apiJson({ received: true, duplicate: true });
     }
     console.warn("connect-webhook: idempotency claim error (proceeding)", { id: event.id, error: claimError.message });
   }
@@ -370,5 +370,5 @@ export async function POST(req: NextRequest) {
     return apiInternalError(e, "connect-webhook handler");
   }
 
-  return NextResponse.json({ received: true });
+  return apiJson({ received: true });
 }

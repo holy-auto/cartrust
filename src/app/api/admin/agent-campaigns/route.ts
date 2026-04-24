@@ -2,7 +2,7 @@ import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,7 @@ export async function GET() {
       )
       .order("created_at", { ascending: false });
 
-    return NextResponse.json({ campaigns: data ?? [] });
+    return apiJson({ campaigns: data ?? [] });
   } catch (e) {
     return apiInternalError(e, "agent-campaigns");
   }
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) return apiInternalError(error, "agent-campaigns POST");
-    return NextResponse.json({ campaign: data }, { status: 201 });
+    return apiJson({ campaign: data }, { status: 201 });
   } catch (e) {
     return apiInternalError(e, "agent-campaigns");
   }

@@ -3,7 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { enforceBilling } from "@/lib/billing/guard";
-import { apiUnauthorized, apiForbidden, apiNotFound, apiValidationError, apiInternalError } from "@/lib/api/response";
+import {
+  apiJson,
+  apiUnauthorized,
+  apiForbidden,
+  apiNotFound,
+  apiValidationError,
+  apiInternalError,
+} from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -80,7 +87,7 @@ export async function POST(req: NextRequest) {
       return apiInternalError(insertErr, "certificates/duplicate");
     }
 
-    return NextResponse.json({
+    return apiJson({
       ok: true,
       public_id: newCert.public_id,
     });

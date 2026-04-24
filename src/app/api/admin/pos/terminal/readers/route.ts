@@ -3,7 +3,7 @@ import Stripe from "stripe";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +49,7 @@ export async function GET(_req: NextRequest) {
         location: r.location ?? null,
       }));
 
-    return NextResponse.json({ readers });
+    return apiJson({ readers });
   } catch (e: unknown) {
     return apiInternalError(e, "pos/terminal/readers");
   }

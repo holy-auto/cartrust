@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
-import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
     console.error("[square-webhook] Event processing error:", err);
   });
 
-  return NextResponse.json({ received: true }, { status: 200 });
+  return apiJson({ received: true }, { status: 200 });
 }
 
 // ─── Event processing ───

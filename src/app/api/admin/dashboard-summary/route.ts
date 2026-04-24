@@ -2,7 +2,7 @@ import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 import { withCache } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
@@ -240,7 +240,7 @@ export async function GET() {
       return { certificates, expiring, customers, invoices, reservations, orders, recentCertificates, alerts };
     });
 
-    return NextResponse.json(result, {
+    return apiJson(result, {
       headers: {
         "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
       },

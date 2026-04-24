@@ -4,7 +4,14 @@ import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { parsePagination } from "@/lib/api/pagination";
-import { apiUnauthorized, apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import {
+  apiJson,
+  apiUnauthorized,
+  apiForbidden,
+  apiValidationError,
+  apiNotFound,
+  apiInternalError,
+} from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +65,7 @@ export async function GET(req: NextRequest) {
         .eq("customer_id", customerId)
         .order("created_at", { ascending: false });
 
-      return NextResponse.json({ certificates: certs ?? [] });
+      return apiJson({ certificates: certs ?? [] });
     }
 
     const selectCols =
@@ -122,7 +129,7 @@ export async function GET(req: NextRequest) {
     const thisMonthIssued = allInvoices.filter((i) => i.issued_at && i.issued_at >= thisMonthStart).length;
 
     const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
-    return NextResponse.json(
+    return apiJson(
       {
         invoices: enriched,
         stats: {
@@ -235,7 +242,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 後方互換: invoice_number エイリアス
-    return NextResponse.json({ ok: true, invoice: { ...data, invoice_number: data.doc_number } });
+    return apiJson({ ok: true, invoice: { ...data, invoice_number: data.doc_number } });
   } catch (e: unknown) {
     return apiInternalError(e, "invoices create");
   }
@@ -314,7 +321,7 @@ export async function PUT(req: NextRequest) {
       return apiInternalError(error, "invoices update");
     }
 
-    return NextResponse.json({ ok: true, invoice: { ...data, invoice_number: data.doc_number } });
+    return apiJson({ ok: true, invoice: { ...data, invoice_number: data.doc_number } });
   } catch (e: unknown) {
     return apiInternalError(e, "invoices update");
   }
@@ -358,7 +365,7 @@ export async function DELETE(req: NextRequest) {
       return apiInternalError(error, "invoices delete");
     }
 
-    return NextResponse.json({ ok: true });
+    return apiJson({ ok: true });
   } catch (e: unknown) {
     return apiInternalError(e, "invoices delete");
   }

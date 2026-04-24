@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { apiUnauthorized, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 /**
  * GET /api/admin/orders/[id]
@@ -84,7 +84,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       counterpartyScore = ps;
     }
 
-    return NextResponse.json({
+    return apiJson({
       order,
       from_tenant: mapTenant(fromTenant.data),
       to_tenant: mapTenant(toTenant.data),

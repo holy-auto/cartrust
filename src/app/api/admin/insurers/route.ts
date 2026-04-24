@@ -4,7 +4,7 @@ import { createServiceRoleAdmin, createTenantScopedAdmin } from "@/lib/supabase/
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { getClientIp } from "@/lib/rateLimit";
-import { apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 export const runtime = "nodejs";
 
@@ -193,7 +193,7 @@ export async function GET(req: Request) {
     return apiInternalError(error, "insurers GET");
   }
 
-  return NextResponse.json({ insurers: data ?? [] });
+  return apiJson({ insurers: data ?? [] });
 }
 
 /**
@@ -314,5 +314,5 @@ export async function PATCH(req: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, insurer: data });
+  return apiJson({ ok: true, insurer: data });
 }

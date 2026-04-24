@@ -3,7 +3,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createServiceRoleAdmin, createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
-import { apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     const ip = getClientIp(req);
     const rl = await checkRateLimit(`market-inquiry:${ip}`, { limit: 5, windowSec: 900 });
     if (!rl.allowed) {
-      return NextResponse.json(
+      return apiJson(
         { error: "rate_limited", message: "送信回数の上限に達しました。しばらくしてからお試しください。" },
         { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
       );
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       return apiInternalError(error, "market-inquiries insert");
     }
 
-    return NextResponse.json({ ok: true, inquiry });
+    return apiJson({ ok: true, inquiry });
   } catch (e: unknown) {
     return apiInternalError(e, "market-inquiries create");
   }
@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
       return apiInternalError(error, "market-inquiries list");
     }
 
-    return NextResponse.json({ inquiries: inquiries ?? [] });
+    return apiJson({ inquiries: inquiries ?? [] });
   } catch (e: unknown) {
     return apiInternalError(e, "market-inquiries list");
   }

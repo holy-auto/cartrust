@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
-import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -31,7 +31,7 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
       .single();
 
     if (error) return apiInternalError(error, "agent-announcements PUT");
-    return NextResponse.json({ announcement: data });
+    return apiJson({ announcement: data });
   } catch (e) {
     return apiInternalError(e, "agent-announcements PUT");
   }
@@ -47,7 +47,7 @@ export async function DELETE(_request: NextRequest, ctx: RouteContext) {
 
     const { admin } = createTenantScopedAdmin(caller.tenantId);
     await admin.from("agent_announcements").delete().eq("id", id);
-    return NextResponse.json({ ok: true });
+    return apiJson({ ok: true });
   } catch (e) {
     return apiInternalError(e, "agent-announcements DELETE");
   }

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
-import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -39,7 +39,7 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
       )
       .single();
     if (error) return apiInternalError(error, "agent-invoices PUT");
-    return NextResponse.json({ invoice: data });
+    return apiJson({ invoice: data });
   } catch (e) {
     return apiInternalError(e, "agent-invoices PUT");
   }

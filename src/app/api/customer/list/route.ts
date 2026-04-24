@@ -1,6 +1,6 @@
 ﻿import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 import {
   CUSTOMER_COOKIE,
   getTenantIdBySlug,
@@ -59,7 +59,7 @@ export async function GET(req: Request) {
 
     if (action === "history") {
       const history = await listHistoryForCustomer(tenantId, phoneHash, phoneLast4, sessionEmail, sessionCustomerId);
-      return NextResponse.json({ ok: true, history });
+      return apiJson({ ok: true, history });
     }
 
     if (action === "reservations") {
@@ -70,17 +70,17 @@ export async function GET(req: Request) {
         sessionEmail,
         sessionCustomerId,
       );
-      return NextResponse.json({ ok: true, reservations });
+      return apiJson({ ok: true, reservations });
     }
 
     if (action === "profile") {
       const profile = await getCustomerProfile(tenantId, phoneHash, phoneLast4, sessionEmail, sessionCustomerId);
-      return NextResponse.json({ ok: true, profile });
+      return apiJson({ ok: true, profile });
     }
 
     const rows = await listCertificatesForCustomer(tenantId, phoneHash, phoneLast4, sessionEmail, sessionCustomerId);
 
-    return NextResponse.json({ ok: true, rows });
+    return apiJson({ ok: true, rows });
   } catch (e: unknown) {
     return apiInternalError(e, "customer/list");
   }

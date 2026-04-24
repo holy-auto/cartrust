@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
-import { apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
         cancelled: "キャンセル",
       };
 
-      return NextResponse.json({
+      return apiJson({
         progress_pct: statusMap[reservation.status] ?? 0,
         current_step: { label: statusLabelMap[reservation.status] ?? reservation.status, started_at: null },
         steps: Object.entries(statusLabelMap)
@@ -144,7 +144,7 @@ export async function GET(req: NextRequest) {
     const currentLog = logs.find((l) => l.step_order === currentOrder && !l.completed_at);
     const currentVisibleStep = visibleSteps.find((s) => s.order === currentOrder);
 
-    return NextResponse.json({
+    return apiJson({
       progress_pct: reservation.progress_pct ?? 0,
       current_step: currentVisibleStep
         ? { label: currentVisibleStep.label, started_at: currentLog?.started_at ?? null }

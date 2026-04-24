@@ -4,7 +4,14 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { enforceBilling } from "@/lib/billing/guard";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { apiOk, apiUnauthorized, apiValidationError, apiForbidden, apiInternalError } from "@/lib/api/response";
+import {
+  apiJson,
+  apiOk,
+  apiUnauthorized,
+  apiValidationError,
+  apiForbidden,
+  apiInternalError,
+} from "@/lib/api/response";
 import { enqueueBatchPdf } from "@/lib/qstash/publish";
 
 export const runtime = "nodejs";
@@ -105,7 +112,7 @@ export async function POST(req: NextRequest) {
 
     console.info(`[batch-pdf] tenant=${caller.tenantId} queued job=${job.id} count=${ids.length}`);
 
-    return NextResponse.json(
+    return apiJson(
       {
         ok: true,
         message: `${ids.length}件のPDF生成を開始しました`,

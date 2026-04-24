@@ -2,7 +2,7 @@ import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +27,7 @@ export async function GET() {
       agents: undefined,
     }));
 
-    return NextResponse.json({ invoices });
+    return apiJson({ invoices });
   } catch (e) {
     return apiInternalError(e, "agent-invoices GET");
   }
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       await admin.from("agent_invoice_lines").insert(lines);
     }
 
-    return NextResponse.json({ invoice }, { status: 201 });
+    return apiJson({ invoice }, { status: 201 });
   } catch (e) {
     return apiInternalError(e, "agent-invoices POST");
   }

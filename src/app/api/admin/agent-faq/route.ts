@@ -2,7 +2,7 @@ import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +30,7 @@ export async function GET() {
       agent_faq_categories: undefined,
     }));
 
-    return NextResponse.json({ categories: catRes.data ?? [], faqs });
+    return apiJson({ categories: catRes.data ?? [], faqs });
   } catch (e) {
     return apiInternalError(e, "agent-faq GET");
   }
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) return apiInternalError(error, "agent-faq POST");
-    return NextResponse.json({ faq: data }, { status: 201 });
+    return apiJson({ faq: data }, { status: 201 });
   } catch (e) {
     return apiInternalError(e, "agent-faq POST");
   }

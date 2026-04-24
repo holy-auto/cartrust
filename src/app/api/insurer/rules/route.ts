@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       console.warn("[rules] GET error (table may not exist):", error.message);
-      return NextResponse.json({ rules: [] });
+      return apiJson({ rules: [] });
     }
 
     // Also fetch insurer_users for the assign_to dropdown
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
       .eq("is_active", true)
       .order("display_name");
 
-    return NextResponse.json({ rules: data ?? [], users: users ?? [] });
+    return apiJson({ rules: data ?? [], users: users ?? [] });
   } catch (err) {
     return apiInternalError(err, "GET /api/insurer/rules");
   }
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
       return apiValidationError(error.message);
     }
 
-    return NextResponse.json({ rule: data }, { status: 201 });
+    return apiJson({ rule: data }, { status: 201 });
   } catch (err) {
     return apiInternalError(err, "POST /api/insurer/rules");
   }
@@ -179,7 +179,7 @@ export async function PATCH(req: NextRequest) {
       return apiValidationError(error.message);
     }
 
-    return NextResponse.json({ rule: data });
+    return apiJson({ rule: data });
   } catch (err) {
     return apiInternalError(err, "PATCH /api/insurer/rules");
   }
@@ -214,7 +214,7 @@ export async function DELETE(req: NextRequest) {
       return apiValidationError(error.message);
     }
 
-    return NextResponse.json({ ok: true });
+    return apiJson({ ok: true });
   } catch (err) {
     return apiInternalError(err, "DELETE /api/insurer/rules");
   }

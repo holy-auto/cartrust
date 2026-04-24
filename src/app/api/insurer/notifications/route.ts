@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 
@@ -44,14 +44,14 @@ export async function GET(req: NextRequest) {
     if (error) {
       // Table may not exist yet — return empty array gracefully
       if (error.message.includes("does not exist") || error.code === "42P01") {
-        return NextResponse.json({ notifications: [], unread_count: 0 });
+        return apiJson({ notifications: [], unread_count: 0 });
       }
       return apiValidationError(error.message);
     }
 
     const unreadCount = (data ?? []).filter((n) => !n.is_read).length;
 
-    return NextResponse.json({
+    return apiJson({
       notifications: data ?? [],
       unread_count: unreadCount,
     });
@@ -99,7 +99,7 @@ export async function PATCH(req: NextRequest) {
 
       if (error) {
         if (error.message.includes("does not exist") || error.code === "42P01") {
-          return NextResponse.json({ ok: true, updated: 0 });
+          return apiJson({ ok: true, updated: 0 });
         }
         return apiValidationError(error.message);
       }
@@ -114,13 +114,13 @@ export async function PATCH(req: NextRequest) {
 
       if (error) {
         if (error.message.includes("does not exist") || error.code === "42P01") {
-          return NextResponse.json({ ok: true, updated: 0 });
+          return apiJson({ ok: true, updated: 0 });
         }
         return apiValidationError(error.message);
       }
     }
 
-    return NextResponse.json({ ok: true });
+    return apiJson({ ok: true });
   } catch (err) {
     return apiInternalError(err, "PATCH /api/insurer/notifications");
   }

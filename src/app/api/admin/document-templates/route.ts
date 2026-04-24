@@ -3,7 +3,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { checkRateLimit } from "@/lib/api/rateLimit";
-import { apiUnauthorized, apiValidationError, apiNotFound, apiInternalError, apiOk } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiNotFound, apiInternalError, apiOk } from "@/lib/api/response";
 import { layoutConfigSchema, templateCreateSchema, templateUpdateSchema } from "@/types/documentTemplate";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
       .eq("id", caller.tenantId)
       .single();
 
-    return NextResponse.json({
+    return apiJson({
       templates: data ?? [],
       tenant_default_template_id: tenant?.default_template_id ?? null,
     });

@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
+import { apiJson } from "@/lib/api/response";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,15 +69,12 @@ export async function GET() {
   };
   if (missingEnvVars.length > 0) allHealthy = false;
 
-  return NextResponse.json(
+  return apiJson(
     {
       status: allHealthy ? "healthy" : "degraded",
       timestamp: new Date().toISOString(),
       checks,
     },
-    {
-      status: allHealthy ? 200 : 503,
-      headers: { "cache-control": "no-store" },
-    },
+    { status: allHealthy ? 200 : 503 },
   );
 }

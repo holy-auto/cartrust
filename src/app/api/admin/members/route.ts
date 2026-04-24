@@ -8,7 +8,14 @@ import { logAuditEvent } from "@/lib/audit/certificateLog";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ASSIGNABLE_ROLES, type Role } from "@/lib/auth/roles";
-import { apiUnauthorized, apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import {
+  apiJson,
+  apiUnauthorized,
+  apiForbidden,
+  apiValidationError,
+  apiNotFound,
+  apiInternalError,
+} from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +77,7 @@ export async function GET(req: NextRequest) {
 
     const limit = memberLimit(caller.planTier);
 
-    return NextResponse.json({
+    return apiJson({
       members: enriched,
       plan_tier: caller.planTier,
       member_count: enriched.length,
@@ -181,7 +188,7 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (existingMem) {
-      return NextResponse.json({ error: "conflict", message: "このユーザーは既にメンバーです。" }, { status: 409 });
+      return apiJson({ error: "conflict", message: "このユーザーは既にメンバーです。" }, { status: 409 });
     }
 
     // tenant_memberships に追加
@@ -204,7 +211,7 @@ export async function POST(req: NextRequest) {
       description: `${email} (role: ${role ?? "member"}) を追加`,
     });
 
-    return NextResponse.json({ ok: true, user_id: userId, email });
+    return apiJson({ ok: true, user_id: userId, email });
   } catch (e: unknown) {
     return apiInternalError(e, "members POST");
   }
@@ -273,7 +280,7 @@ export async function PUT(req: NextRequest) {
       description: `${targetUserId} のロールを ${targetMem.role} → ${newRole} に変更`,
     });
 
-    return NextResponse.json({ ok: true, role: newRole });
+    return apiJson({ ok: true, role: newRole });
   } catch (e: unknown) {
     return apiInternalError(e, "members PUT");
   }
@@ -321,7 +328,7 @@ export async function DELETE(req: NextRequest) {
       description: `${targetUserId} を削除`,
     });
 
-    return NextResponse.json({ ok: true });
+    return apiJson({ ok: true });
   } catch (e: unknown) {
     return apiInternalError(e, "members DELETE");
   }

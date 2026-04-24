@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiInternalError } from "@/lib/api/response";
 import { verifyCronRequest } from "@/lib/cronAuth";
 import { sendCronFailureAlert } from "@/lib/cronAlert";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
       const settings = (rawSettings ?? []) as unknown as FollowUpSetting[];
 
       if (!settings.length) {
-        return NextResponse.json({ ok: true, reminders_sent: 0, follow_ups_sent: 0, date: todayStr });
+        return apiJson({ ok: true, reminders_sent: 0, follow_ups_sent: 0, date: todayStr });
       }
 
       const allTenantIds = [...new Set(settings.map((s) => s.tenant_id))];
@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
       console.error("[cron/follow-up] failed:", e);
     }
 
-    return NextResponse.json({
+    return apiJson({
       ok: true,
       reminders_sent: remindersSent,
       follow_ups_sent: followUpsSent,

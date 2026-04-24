@@ -2,7 +2,7 @@ import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +20,7 @@ export async function GET() {
         "id, title, description, category, content_type, content_url, thumbnail_url, duration_min, is_required, is_published, sort_order, created_at, updated_at",
       )
       .order("sort_order", { ascending: true });
-    return NextResponse.json({ courses: data ?? [] });
+    return apiJson({ courses: data ?? [] });
   } catch (e) {
     return apiInternalError(e, "agent-training GET");
   }
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) return apiInternalError(error, "agent-training POST");
-    return NextResponse.json({ course: data }, { status: 201 });
+    return apiJson({ course: data }, { status: 201 });
   } catch (e) {
     return apiInternalError(e, "agent-training POST");
   }

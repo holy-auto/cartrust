@@ -3,7 +3,7 @@ import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit as checkUpstashRateLimit } from "@/lib/api/rateLimit";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { joinSchemaV2, parseBody } from "@/lib/validation/schemas";
-import { apiValidationError, apiInternalError, apiError } from "@/lib/api/response";
+import { apiJson, apiValidationError, apiInternalError, apiError } from "@/lib/api/response";
 
 export const runtime = "nodejs";
 
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
   const rl = await checkRateLimit(`join:${ip}`, { limit: 3, windowSec: 600 });
   if (!rl.allowed) {
-    return NextResponse.json(
+    return apiJson(
       { error: "rate_limited", message: "登録リクエストが多すぎます。しばらくしてから再度お試しください。" },
       { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
     );
@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
     .eq("email", data.email.toLowerCase())
     .eq("verified", true);
 
-  return NextResponse.json(
+  return apiJson(
     {
       ok: true,
       insurer_id: result?.insurer_id,

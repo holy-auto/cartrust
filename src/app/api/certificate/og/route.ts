@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiValidationError, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     const ip = getClientIp(req);
     const rl = await checkRateLimit(`cert-og:${ip}`, { limit: 30, windowSec: 60 });
     if (!rl.allowed) {
-      return NextResponse.json(
+      return apiJson(
         { error: "rate_limited", message: "リクエストが多すぎます。しばらくしてから再度お試しください。" },
         { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
       );
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
 
     if (!cert) {
       // Return generic metadata for unknown IDs
-      return NextResponse.json(
+      return apiJson(
         {
           title: "Ledra 証明書",
           description: "証明書が見つかりませんでした。",
@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
     descParts.push(`ステータス: ${statusLabel}`);
     const description = descParts.join(" / ");
 
-    return NextResponse.json(
+    return apiJson(
       {
         title,
         description,

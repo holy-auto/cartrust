@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// NextResponse をモック
+// NextResponse をモック (headers を exposure できるように拡張)
 vi.mock("next/server", () => ({
   NextResponse: {
-    json: (body: any, init?: { status?: number }) => ({
+    json: (body: any, init?: { status?: number; headers?: Record<string, string> }) => ({
       body,
       status: init?.status ?? 200,
+      headers: new Map(Object.entries(init?.headers ?? {})),
     }),
   },
 }));
@@ -13,12 +14,14 @@ vi.mock("next/server", () => ({
 import {
   apiError,
   apiOk,
+  apiJson,
   apiInternalError,
   apiUnauthorized,
   apiForbidden,
   apiValidationError,
   apiNotFound,
   apiPlanLimit,
+  applySecurityHeaders,
 } from "./response";
 
 // ─── apiOk ───
@@ -133,10 +136,7 @@ describe("apiInternalError", () => {
 
   it("コンテキスト付きでエラーログを出力する", () => {
     apiInternalError(new Error("test error"), "signup");
-    expect(consoleSpy).toHaveBeenCalledWith(
-      "[API Error] signup:",
-      "test error"
-    );
+    expect(consoleSpy).toHaveBeenCalledWith("[API Error] signup:", "test error");
   });
 
   it("Error以外のオブジェクトも処理できる", () => {
@@ -149,5 +149,54 @@ describe("apiInternalError", () => {
     // NODE_ENV=test（非production）なので詳細が含まれる
     const res = apiInternalError(new Error("secret info")) as any;
     expect(res.body.message).toContain("secret info");
+  });
+});
+
+// ─── Security headers (Cache-Control / Vary) ───
+describe("default security headers", () => {
+  it("apiOk sets private no-store Cache-Control by default", () => {
+    const res = apiOk({ foo: "bar" }) as any;
+    expect(res.headers.get("cache-control")).toBe("private, no-store, max-age=0");
+    expect(res.headers.get("vary")).toBe("Cookie");
+  });
+
+  it("apiOk allows cacheControl override", () => {
+    const res = apiOk({ foo: "bar" }, 200, { cacheControl: "private, max-age=10" }) as any;
+    expect(res.headers.get("cache-control")).toBe("private, max-age=10");
+  });
+
+  it("apiError also sets private no-store Cache-Control", () => {
+    const res = apiError({ code: "validation_error", message: "bad", status: 400 }) as any;
+    expect(res.headers.get("cache-control")).toBe("private, no-store, max-age=0");
+  });
+
+  it("apiJson sets private no-store by default, without ok wrapping", () => {
+    const res = apiJson({ raw: "payload" }) as any;
+    expect(res.body).toEqual({ raw: "payload" }); // no ok:true wrap
+    expect(res.headers.get("cache-control")).toBe("private, no-store, max-age=0");
+  });
+
+  it("apiJson merges extra headers", () => {
+    const res = apiJson({ x: 1 }, { status: 429, headers: { "Retry-After": "60" } }) as any;
+    expect(res.status).toBe(429);
+    // Map mock preserves exact key casing
+    expect(res.headers.get("Retry-After")).toBe("60");
+    expect(res.headers.get("cache-control")).toBe("private, no-store, max-age=0");
+  });
+
+  it("applySecurityHeaders is a no-op when header already set", () => {
+    // Simulate a response that already sets Cache-Control
+    const pre = {
+      headers: {
+        has: (k: string) => k === "cache-control",
+        set: vi.fn(),
+      },
+    } as any;
+    applySecurityHeaders(pre);
+    // Cache-Control should not be re-set; Vary should
+    const setCalls = pre.headers.set.mock.calls as string[][];
+    const keys = setCalls.map((c) => c[0]);
+    expect(keys).not.toContain("cache-control");
+    expect(keys).toContain("vary");
   });
 });

@@ -2,7 +2,7 @@ import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +34,7 @@ export async function GET() {
     }
 
     if (!recentCerts || recentCerts.length === 0) {
-      return NextResponse.json({ vehicles: [] });
+      return apiJson({ vehicles: [] });
     }
 
     // Aggregate: group by vehicle_id, track last_cert_date and cert_count
@@ -61,7 +61,7 @@ export async function GET() {
     const vehicleIds = sorted.map(([vid]) => vid);
 
     if (vehicleIds.length === 0) {
-      return NextResponse.json({ vehicles: [] });
+      return apiJson({ vehicles: [] });
     }
 
     // Fetch vehicle details
@@ -96,7 +96,7 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ vehicles: result });
+    return apiJson({ vehicles: result });
   } catch (e: unknown) {
     return apiInternalError(e, "vehicles/recent GET");
   }

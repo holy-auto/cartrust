@@ -4,7 +4,7 @@ import * as cheerio from "cheerio";
 import { verifyCronRequest } from "@/lib/cronAuth";
 import { sendCronFailureAlert } from "@/lib/cronAlert";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
-import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiInternalError } from "@/lib/api/response";
 
 // ── 業界キーワード（これにマッチする記事だけ保存）──
 const RELEVANT_KEYWORDS = [
@@ -536,7 +536,7 @@ export async function GET(req: NextRequest) {
       }),
     );
 
-    return NextResponse.json({
+    return apiJson({
       success: true,
       timestamp: new Date().toISOString(),
       stats: {

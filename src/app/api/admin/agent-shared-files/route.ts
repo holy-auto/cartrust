@@ -2,7 +2,7 @@ import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ files: data ?? [] });
+    return apiJson({ files: data ?? [] });
   } catch (e) {
     return apiInternalError(e, "admin/agent-shared-files GET");
   }
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
 
     if (insertErr) throw insertErr;
 
-    return NextResponse.json({ file: record }, { status: 201 });
+    return apiJson({ file: record }, { status: 201 });
   } catch (e) {
     return apiInternalError(e, "admin/agent-shared-files POST");
   }

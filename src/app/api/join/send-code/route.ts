@@ -4,7 +4,7 @@ import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { emailSchema } from "@/lib/validation/schemas";
 import { sha256Hex } from "@/lib/customerPortalServer";
-import { apiValidationError, apiInternalError, apiError } from "@/lib/api/response";
+import { apiJson, apiValidationError, apiInternalError, apiError } from "@/lib/api/response";
 
 export const runtime = "nodejs";
 
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
   // IP-based rate limit: 5 requests per 10 minutes
   const rl = await checkRateLimit(`join-code:${ip}`, { limit: 5, windowSec: 600 });
   if (!rl.allowed) {
-    return NextResponse.json(
+    return apiJson(
       { error: "rate_limited", message: "リクエストが多すぎます。しばらくお待ちください。" },
       { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
     );
@@ -94,7 +94,7 @@ export async function POST(req: Request) {
   // Email-based rate limit: 3 codes per 10 minutes per email address
   const emailRl = await checkRateLimit(`join-code-email:${email}`, { limit: 3, windowSec: 600 });
   if (!emailRl.allowed) {
-    return NextResponse.json(
+    return apiJson(
       { error: "rate_limited", message: "このメールアドレスへの送信が多すぎます。しばらくお待ちください。" },
       { status: 429, headers: { "Retry-After": String(emailRl.retryAfterSec) } },
     );
@@ -141,5 +141,5 @@ export async function POST(req: Request) {
     return apiInternalError(e, "join/send-code email send");
   }
 
-  return NextResponse.json({ ok: true, message: "確認コードを送信しました" });
+  return apiJson({ ok: true, message: "確認コードを送信しました" });
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 
@@ -55,14 +55,14 @@ export async function GET(req: NextRequest) {
     if (error) {
       // Table may not exist yet — return defaults
       if (error.message.includes("does not exist") || error.code === "42P01") {
-        return NextResponse.json({ preferences: DEFAULT_PREFS });
+        return apiJson({ preferences: DEFAULT_PREFS });
       }
       return apiValidationError(error.message);
     }
 
     const prefs = data?.notification_prefs ?? DEFAULT_PREFS;
 
-    return NextResponse.json({
+    return apiJson({
       preferences: { ...DEFAULT_PREFS, ...prefs },
     });
   } catch (err) {
@@ -120,7 +120,7 @@ export async function PATCH(req: NextRequest) {
     if (fetchErr) {
       // Table may not exist yet
       if (fetchErr.message.includes("does not exist") || fetchErr.code === "42P01") {
-        return NextResponse.json({
+        return apiJson({
           ok: true,
           preferences: { ...DEFAULT_PREFS, ...sanitized },
           _note: "Table does not exist yet. Preferences saved in-memory only.",
@@ -155,7 +155,7 @@ export async function PATCH(req: NextRequest) {
       if (insertErr) return apiValidationError(insertErr.message);
     }
 
-    return NextResponse.json({ ok: true, preferences: mergedPrefs });
+    return apiJson({ ok: true, preferences: mergedPrefs });
   } catch (err) {
     return apiInternalError(err, "PATCH /api/insurer/settings");
   }

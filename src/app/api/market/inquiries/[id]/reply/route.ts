@@ -3,7 +3,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { notifyInquiryReply } from "@/lib/market/email";
-import { apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
     }
 
-    return NextResponse.json({ ok: true, reply });
+    return apiJson({ ok: true, reply });
   } catch (e: unknown) {
     return apiInternalError(e, "inquiry-reply");
   }
@@ -126,7 +126,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       return apiInternalError(error, "inquiry-reply list");
     }
 
-    return NextResponse.json({ messages: messages ?? [] });
+    return apiJson({ messages: messages ?? [] });
   } catch (e: unknown) {
     return apiInternalError(e, "inquiry-reply list");
   }

@@ -4,7 +4,7 @@ import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { getClientIp } from "@/lib/rateLimit";
-import { apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 export const runtime = "nodejs";
 
@@ -79,5 +79,5 @@ export async function POST(req: Request) {
     user_agent: req.headers.get("user-agent") ?? null,
   });
 
-  return NextResponse.json({ ok: true, ...result });
+  return apiJson({ ok: true, ...result });
 }

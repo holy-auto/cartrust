@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 
@@ -69,7 +69,7 @@ export async function PATCH(req: NextRequest) {
       user_agent: ua,
     });
 
-    return NextResponse.json({ updated_count: validIds.length });
+    return apiJson({ updated_count: validIds.length });
   } catch (err) {
     return apiInternalError(err, "PATCH /api/insurer/cases/bulk");
   }

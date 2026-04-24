@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
-import { apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +54,7 @@ export async function GET() {
       }),
     );
 
-    return NextResponse.json({ members: enriched });
+    return apiJson({ members: enriched });
   } catch (e: unknown) {
     return apiInternalError(e, "agent/members GET");
   }
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
       return apiInternalError(upsertErr, "agent/members upsert");
     }
 
-    return NextResponse.json({ ok: true, member }, { status: 201 });
+    return apiJson({ ok: true, member }, { status: 201 });
   } catch (e: unknown) {
     return apiInternalError(e, "agent/members POST");
   }

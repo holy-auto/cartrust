@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiInternalError } from "@/lib/api/response";
 import { verifyCronRequest } from "@/lib/cronAuth";
 import { sendCronFailureAlert } from "@/lib/cronAlert";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
@@ -238,7 +238,7 @@ export async function GET(req: NextRequest) {
         .catch(() => {});
     }
 
-    return NextResponse.json({
+    return apiJson({
       ok: true,
       overdue_updated: overdueUpdated,
       reminders_sent: remindersSent,

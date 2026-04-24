@@ -3,7 +3,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { notifyDealStatusChanged } from "@/lib/market/email";
-import { apiUnauthorized, apiNotFound, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiNotFound, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -114,7 +114,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       console.warn("[market] deal status notification failed:", e);
     }
 
-    return NextResponse.json({ ok: true, deal: updatedDeal });
+    return apiJson({ ok: true, deal: updatedDeal });
   } catch (e: unknown) {
     return apiInternalError(e, "market-deals update");
   }

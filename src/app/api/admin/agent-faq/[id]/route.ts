@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
-import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -30,7 +30,7 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
       .select("id, category_id, question, answer, sort_order, is_published, created_at, updated_at")
       .single();
     if (error) return apiInternalError(error, "agent-faq PUT");
-    return NextResponse.json({ faq: data });
+    return apiJson({ faq: data });
   } catch (e) {
     return apiInternalError(e, "agent-faq PUT");
   }
@@ -46,7 +46,7 @@ export async function DELETE(_request: NextRequest, ctx: RouteContext) {
 
     const { admin } = createTenantScopedAdmin(caller.tenantId);
     await admin.from("agent_faqs").delete().eq("id", id);
-    return NextResponse.json({ ok: true });
+    return apiJson({ ok: true });
   } catch (e) {
     return apiInternalError(e, "agent-faq DELETE");
   }

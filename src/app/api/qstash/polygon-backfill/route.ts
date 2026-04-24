@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { apiJson } from "@/lib/api/response";
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { anchorToPolygon, verifyAnchor, findAnchorTx } from "@/lib/anchoring/providers";
@@ -161,7 +162,7 @@ async function handler(req: NextRequest) {
 
     console.info(`[polygon-backfill] job=${job_id} batch=${processedCount} remaining=${remaining ?? 0}`);
 
-    return NextResponse.json({ success: true, processed: processedCount });
+    return apiJson({ success: true, processed: processedCount });
   } catch (e) {
     console.error("[polygon-backfill] job failed:", e);
     await admin
@@ -172,7 +173,7 @@ async function handler(req: NextRequest) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", job_id);
-    return NextResponse.json({ error: "Job failed" }, { status: 500 });
+    return apiJson({ error: "Job failed" }, { status: 500 });
   }
 }
 

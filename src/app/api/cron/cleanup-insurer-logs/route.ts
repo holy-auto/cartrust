@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { sendCronFailureAlert } from "@/lib/cronAlert";
-import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiInternalError } from "@/lib/api/response";
 import { verifyCronRequest } from "@/lib/cronAuth";
 
 export const runtime = "nodejs";
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     console.info("[cron/cleanup-insurer-logs] results:", results);
 
-    return NextResponse.json({ ok: true, results });
+    return apiJson({ ok: true, results });
   } catch (e) {
     await sendCronFailureAlert("cleanup-insurer-logs", e);
     return apiInternalError(e, "cleanup-insurer-logs cron");
