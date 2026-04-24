@@ -50,7 +50,9 @@ const resources: Resource[] = [
     key: "roi-template",
     title: "ROIシミュレーション計算テンプレート",
     description:
-      "月間発行数・紙管理に要する時間・書類再発行頻度から、年間の削減効果を算出するシート。ご経営判断の資料として。",
+      "月間発行数・紙管理に要する時間・書類再発行頻度から、年間の削減効果を算出する記入テンプレート。計算式・代表スケール参考値・感度分析まで収録。",
+    pageCount: 7,
+    downloadUrl: "/api/marketing/resources/roi-template/pdf",
   },
   {
     key: "pricing-overview",

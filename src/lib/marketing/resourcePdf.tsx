@@ -1786,6 +1786,401 @@ export function CaseStudiesPdf() {
   );
 }
 
+/* ══════════════════════════════════════════════════════════════════
+ * ROI Worksheet — ROI シミュレーション計算テンプレート
+ * ══════════════════════════════════════════════════════════════════ */
+
+const ROI_PAGE_TOTAL = 7;
+const ROI_AFTER_MIN_PER_CERT = 3;
+
+function yen(n: number): string {
+  return `¥${n.toLocaleString("ja-JP")}`;
+}
+
+/** 月間件数・現状の1件分単価・時給をもとに、年間効果を試算 */
+function roiScenario({
+  monthlyCerts,
+  minutesPerCert,
+  hourlyRate,
+  annualReissueCost,
+}: {
+  monthlyCerts: number;
+  minutesPerCert: number;
+  hourlyRate: number;
+  annualReissueCost: number;
+}) {
+  const beforeMinYear = monthlyCerts * minutesPerCert * 12;
+  const afterMinYear = monthlyCerts * ROI_AFTER_MIN_PER_CERT * 12;
+  const savedMinYear = Math.max(0, beforeMinYear - afterMinYear);
+  const laborSavingYen = Math.round((savedMinYear / 60) * hourlyRate);
+  const reissueSavingYen = Math.round(annualReissueCost * 0.8);
+  const totalSavingYen = laborSavingYen + reissueSavingYen;
+  return {
+    beforeHours: Math.round(beforeMinYear / 60),
+    afterHours: Math.round(afterMinYear / 60),
+    savedHours: Math.round(savedMinYear / 60),
+    laborSavingYen,
+    reissueSavingYen,
+    totalSavingYen,
+  };
+}
+
+function RoiCover() {
+  return (
+    <Page size="A4" style={styles.page}>
+      <Text style={styles.pageTitle}>ROI WORKSHEET</Text>
+      <View style={styles.gradientBar} />
+      <Text style={styles.h1}>ROI シミュレーション 計算テンプレート</Text>
+      <Text style={styles.lead}>
+        月間の施工証明書発行数・1件あたりの事務時間・書類再発行コストから、Ledra
+        導入時の年間削減効果を試算するための計算テンプレートです。経営会議・社内稟議の一次資料としてご活用ください。
+      </Text>
+
+      <View style={[styles.card, { marginTop: 14 }]}>
+        <Text style={styles.cardTitle}>この資料の使い方</Text>
+        <Text style={styles.bullet}>• P.2 の計算式を読み、前提を確認。</Text>
+        <Text style={styles.bullet}>• P.3 の記入欄に貴社の数値を書き込む。</Text>
+        <Text style={styles.bullet}>• P.4 の3つのロス別モデルで、どこが大きいか把握。</Text>
+        <Text style={styles.bullet}>• P.5〜P.6 の代表スケールと比較し、推定の妥当性を確認。</Text>
+        <Text style={styles.bullet}>• P.7 の依頼フォーマットで個別ヒアリング試算を依頼。</Text>
+      </View>
+
+      <View style={[styles.card, { marginTop: 10 }]}>
+        <Text style={styles.cardTitle}>WEB 版シミュレーター</Text>
+        <Text style={styles.cardDesc}>
+          リアルタイムで再計算したい場合は Web 版をご利用ください: https://ledra.co.jp/roi{"\n"}本 PDF
+          はオフラインでの共有・印刷用の簡略版です。
+        </Text>
+      </View>
+
+      <Text style={styles.tagline}>数字で語れる一歩を、最小の時間で。</Text>
+      <Footer pageLabel={`1 / ${ROI_PAGE_TOTAL}`} />
+    </Page>
+  );
+}
+
+function RoiFormula() {
+  return (
+    <Page size="A4" style={styles.page}>
+      <Text style={styles.pageTitle}>01 FORMULA</Text>
+      <View style={styles.gradientBar} />
+      <Text style={styles.h1}>計算式と前提</Text>
+      <Text style={[styles.lead, { marginBottom: 10 }]}>
+        試算は単純化した4入力モデルです。大雑把な推定値を出すための式と、前提の取り方をまとめています。
+      </Text>
+
+      <Text style={styles.h2}>入力変数（4つ）</Text>
+      <View style={styles.tableHead}>
+        <Text style={[styles.th, styles.col1]}>変数名</Text>
+        <Text style={[styles.th, styles.col2]}>単位</Text>
+      </View>
+      <View style={styles.tableRow}>
+        <Text style={[styles.td, styles.col1]}>A. 月間の施工証明書発行数</Text>
+        <Text style={[styles.td, styles.col2]}>件 / 月</Text>
+      </View>
+      <View style={styles.tableRow}>
+        <Text style={[styles.td, styles.col1]}>B. 1件あたりの事務時間（現状）</Text>
+        <Text style={[styles.td, styles.col2]}>分 / 件</Text>
+      </View>
+      <View style={styles.tableRow}>
+        <Text style={[styles.td, styles.col1]}>C. 担当者の時給相当</Text>
+        <Text style={[styles.td, styles.col2]}>円 / 時</Text>
+      </View>
+      <View style={styles.tableRow}>
+        <Text style={[styles.td, styles.col1]}>D. 書類再発行・紛失対応の年間コスト</Text>
+        <Text style={[styles.td, styles.col2]}>円 / 年</Text>
+      </View>
+
+      <Text style={styles.h2}>計算式</Text>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>年間 節約時間（時）</Text>
+        <Text style={styles.cardDesc}>= A × (B − {ROI_AFTER_MIN_PER_CERT}) × 12 ÷ 60</Text>
+      </View>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>年間 人件費削減額（円）</Text>
+        <Text style={styles.cardDesc}>= 年間 節約時間 × C</Text>
+      </View>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>年間 再発行/紛失対応削減額（円）</Text>
+        <Text style={styles.cardDesc}>= D × 0.8</Text>
+      </View>
+      <View style={[styles.card, { borderColor: colors.accent }]}>
+        <Text style={styles.cardTitle}>年間 総削減額（円）</Text>
+        <Text style={styles.cardDesc}>= 年間 人件費削減額 + 年間 再発行/紛失対応削減額</Text>
+      </View>
+
+      <Text style={[styles.cardDesc, { marginTop: 8 }]}>
+        ※ Ledra 導入後の1件あたり事務時間は {ROI_AFTER_MIN_PER_CERT} 分として固定（他社平均）。 ※ 再発行削減係数 0.8
+        は、顧客ポータル・QR による自己解決率の実績値を保守的に適用。
+      </Text>
+
+      <Footer pageLabel={`2 / ${ROI_PAGE_TOTAL}`} />
+    </Page>
+  );
+}
+
+function RoiWorksheet() {
+  const blankLine = "_______________________________";
+  return (
+    <Page size="A4" style={styles.page}>
+      <Text style={styles.pageTitle}>02 WORKSHEET</Text>
+      <View style={styles.gradientBar} />
+      <Text style={styles.h1}>記入シート</Text>
+      <Text style={[styles.lead, { marginBottom: 10 }]}>
+        以下の空欄に、貴社の概算値を書き込んでください。概算で構いません。
+      </Text>
+
+      <Text style={styles.h2}>入力</Text>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>A. 月間の施工証明書発行数</Text>
+        <Text style={styles.body}>{blankLine} 件 / 月</Text>
+      </View>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>B. 1件あたりの事務時間（現状）</Text>
+        <Text style={styles.body}>{blankLine} 分 / 件</Text>
+        <Text style={styles.cardDesc}>例: 写真整理 + Excel 入力 + 印刷 + 封入 + 保管のすべて合算</Text>
+      </View>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>C. 担当者の時給相当</Text>
+        <Text style={styles.body}>{blankLine} 円 / 時</Text>
+        <Text style={styles.cardDesc}>月給 ÷ 160 を目安に。社会保険等を含める場合は月給×1.25 ÷ 160。</Text>
+      </View>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>D. 書類再発行・紛失対応の年間コスト</Text>
+        <Text style={styles.body}>{blankLine} 円 / 年</Text>
+      </View>
+
+      <Text style={styles.h2}>計算結果（記入欄）</Text>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>年間 節約時間</Text>
+        <Text style={styles.body}>{blankLine} 時間</Text>
+      </View>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>年間 人件費削減額</Text>
+        <Text style={styles.body}>{blankLine} 円</Text>
+      </View>
+      <View style={[styles.card, { borderColor: colors.accent }]}>
+        <Text style={styles.cardTitle}>年間 総削減額</Text>
+        <Text style={styles.body}>{blankLine} 円</Text>
+      </View>
+
+      <Footer pageLabel={`3 / ${ROI_PAGE_TOTAL}`} />
+    </Page>
+  );
+}
+
+function RoiLossModel() {
+  return (
+    <Page size="A4" style={styles.page}>
+      <Text style={styles.pageTitle}>03 LOSS MODEL</Text>
+      <View style={styles.gradientBar} />
+      <Text style={styles.h1}>3つのロスの換算モデル</Text>
+      <Text style={[styles.lead, { marginBottom: 10 }]}>
+        Ledra が解消する業務ロスは大きく3種類。自社でどのロスが大きいかを見極める参考に。
+      </Text>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>ロス1: 事務時間のロス</Text>
+        <Text style={styles.cardDesc}>
+          紙・Excel での作成・郵送・保管・検索にかかる時間。変数 A × B を中心に算出。Ledra では1件
+          {ROI_AFTER_MIN_PER_CERT} 分相当に短縮（入力・QR 送付のみ）。
+        </Text>
+        <Text style={[styles.cardDesc, { marginTop: 4 }]}>
+          金額化: 節約時間 × 変数 C（時給）。繁忙期の残業代単価を使うとより実態に近い数値に。
+        </Text>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>ロス2: 再発行のロス</Text>
+        <Text style={styles.cardDesc}>
+          紛失・問い合わせ・再発行・郵送のコスト。変数 D。Ledra 導入後は顧客ポータル・QR
+          による自己解決が大半となり、保守的に 80% 削減として試算。
+        </Text>
+        <Text style={[styles.cardDesc, { marginTop: 4 }]}>
+          金額化: D × 0.8。郵送費・封筒代・人件費の合算で見積もると実効値が取りやすい。
+        </Text>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>ロス3: 信頼のロス（金額換算しづらい領域）</Text>
+        <Text style={styles.cardDesc}>
+          改ざん疑念による査定・精算の遅延、SNS での誤情報対応、競合比較時の「説明コスト」。Polygon anchoring + C2PA
+          署名で第三者検証可能な証明に置き換わり、根本から抑制。
+        </Text>
+        <Text style={[styles.cardDesc, { marginTop: 4 }]}>
+          金額化:
+          直接計算が難しいため、本テンプレートでは計算対象外。ただし、保険・代理店との折衝頻度が多い企業ほど実効削減は大きい。
+        </Text>
+      </View>
+
+      <Footer pageLabel={`4 / ${ROI_PAGE_TOTAL}`} />
+    </Page>
+  );
+}
+
+function RoiReferenceTable() {
+  const scenarios = [
+    {
+      label: "月 50 件（小規模）",
+      inputs: { monthlyCerts: 50, minutesPerCert: 15, hourlyRate: 2500, annualReissueCost: 60000 },
+    },
+    {
+      label: "月 100 件（標準）",
+      inputs: { monthlyCerts: 100, minutesPerCert: 15, hourlyRate: 2500, annualReissueCost: 100000 },
+    },
+    {
+      label: "月 300 件（複数店舗）",
+      inputs: { monthlyCerts: 300, minutesPerCert: 15, hourlyRate: 2500, annualReissueCost: 250000 },
+    },
+  ];
+
+  return (
+    <Page size="A4" style={styles.page}>
+      <Text style={styles.pageTitle}>04 REFERENCE SCALES</Text>
+      <View style={styles.gradientBar} />
+      <Text style={styles.h1}>代表スケール別の試算値（参考）</Text>
+      <Text style={[styles.lead, { marginBottom: 10 }]}>
+        1件あたりの事務時間 15分・時給 2,500円 を共通前提とした、3スケールの試算値です。
+      </Text>
+
+      <View style={styles.tableHead}>
+        <Text style={[styles.th, { flex: 2 }]}>スケール</Text>
+        <Text style={[styles.th, { flex: 1.2, textAlign: "right" }]}>節約時間</Text>
+        <Text style={[styles.th, { flex: 1.3, textAlign: "right" }]}>人件費削減</Text>
+        <Text style={[styles.th, { flex: 1.3, textAlign: "right" }]}>再発行削減</Text>
+        <Text style={[styles.th, { flex: 1.4, textAlign: "right" }]}>総削減額</Text>
+      </View>
+      {scenarios.map((s) => {
+        const r = roiScenario(s.inputs);
+        return (
+          <View key={s.label} style={styles.tableRow}>
+            <Text style={[styles.td, { flex: 2 }]}>{s.label}</Text>
+            <Text style={[styles.td, { flex: 1.2, textAlign: "right" }]}>{r.savedHours}時間</Text>
+            <Text style={[styles.td, { flex: 1.3, textAlign: "right" }]}>{yen(r.laborSavingYen)}</Text>
+            <Text style={[styles.td, { flex: 1.3, textAlign: "right" }]}>{yen(r.reissueSavingYen)}</Text>
+            <Text style={[styles.td, { flex: 1.4, textAlign: "right", color: colors.accent }]}>
+              {yen(r.totalSavingYen)}
+            </Text>
+          </View>
+        );
+      })}
+
+      <Text style={[styles.h2, { marginTop: 18 }]}>スケール別の読み方</Text>
+      <Text style={styles.bullet}>
+        • 月50件: 1名担当でも事務時間の負担が明確に、スターター/スタンダード導入で数ヶ月以内に投資回収が見込める水準。
+      </Text>
+      <Text style={styles.bullet}>• 月100件: 本資料の標準ケース。事務専任者の業務の中核を Ledra に置き換え可能。</Text>
+      <Text style={styles.bullet}>
+        • 月300件: 複数店舗の運用ケース。スケールメリットが発現し、人件費削減の寄与が特に大きい。
+      </Text>
+
+      <Text style={[styles.cardDesc, { marginTop: 14 }]}>
+        ※ 数値はすべて、本資料の計算式および前提条件に基づく推定です。実効果は業態・既存業務・人員構成により変動します。
+      </Text>
+
+      <Footer pageLabel={`5 / ${ROI_PAGE_TOTAL}`} />
+    </Page>
+  );
+}
+
+function RoiSensitivity() {
+  const base = { monthlyCerts: 100, hourlyRate: 2500, annualReissueCost: 100000 };
+  const rows = [5, 10, 15, 20, 30].map((m) => {
+    const r = roiScenario({ ...base, minutesPerCert: m });
+    return { minutes: m, labor: r.laborSavingYen, total: r.totalSavingYen };
+  });
+  return (
+    <Page size="A4" style={styles.page}>
+      <Text style={styles.pageTitle}>05 SENSITIVITY</Text>
+      <View style={styles.gradientBar} />
+      <Text style={styles.h1}>感度分析（1件あたり事務時間 × 金額）</Text>
+      <Text style={[styles.lead, { marginBottom: 10 }]}>
+        月 100 件・時給 2,500 円・再発行コスト 10
+        万円を固定した上で、1件あたりの事務時間の変化が総削減額に与える影響を示します。
+      </Text>
+
+      <View style={styles.tableHead}>
+        <Text style={[styles.th, { flex: 1.6 }]}>1件あたりの事務時間</Text>
+        <Text style={[styles.th, { flex: 1.5, textAlign: "right" }]}>人件費削減</Text>
+        <Text style={[styles.th, { flex: 1.5, textAlign: "right" }]}>総削減額</Text>
+      </View>
+      {rows.map((r) => (
+        <View key={r.minutes} style={styles.tableRow}>
+          <Text style={[styles.td, { flex: 1.6 }]}>{r.minutes} 分 / 件</Text>
+          <Text style={[styles.td, { flex: 1.5, textAlign: "right" }]}>{yen(r.labor)}</Text>
+          <Text style={[styles.td, { flex: 1.5, textAlign: "right", color: colors.accent }]}>{yen(r.total)}</Text>
+        </View>
+      ))}
+
+      <Text style={[styles.h2, { marginTop: 18 }]}>読み取り方</Text>
+      <Text style={styles.bullet}>
+        • 1件 5 分の「効率化済み」運用でも、写真整理・保管の切替だけで年間の削減が生まれます。
+      </Text>
+      <Text style={styles.bullet}>• 1件 15〜20 分が最も多い初期ヒアリング結果。Ledra の効果がはっきり出るゾーン。</Text>
+      <Text style={styles.bullet}>
+        • 1件 30 分以上: 書類業務が施工能力のボトルネックになっている可能性。人員体制見直しと併せた効果を検討。
+      </Text>
+
+      <Footer pageLabel={`6 / ${ROI_PAGE_TOTAL}`} />
+    </Page>
+  );
+}
+
+function RoiClosing() {
+  return (
+    <Page size="A4" style={styles.page}>
+      <Text style={styles.pageTitle}>06 NEXT STEPS</Text>
+      <View style={styles.gradientBar} />
+      <Text style={styles.h1}>個別ヒアリング試算のご依頼</Text>
+      <Text style={[styles.lead, { marginBottom: 10 }]}>
+        貴社の業務フロー・既存システム・人員構成を踏まえた、より精度の高い試算レポートを無料でお作りします。
+      </Text>
+
+      <Text style={styles.h2}>お伝えいただきたい情報</Text>
+      <Text style={styles.bullet}>• 月間の施工証明書発行数・種別（コーティング / フィルム / 他）</Text>
+      <Text style={styles.bullet}>• 現状の記録方法（紙 / Excel / 他システム）</Text>
+      <Text style={styles.bullet}>• 事務担当の人員構成と業務時間</Text>
+      <Text style={styles.bullet}>• 代理店・保険会社との連携頻度</Text>
+      <Text style={styles.bullet}>• 既存で利用している会計・予約・決済ツール</Text>
+
+      <Text style={styles.h2}>試算レポートに含まれるもの</Text>
+      <Text style={styles.bullet}>• 貴社前提を反映した年間削減額（時間・金額）</Text>
+      <Text style={styles.bullet}>• 3プラン（スターター / スタンダード / プロ）ごとの投資回収シミュレーション</Text>
+      <Text style={styles.bullet}>• 現場導入プランと、ロードマップ上のマイルストーン</Text>
+
+      <Text style={[styles.h2, { marginTop: 14 }]}>お問い合わせ</Text>
+      <Text style={styles.body}>Web: https://ledra.co.jp/contact</Text>
+      <Text style={styles.body}>Email: info@ledra.co.jp</Text>
+      <Text style={styles.body}>WEB 版シミュレーター: https://ledra.co.jp/roi</Text>
+
+      <Text style={[styles.tagline, { marginTop: 24 }]}>数字は、意思決定の速度を変える。</Text>
+
+      <Footer pageLabel={`${ROI_PAGE_TOTAL} / ${ROI_PAGE_TOTAL}`} />
+    </Page>
+  );
+}
+
+export function RoiTemplatePdf() {
+  ensureFonts();
+  return (
+    <Document
+      title="Ledra ROI シミュレーション計算テンプレート"
+      author="Ledra"
+      subject="Ledra 導入時の年間削減効果を試算する計算テンプレート"
+      creator="Ledra"
+      producer="Ledra"
+    >
+      {RoiCover()}
+      {RoiFormula()}
+      {RoiWorksheet()}
+      {RoiLossModel()}
+      {RoiReferenceTable()}
+      {RoiSensitivity()}
+      {RoiClosing()}
+    </Document>
+  );
+}
+
 /**
  * Registry of available marketing PDFs. Add entries here to expose new
  * downloadable resources; the API route `/api/marketing/resources/[key]/pdf`
@@ -1811,5 +2206,9 @@ export const RESOURCE_PDFS: Record<string, { filename: string; doc: () => React.
   "case-studies": {
     filename: "Ledra_Case_Studies.pdf",
     doc: () => <CaseStudiesPdf />,
+  },
+  "roi-template": {
+    filename: "Ledra_ROI_Template.pdf",
+    doc: () => <RoiTemplatePdf />,
   },
 };
