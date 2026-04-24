@@ -58,7 +58,10 @@ export default async function SiteContentListPage(props: { searchParams?: Promis
     .order("updated_at", { ascending: false })
     .limit(100);
 
-  if (typeFilter && (typeFilter === "blog" || typeFilter === "event" || typeFilter === "webinar")) {
+  if (
+    typeFilter &&
+    (typeFilter === "blog" || typeFilter === "news" || typeFilter === "event" || typeFilter === "webinar")
+  ) {
     query = query.eq("type", typeFilter);
   }
 
@@ -67,6 +70,7 @@ export default async function SiteContentListPage(props: { searchParams?: Promis
   const tabs: Array<{ key: SiteContentType | "all"; label: string; href: string }> = [
     { key: "all", label: "すべて", href: "/admin/site-content" },
     { key: "blog", label: "ブログ", href: "/admin/site-content?type=blog" },
+    { key: "news", label: "お知らせ", href: "/admin/site-content?type=news" },
     { key: "event", label: "イベント", href: "/admin/site-content?type=event" },
     { key: "webinar", label: "ウェビナー", href: "/admin/site-content?type=webinar" },
   ];

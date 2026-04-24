@@ -33,7 +33,10 @@ export default async function SiteContentNewPage(props: { searchParams?: Promise
   if (!userRes?.user) redirect("/login?next=/admin/site-content/new");
 
   const initialType =
-    searchParams.type === "event" || searchParams.type === "webinar" || searchParams.type === "blog"
+    searchParams.type === "event" ||
+    searchParams.type === "webinar" ||
+    searchParams.type === "blog" ||
+    searchParams.type === "news"
       ? (searchParams.type as SiteContentType)
       : "blog";
 
