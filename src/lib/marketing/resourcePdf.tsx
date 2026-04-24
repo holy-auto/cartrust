@@ -1095,6 +1095,384 @@ export function FeaturesDeepDivePdf() {
   );
 }
 
+/* ══════════════════════════════════════════════════════════════════
+ * Security Whitepaper — セキュリティホワイトペーパー
+ * ══════════════════════════════════════════════════════════════════ */
+
+type SecurityBlock = {
+  id: string;
+  title: string;
+  lead: string;
+  items: { title: string; desc: string }[];
+};
+
+const SECURITY_BLOCKS: SecurityBlock[] = [
+  {
+    id: "encryption",
+    title: "1. 暗号化",
+    lead: "通信・保存・ペイロードの3層で、データを守ります。",
+    items: [
+      {
+        title: "通信の暗号化 (TLS 1.2+)",
+        desc: "アプリと API の全トラフィックを TLS で暗号化。Vercel の HTTPS 終端を使用し、HSTS を有効化しています。",
+      },
+      {
+        title: "保存データの暗号化",
+        desc: "Supabase Postgres はディスク暗号化 (AES-256) および自動鍵ローテーションを実装。オブジェクトストレージも転送時・保管時ともに暗号化。",
+      },
+      {
+        title: "機微データのペッパリング",
+        desc: "顧客認証に用いる電話番号末尾4桁などは、アプリレイヤで pepper 付きハッシュ化してから保存。DB 流出時にも生値が復元できない形に。",
+      },
+      {
+        title: "Polygon anchoring",
+        desc: "証明書のハッシュを Polygon ブロックチェーンに刻印。仮に DB 側のデータが改変されても、チェーン上のアンカーと突き合わせて不整合を即検知できます。",
+      },
+    ],
+  },
+  {
+    id: "access-control",
+    title: "2. アクセス制御",
+    lead: "役割・テナント・セッション境界を、DB レベルで強制します。",
+    items: [
+      {
+        title: "Row Level Security (RLS)",
+        desc: "Supabase の RLS を全テーブルで有効化。テナント・役割・所有者の3軸で、SQL レイヤでアクセス可能な行を制限。",
+      },
+      {
+        title: "役割ベースアクセス制御 (RBAC)",
+        desc: "Owner / Admin / Staff / Viewer の4段階に加え、代理店・保険会社・顧客の独立したロール。必要最小限の権限のみを付与。",
+      },
+      {
+        title: "多要素認証 (MFA) 対応",
+        desc: "ポータルユーザー向けに、Supabase Auth の TOTP/SMS MFA を設定可能。",
+      },
+      {
+        title: "セッション管理",
+        desc: "顧客ポータルは専用のセッション有効期限 (デフォルト24時間)。署名付き URL は1回限りのトークンで発行。",
+      },
+      {
+        title: "レート制限",
+        desc: "Upstash Redis による分散レートリミット。ログイン・問合せ・API ごとに上限を設定し、ブルートフォース・スクレイピングを抑制。",
+      },
+    ],
+  },
+  {
+    id: "backup",
+    title: "3. バックアップ・可用性",
+    lead: "喪失と停止に備え、復旧を既定の運用に。",
+    items: [
+      {
+        title: "日次自動バックアップ",
+        desc: "Supabase Postgres の日次自動バックアップ + ポイントインタイムリカバリ。誤削除から任意時点への復旧を可能にします。",
+      },
+      {
+        title: "地理冗長配置",
+        desc: "アプリケーションは Vercel の東京リージョンを主、グローバルエッジキャッシュを併用。大規模障害時も読み取りは継続可能。",
+      },
+      {
+        title: "監視・アラート",
+        desc: "Sentry による例外トラッキング、Vercel Analytics / Speed Insights による性能監視。Cron ジョブの失敗検知も自動化。",
+      },
+    ],
+  },
+  {
+    id: "vulnerability",
+    title: "4. 脆弱性対応",
+    lead: "見つけ次第、直す。その運用を仕組みで。",
+    items: [
+      {
+        title: "依存ライブラリの継続監視",
+        desc: "GitHub Dependabot により CVE を日次監視。Critical は即時、High は 72 時間以内に対応する運用ルール。",
+      },
+      {
+        title: "CI でのセキュリティチェック",
+        desc: "ESLint の security ルール、Secret scanning、型チェックをプルリクエストごとに実行。マージ前に既知の問題を遮断。",
+      },
+      {
+        title: "ログ監査",
+        desc: "認証・証明書発行・無効化・顧客情報閲覧など、重要操作の監査ログを保存。異常操作の追跡が可能。",
+      },
+      {
+        title: "脆弱性報告窓口",
+        desc: "security@ledra.co.jp にてセキュリティ関連のご報告を受け付けます。ご連絡から3営業日以内に初期対応いたします。",
+      },
+    ],
+  },
+  {
+    id: "tamper-prevention",
+    title: "5. 改ざん防止",
+    lead: "『記録を、業界の共通言語にする』ための根拠。",
+    items: [
+      {
+        title: "証明書編集履歴",
+        desc: "証明書への編集操作は差分付きで編集履歴に保存。『誰が、いつ、何を変えたか』を後から確認できます。",
+      },
+      {
+        title: "C2PA 画像署名",
+        desc: "施工写真を証明書と紐付ける際、C2PA 規格で署名付きのコンテンツクレデンシャルを埋め込み。SNS 等で再配布されても出自を追跡可能。",
+      },
+      {
+        title: "Polygon anchoring",
+        desc: "発行時に証明書コンテンツのハッシュを Polygon に刻印。後からデータが書き換えられても、チェーン上のアンカーとの差分で検知できます。",
+      },
+      {
+        title: "デジタル署名",
+        desc: "証明書 PDF には Ledra の署名鍵で署名を付与。発行元の同一性を第三者が検証可能。",
+      },
+    ],
+  },
+];
+
+const SECURITY_PAGE_TOTAL = 1 + 1 + SECURITY_BLOCKS.length + 3; // cover + 3-layer + 5 blocks + polygon + lifecycle + close
+
+function SecurityCover() {
+  return (
+    <Page size="A4" style={styles.page}>
+      <Text style={styles.pageTitle}>SECURITY WHITEPAPER</Text>
+      <View style={styles.gradientBar} />
+      <Text style={styles.h1}>Ledra セキュリティ ホワイトペーパー</Text>
+      <Text style={styles.lead}>
+        暗号化・アクセス制御・バックアップ・脆弱性対応・改ざん防止。
+        記録の信頼を仕組みで守るための、技術担当者・情報セキュリティ担当者向け一次資料です。
+      </Text>
+
+      <View style={[styles.card, { marginTop: 16 }]}>
+        <Text style={styles.cardTitle}>本資料の想定読者</Text>
+        <Text style={styles.bullet}>• 情報システム部門・セキュリティ責任者</Text>
+        <Text style={styles.bullet}>• 導入審査・監査対応を行う担当者</Text>
+        <Text style={styles.bullet}>• 保険会社・代理店の技術対応窓口</Text>
+      </View>
+
+      <Text style={[styles.h2, { marginTop: 18 }]}>目次</Text>
+      <Text style={styles.bullet}>00. セキュリティ3層モデル</Text>
+      {SECURITY_BLOCKS.map((b) => (
+        <Text key={b.id} style={styles.bullet}>
+          {b.title} — {b.lead}
+        </Text>
+      ))}
+      <Text style={styles.bullet}>06. Polygon anchoring フロー</Text>
+      <Text style={styles.bullet}>07. データライフサイクル（保管・削除・テナント境界）</Text>
+      <Text style={styles.bullet}>08. 認証取得状況・インシデント対応・窓口</Text>
+
+      <Text style={styles.tagline}>記録の信頼を、仕組みで守る。</Text>
+      <Footer pageLabel={`1 / ${SECURITY_PAGE_TOTAL}`} />
+    </Page>
+  );
+}
+
+function SecurityLayers() {
+  return (
+    <Page size="A4" style={styles.page}>
+      <Text style={styles.pageTitle}>00 LAYER MODEL</Text>
+      <View style={styles.gradientBar} />
+      <Text style={styles.h1}>セキュリティ3層モデル</Text>
+      <Text style={styles.lead}>
+        通信・保存・ペイロードの3層で、独立に働く防御を重ねています。どれか1層が突破されても、他の層で被害を局所化する設計です。
+      </Text>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>層1: 通信 (Transport)</Text>
+        <Text style={styles.cardDesc}>
+          TLS 1.2+ による経路全体の暗号化。HSTS により HTTPS ダウングレードを防止。内部サービス間も mTLS
+          相当の境界で分離。
+        </Text>
+      </View>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>層2: 保存 (At-Rest)</Text>
+        <Text style={styles.cardDesc}>
+          Postgres は AES-256
+          によるディスク暗号化。オブジェクトストレージは転送時・保管時ともに暗号化。バックアップも同様の暗号化を継承。
+        </Text>
+      </View>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>層3: ペイロード (Data-Level)</Text>
+        <Text style={styles.cardDesc}>
+          DB 内部の機微データにアプリ層のハッシュ化・pepper 適用を追加。DB
+          管理者を含む全アクセス経路でも生値が復元できない形に。
+        </Text>
+      </View>
+
+      <Text style={[styles.h2, { marginTop: 16 }]}>独立性の担保</Text>
+      <Text style={styles.bullet}>• 各層の鍵は異なる KMS/Vault で管理、ローテーション周期も独立。</Text>
+      <Text style={styles.bullet}>• ペイロード層のソルト/ペッパーはアプリケーションシークレットとしてのみ管理。</Text>
+      <Text style={styles.bullet}>• 監査証跡は各層で独立に採取し、時刻同期のみ共通化。</Text>
+
+      <Footer pageLabel={`2 / ${SECURITY_PAGE_TOTAL}`} />
+    </Page>
+  );
+}
+
+function SecurityBlockPage({ block, index }: { block: SecurityBlock; index: number }) {
+  return (
+    <Page size="A4" style={styles.page}>
+      <Text style={styles.pageTitle}>
+        {String(index + 1).padStart(2, "0")} {block.title.replace(/^\d+\.\s*/, "").toUpperCase()}
+      </Text>
+      <View style={styles.gradientBar} />
+      <Text style={styles.h1}>{block.title}</Text>
+      <Text style={[styles.lead, { marginBottom: 10 }]}>{block.lead}</Text>
+
+      {block.items.map((it) => (
+        <View key={it.title} style={styles.card}>
+          <Text style={styles.cardTitle}>{it.title}</Text>
+          <Text style={styles.cardDesc}>{it.desc}</Text>
+        </View>
+      ))}
+
+      <Footer pageLabel={`${index + 3} / ${SECURITY_PAGE_TOTAL}`} />
+    </Page>
+  );
+}
+
+function SecurityPolygonFlow() {
+  const n = 3 + SECURITY_BLOCKS.length;
+  return (
+    <Page size="A4" style={styles.page}>
+      <Text style={styles.pageTitle}>06 POLYGON ANCHORING</Text>
+      <View style={styles.gradientBar} />
+      <Text style={styles.h1}>Polygon anchoring フロー</Text>
+      <Text style={styles.lead}>証明書発行時のハッシュ刻印から、第三者による独立検証までの一連の流れです。</Text>
+
+      <Text style={styles.h2}>発行フロー（書き込み側）</Text>
+      <Text style={styles.bullet}>
+        1. 証明書コンテンツ（写真 / 施工内容 / 施工者 / 日時）を正準化し、SHA-256 で確定値を算出。
+      </Text>
+      <Text style={styles.bullet}>
+        2. ハッシュを Ledra の anchoring キューに投入。バッチで Polygon PoS の anchoring コントラクトに送信。
+      </Text>
+      <Text style={styles.bullet}>
+        3. トランザクションハッシュと block number を証明書レコードに記録。UI の「検証済」バッジが点灯。
+      </Text>
+
+      <Text style={styles.h2}>検証フロー（読み取り側）</Text>
+      <Text style={styles.bullet}>1. 任意の第三者が証明書コンテンツと記録済みトランザクションを取得。</Text>
+      <Text style={styles.bullet}>2. 手元でコンテンツを同じ正準化手順で SHA-256 計算。</Text>
+      <Text style={styles.bullet}>3. Polygon 上の anchoring コントラクトに読み出し、ハッシュ一致を確認。</Text>
+
+      <View style={[styles.card, { marginTop: 10 }]}>
+        <Text style={styles.cardTitle}>設計上の要点</Text>
+        <Text style={styles.bullet}>• Ledra 側 DB が改変されても、Polygon 上の記録との比較で検知可能。</Text>
+        <Text style={styles.bullet}>• 写真そのものは C2PA 署名で独立検証。チェーン上にはハッシュのみ記録。</Text>
+        <Text style={styles.bullet}>• ガス代高騰時に備え、バッチ Merkle 化で個別トランザクション数を抑制。</Text>
+      </View>
+
+      <Footer pageLabel={`${n} / ${SECURITY_PAGE_TOTAL}`} />
+    </Page>
+  );
+}
+
+function SecurityDataLifecycle() {
+  const n = 4 + SECURITY_BLOCKS.length;
+  return (
+    <Page size="A4" style={styles.page}>
+      <Text style={styles.pageTitle}>07 DATA LIFECYCLE</Text>
+      <View style={styles.gradientBar} />
+      <Text style={styles.h1}>データライフサイクル</Text>
+      <Text style={styles.lead}>テナントデータの取得から削除までの流れ・保管期間・権限境界を明示します。</Text>
+
+      <Text style={styles.h2}>テナント境界</Text>
+      <Text style={styles.bullet}>• 全ての業務テーブルに tenant_id を必須カラムとして設定。</Text>
+      <Text style={styles.bullet}>• RLS ポリシーにより、SQL クエリは自動的に所属テナントのみに絞り込み。</Text>
+      <Text style={styles.bullet}>
+        • バックアップ単位もテナント識別子を残し、データエクスポート時は tenant_id フィルタを強制。
+      </Text>
+
+      <Text style={styles.h2}>保管期間</Text>
+      <View style={styles.tableHead}>
+        <Text style={[styles.th, styles.col1]}>データ種別</Text>
+        <Text style={[styles.th, styles.col2]}>保管期間</Text>
+      </View>
+      <View style={styles.tableRow}>
+        <Text style={[styles.td, styles.col1]}>証明書・施工写真</Text>
+        <Text style={[styles.td, styles.col2]}>契約期間中 + 契約終了後 3 年</Text>
+      </View>
+      <View style={styles.tableRow}>
+        <Text style={[styles.td, styles.col1]}>顧客個人情報（氏名・連絡先）</Text>
+        <Text style={[styles.td, styles.col2]}>契約期間中 + 契約終了後 1 年</Text>
+      </View>
+      <View style={styles.tableRow}>
+        <Text style={[styles.td, styles.col1]}>監査ログ</Text>
+        <Text style={[styles.td, styles.col2]}>最低 5 年</Text>
+      </View>
+      <View style={styles.tableRow}>
+        <Text style={[styles.td, styles.col1]}>自動バックアップ</Text>
+        <Text style={[styles.td, styles.col2]}>最大 30 日（PITR）</Text>
+      </View>
+
+      <Text style={styles.h2}>データ削除・エクスポート</Text>
+      <Text style={styles.bullet}>• 退会時はテナント単位で論理削除 → 30 日後に物理削除。</Text>
+      <Text style={styles.bullet}>• 個別の顧客情報削除依頼は、本人確認後 30 日以内に対応。</Text>
+      <Text style={styles.bullet}>• 全データの CSV / JSON エクスポートは、Admin 権限者がいつでも取得可能。</Text>
+
+      <Footer pageLabel={`${n} / ${SECURITY_PAGE_TOTAL}`} />
+    </Page>
+  );
+}
+
+function SecurityClosing() {
+  return (
+    <Page size="A4" style={styles.page}>
+      <Text style={styles.pageTitle}>08 COMPLIANCE & CONTACT</Text>
+      <View style={styles.gradientBar} />
+      <Text style={styles.h1}>認証・インシデント対応・お問い合わせ</Text>
+
+      <Text style={styles.h2}>認証取得状況</Text>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>ISMS (ISO/IEC 27001)</Text>
+        <Text style={styles.cardDesc}>
+          取得準備中。取得時期は本ホワイトペーパーおよび /security ページにて告知します。
+        </Text>
+      </View>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>プライバシーマーク</Text>
+        <Text style={styles.cardDesc}>取得準備中。社内ポリシー整備・教育実施を先行して進めています。</Text>
+      </View>
+
+      <Text style={styles.h2}>インシデント対応フロー</Text>
+      <Text style={styles.bullet}>1. 検知: Sentry / 監査ログ / 外部報告のいずれかでトリアージ開始。</Text>
+      <Text style={styles.bullet}>
+        2. 初期対応: 24 時間以内に影響範囲を確定、必要なら緊急措置（当該機能停止・鍵ローテーション）。
+      </Text>
+      <Text style={styles.bullet}>3. 連絡: 影響テナントには個別連絡、重大事象は公開インシデントレポートを発行。</Text>
+      <Text style={styles.bullet}>4. 恒久対応: 根本原因分析（RCA）を実施、再発防止策をチェンジログに記録。</Text>
+
+      <Text style={styles.h2}>お問い合わせ</Text>
+      <Text style={styles.body}>セキュリティ報告: security@ledra.co.jp</Text>
+      <Text style={styles.body}>技術問合せ: info@ledra.co.jp</Text>
+      <Text style={styles.body}>Web: https://ledra.co.jp/security</Text>
+      <Text style={[styles.cardDesc, { marginTop: 10 }]}>
+        本資料は公開時点の情報で作成しています。認証取得の進捗・技術仕様の更新は /security
+        ページおよび最新版ホワイトペーパーに反映します。
+      </Text>
+
+      <Footer pageLabel={`${SECURITY_PAGE_TOTAL} / ${SECURITY_PAGE_TOTAL}`} />
+    </Page>
+  );
+}
+
+export function SecurityWhitepaperPdf() {
+  ensureFonts();
+  return (
+    <Document
+      title="Ledra セキュリティホワイトペーパー"
+      author="Ledra"
+      subject="Ledra のセキュリティ対策・データ保護・認証取得状況"
+      creator="Ledra"
+      producer="Ledra"
+    >
+      {SecurityCover()}
+      {SecurityLayers()}
+      {SECURITY_BLOCKS.map((b, i) => (
+        <React.Fragment key={b.id}>{SecurityBlockPage({ block: b, index: i })}</React.Fragment>
+      ))}
+      {SecurityPolygonFlow()}
+      {SecurityDataLifecycle()}
+      {SecurityClosing()}
+    </Document>
+  );
+}
+
 /**
  * Registry of available marketing PDFs. Add entries here to expose new
  * downloadable resources; the API route `/api/marketing/resources/[key]/pdf`
@@ -1112,5 +1490,9 @@ export const RESOURCE_PDFS: Record<string, { filename: string; doc: () => React.
   "features-deep-dive": {
     filename: "Ledra_Features_Deep_Dive.pdf",
     doc: () => <FeaturesDeepDivePdf />,
+  },
+  "security-whitepaper": {
+    filename: "Ledra_Security_Whitepaper.pdf",
+    doc: () => <SecurityWhitepaperPdf />,
   },
 };

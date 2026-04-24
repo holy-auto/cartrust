@@ -32,9 +32,10 @@ const resources: Resource[] = [
     key: "security-whitepaper",
     title: "セキュリティホワイトペーパー",
     description:
-      "暗号化方式・鍵管理・RLS設計・監査ログ仕様・Polygon anchoring の動作を、技術担当者・情報セキュリティ担当者向けにまとめた資料です。",
+      "暗号化方式・鍵管理・RLS設計・監査ログ仕様・Polygon anchoring の動作・データライフサイクルを、技術担当者・情報セキュリティ担当者向けにまとめた資料です。",
     badge: "技術者向け",
-    pageCount: 18,
+    pageCount: 10,
+    downloadUrl: "/api/marketing/resources/security-whitepaper/pdf",
   },
   {
     key: "case-studies",
