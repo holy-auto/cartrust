@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 
 /**
  * 統一エラーレスポンスヘルパー
@@ -82,6 +83,82 @@ function buildSecurityHeaders(overrides?: {
   };
 }
 
+/**
+ * High-confidence patterns for keys that must never appear in a response
+ * body. The key names here are specific enough to avoid false positives
+ * (e.g. `sign_token` / `signing_url` on signature routes are allowlisted
+ * because their substring matches are intentional).
+ *
+ * If any of these patterns match a top-level or nested key, scanResponseBody
+ * emits a breadcrumb so the leak surfaces in Sentry / console without
+ * breaking the response.
+ */
+const SECRET_RESPONSE_PATTERNS: readonly RegExp[] = [
+  /\b(?:service_role_key|supabase_service_role)\b/i,
+  /\b(?:webhook_secret|stripe_secret_key|stripe_webhook_secret)\b/i,
+  /\bapi_key\b/i,
+  /\bpepper\b/i,
+  /\bprivate_key\b/i,
+  /\bpassword(?:_hash)?\b/i, // password or password_hash
+  /\b(?:refresh_token|access_token)\b/i,
+];
+
+/** Keys that legitimately carry secret-like substrings and should be skipped. */
+const SECRET_SCAN_ALLOWLIST: ReadonlySet<string> = new Set([
+  "sign_token", // agent-sign / signature: public signing URL token, intentional
+  "session_token", // auth flows: intentional session handoff
+]);
+
+function scanObjectForSecrets(obj: unknown, path = "", out: string[] = []): string[] {
+  if (out.length > 5) return out; // cap at 5 hits to bound log size
+  if (obj == null || typeof obj !== "object") return out;
+  // Bail on big arrays to keep scan cheap on list responses
+  if (Array.isArray(obj)) {
+    for (let i = 0; i < Math.min(obj.length, 3); i++) {
+      scanObjectForSecrets(obj[i], `${path}[${i}]`, out);
+    }
+    return out;
+  }
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+    const fullPath = path ? `${path}.${key}` : key;
+    if (!SECRET_SCAN_ALLOWLIST.has(key)) {
+      for (const pattern of SECRET_RESPONSE_PATTERNS) {
+        if (pattern.test(key)) {
+          out.push(fullPath);
+          break;
+        }
+      }
+    }
+    if (value && typeof value === "object") {
+      scanObjectForSecrets(value, fullPath, out);
+    }
+  }
+  return out;
+}
+
+/**
+ * Defense-in-depth breadcrumb: if a response body contains a key that
+ * matches a high-confidence secret pattern (service_role_key, api_key,
+ * password_hash, …), emit a logger.warn with the list of leaked paths.
+ * Does **not** mutate the body — the goal is to catch developer mistakes
+ * in code review / Sentry, not to silently redact production data.
+ *
+ * Intentionally conservative:
+ *   - Only top-level + first 2 nesting levels are scanned (perf bound).
+ *   - Array responses sample only the first 3 items.
+ *   - Patterns are specific enough to have ~0 false positives (compare
+ *     vs the logger's looser /secret|token|.../ pattern used for log
+ *     key masking).
+ */
+export function auditResponseBodyForSecrets(body: unknown, route?: string): void {
+  const hits = scanObjectForSecrets(body);
+  if (hits.length === 0) return;
+  logger.warn("API response contains secret-shaped keys — review for accidental leak", {
+    route: route ?? "<unknown>",
+    leaked_paths: hits,
+  });
+}
+
 /** 統一エラーレスポンス */
 export function apiError(opts: ApiErrorOptions) {
   return NextResponse.json(
@@ -103,6 +180,7 @@ export function apiOk<T extends Record<string, unknown>>(
   status = 200,
   opts?: { cacheControl?: string; headers?: Record<string, string> },
 ) {
+  auditResponseBodyForSecrets(data);
   return NextResponse.json({ ok: true, ...data }, { status, headers: buildSecurityHeaders(opts) });
 }
 
@@ -117,6 +195,7 @@ export function apiJson(
   body: unknown,
   opts?: { status?: number; cacheControl?: string; headers?: Record<string, string> },
 ) {
+  auditResponseBodyForSecrets(body);
   return NextResponse.json(body, {
     status: opts?.status ?? 200,
     headers: buildSecurityHeaders({ cacheControl: opts?.cacheControl, headers: opts?.headers }),

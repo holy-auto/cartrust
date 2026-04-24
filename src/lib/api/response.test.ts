@@ -11,6 +11,18 @@ vi.mock("next/server", () => ({
   },
 }));
 
+// logger をモック — auditResponseBodyForSecrets が warn を呼ぶ
+const loggerWarn = vi.fn();
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: (msg: string, ctx?: unknown) => loggerWarn(msg, ctx),
+    error: vi.fn(),
+    child: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+  },
+}));
+
 import {
   apiError,
   apiOk,
@@ -22,6 +34,7 @@ import {
   apiNotFound,
   apiPlanLimit,
   applySecurityHeaders,
+  auditResponseBodyForSecrets,
 } from "./response";
 
 // ─── apiOk ───
@@ -204,5 +217,47 @@ describe("default security headers", () => {
     const keys = setCalls.map((c) => c[0]);
     expect(keys).not.toContain("cache-control");
     expect(keys).toContain("vary");
+  });
+});
+
+// ─── auditResponseBodyForSecrets ───
+describe("auditResponseBodyForSecrets", () => {
+  beforeEach(() => {
+    loggerWarn.mockClear();
+  });
+
+  it("emits a warn when body has a secret-shaped key", () => {
+    auditResponseBodyForSecrets({ user_id: "abc", password_hash: "xyz" }, "test.route");
+    expect(loggerWarn).toHaveBeenCalledOnce();
+    const ctx = loggerWarn.mock.calls[0][1] as { route: string; leaked_paths: string[] };
+    expect(ctx.leaked_paths).toEqual(["password_hash"]);
+    expect(ctx.route).toBe("test.route");
+  });
+
+  it("detects nested secrets", () => {
+    auditResponseBodyForSecrets({ tenant: { id: "t1", webhook_secret: "wss..." } });
+    expect(loggerWarn).toHaveBeenCalledOnce();
+    const ctx = loggerWarn.mock.calls[0][1] as { leaked_paths: string[] };
+    expect(ctx.leaked_paths).toContain("tenant.webhook_secret");
+  });
+
+  it("does not warn on allowlisted keys (sign_token, session_token)", () => {
+    auditResponseBodyForSecrets({ sign_token: "abc", session_token: "xyz" });
+    expect(loggerWarn).not.toHaveBeenCalled();
+  });
+
+  it("does not warn on benign keys", () => {
+    auditResponseBodyForSecrets({ id: "123", name: "foo", created_at: "2024-01-01" });
+    expect(loggerWarn).not.toHaveBeenCalled();
+  });
+
+  it("apiOk auto-audits data on 200 responses", () => {
+    apiOk({ service_role_key: "leaked!" });
+    expect(loggerWarn).toHaveBeenCalledOnce();
+  });
+
+  it("apiJson auto-audits body", () => {
+    apiJson({ api_key: "sk_live_xxx" });
+    expect(loggerWarn).toHaveBeenCalledOnce();
   });
 });
