@@ -24,8 +24,9 @@ const resources: Resource[] = [
     key: "features-deep-dive",
     title: "機能紹介資料",
     description:
-      "証明書発行・車両管理・POS・帳票・分析・連携など、全機能をカテゴリ別に詳説。Admin/Agent/Insurer/Customer の画面例も収録。",
-    pageCount: 32,
+      "証明書発行・車両管理・POS・帳票・分析・連携など、全機能をカテゴリ別に詳説。Admin/Agent/Insurer/Customer の4ポータル構成も収録。",
+    pageCount: 10,
+    downloadUrl: "/api/marketing/resources/features-deep-dive/pdf",
   },
   {
     key: "security-whitepaper",
