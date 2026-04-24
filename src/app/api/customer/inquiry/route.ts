@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { apiJson, apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 import { CUSTOMER_COOKIE, getTenantIdBySlug, validateSession, getCustomerProfile } from "@/lib/customerPortalServer";
 import { GLOBAL_PORTAL_COOKIE, resolvePortalTenantAccessByGlobalToken } from "@/lib/customerPortalGlobal";
 import { notifySlack } from "@/lib/slack";
@@ -64,7 +65,11 @@ export async function GET(req: Request) {
 }
 
 /** POST /api/customer/inquiry — 問い合わせ送信 */
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  // Customer portal inquiries — strict per-IP limit to prevent spam campaigns.
+  const limited = await checkRateLimit(req, "auth");
+  if (limited) return limited;
+
   try {
     const body = await req.json().catch(() => ({}));
     const tenantSlug = (body?.tenant_slug ?? "").trim();

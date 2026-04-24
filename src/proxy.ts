@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { resolveRequestId } from "@/lib/logger";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 /**
  * Generate a cryptographically random nonce for CSP script-src.
@@ -158,6 +159,29 @@ export async function proxy(request: NextRequest) {
   const nonce = generateCspNonce();
   request.headers.set("x-nonce", nonce);
   const cspHeader = buildCspHeader(nonce, process.env.NODE_ENV === "development");
+
+  // Blanket rate limit for /api/* — defense in depth for the 200+ routes that
+  // do not set a per-route limit. 300 req / 60s / IP catches bulk scraping
+  // without impacting normal authenticated usage. Webhook / cron / qstash /
+  // health endpoints are skipped because their callers (Stripe / Square /
+  // QStash / Vercel Cron / uptime monitors) are server-to-server and already
+  // authenticated via HMAC / secret headers.
+  if (
+    pathname.startsWith("/api/") &&
+    !pathname.startsWith("/api/webhooks/") &&
+    !pathname.startsWith("/api/cron/") &&
+    !pathname.startsWith("/api/qstash/") &&
+    !pathname.startsWith("/api/health") &&
+    !pathname.startsWith("/api/stripe/webhook") &&
+    !pathname.startsWith("/api/stripe/connect-webhook") &&
+    !pathname.startsWith("/api/line/webhook")
+  ) {
+    const limited = await checkRateLimit(request, "middleware_default");
+    if (limited) {
+      limited.headers.set("x-request-id", requestId);
+      return limited;
+    }
+  }
 
   // CSRF protection for API mutations
   const csrfResponse = csrfCheck(request);

@@ -18,6 +18,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSign } from "crypto";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiJson, apiInternalError } from "@/lib/api/response";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 import { getPrivateKey, getActiveKeyInfo } from "@/lib/signature/crypto";
 
 export const dynamic = "force-dynamic";
@@ -55,7 +56,11 @@ function signPayload(payload: string, privateKey: string): string {
 }
 
 // ── GET ──────────────────────────────────────────────────────
-export async function GET(_req: NextRequest, ctx: RouteCtx) {
+export async function GET(req: NextRequest, ctx: RouteCtx) {
+  // Token-based public endpoint — bruteforce protection (10 req / 60s / IP).
+  const limited = await checkRateLimit(req, "auth");
+  if (limited) return limited;
+
   try {
     const { token } = await ctx.params;
     const admin = createServiceRoleAdmin("agent flow — agent-scoped / token-based, not tenant-scoped");
@@ -99,6 +104,10 @@ export async function GET(_req: NextRequest, ctx: RouteCtx) {
 
 // ── POST ─────────────────────────────────────────────────────
 export async function POST(req: NextRequest, ctx: RouteCtx) {
+  // Token-based public signing — strict limit (10 req / 60s / IP).
+  const limited = await checkRateLimit(req, "auth");
+  if (limited) return limited;
+
   try {
     const { token } = await ctx.params;
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";

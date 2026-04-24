@@ -15,11 +15,17 @@
 import { NextRequest } from "next/server";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiOk, apiError, apiInternalError } from "@/lib/api/response";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 import { verifySignature } from "@/lib/signature/crypto";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ sessionId: string }> }) {
+  // Public verification — general rate limit (60 req / 60s / IP).
+  // Relatively cheap read, but still unauth so IP-scope the bucket.
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const { sessionId } = await params;
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
