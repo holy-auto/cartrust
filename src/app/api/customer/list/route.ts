@@ -29,6 +29,8 @@ export async function GET(req: Request) {
     let phoneHash = "";
     let phoneLast4: string | undefined;
     let sessionEmail: string | undefined;
+    // Phase 2: session に bake された customer_id があれば collision-proof path
+    let sessionCustomerId: string | null = null;
 
     if (tenantToken) {
       const tenantSession = await validateSession(tenantId, tenantToken);
@@ -37,6 +39,7 @@ export async function GET(req: Request) {
         // 後方互換: セッションに平文 last4 が保存されていれば渡す
         if (tenantSession.phone_last4) phoneLast4 = tenantSession.phone_last4;
         sessionEmail = tenantSession.email;
+        sessionCustomerId = tenantSession.customer_id;
       }
     }
 
@@ -55,21 +58,27 @@ export async function GET(req: Request) {
     if (!phoneHash) return apiUnauthorized();
 
     if (action === "history") {
-      const history = await listHistoryForCustomer(tenantId, phoneHash, phoneLast4, sessionEmail);
+      const history = await listHistoryForCustomer(tenantId, phoneHash, phoneLast4, sessionEmail, sessionCustomerId);
       return NextResponse.json({ ok: true, history });
     }
 
     if (action === "reservations") {
-      const reservations = await listReservationsForCustomer(tenantId, phoneHash, phoneLast4, sessionEmail);
+      const reservations = await listReservationsForCustomer(
+        tenantId,
+        phoneHash,
+        phoneLast4,
+        sessionEmail,
+        sessionCustomerId,
+      );
       return NextResponse.json({ ok: true, reservations });
     }
 
     if (action === "profile") {
-      const profile = await getCustomerProfile(tenantId, phoneHash, phoneLast4, sessionEmail);
+      const profile = await getCustomerProfile(tenantId, phoneHash, phoneLast4, sessionEmail, sessionCustomerId);
       return NextResponse.json({ ok: true, profile });
     }
 
-    const rows = await listCertificatesForCustomer(tenantId, phoneHash, phoneLast4, sessionEmail);
+    const rows = await listCertificatesForCustomer(tenantId, phoneHash, phoneLast4, sessionEmail, sessionCustomerId);
 
     return NextResponse.json({ ok: true, rows });
   } catch (e: unknown) {
