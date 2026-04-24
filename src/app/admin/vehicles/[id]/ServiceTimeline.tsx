@@ -28,6 +28,7 @@ export type TimelineEvent = {
     | "reservation"
     | "void"
     | "nfc"
+    | "thickness"
     | "other";
   /** タイトル (一行要約) */
   title: string;
@@ -44,6 +45,7 @@ const kindClass: Record<TimelineEvent["kindVariant"], string> = {
   reservation: "bg-accent-dim text-accent-text border-accent/20",
   void: "bg-danger-dim text-danger-text border-danger/20",
   nfc: "bg-warning-dim text-warning-text border-warning/20",
+  thickness: "bg-violet-dim text-violet-text border-violet/20",
   other: "bg-inset text-secondary border-border-default",
 };
 
