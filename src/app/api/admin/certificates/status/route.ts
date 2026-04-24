@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logCertificateAction, getRequestMeta } from "@/lib/audit/certificateLog";
@@ -16,6 +17,15 @@ export const dynamic = "force-dynamic";
 const VALID_STATUSES = ["active", "void", "draft"] as const;
 type CertStatus = (typeof VALID_STATUSES)[number];
 
+const certStatusSchema = z.object({
+  public_id: z.string().trim().min(1, "public_id は必須です。"),
+  status: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .pipe(z.enum(VALID_STATUSES, { message: "status は active / void / draft のいずれかを指定してください。" })),
+});
+
 /**
  * Allowed status transitions:
  *  draft  -> active  (staff+)
@@ -28,26 +38,17 @@ const TRANSITIONS: Record<string, { to: CertStatus; minRole: "staff" | "admin" }
   void: [{ to: "active", minRole: "admin" }],
 };
 
-function isValidStatus(v: unknown): v is CertStatus {
-  return typeof v === "string" && VALID_STATUSES.includes(v as CertStatus);
-}
-
 /**
  * PUT /api/admin/certificates/status
  * Body: { public_id: string, status: "active" | "void" | "draft" }
  */
 export async function PUT(req: Request) {
   try {
-    const body = await req.json().catch((): null => null);
-    const publicId = (body?.public_id ?? "").trim();
-    const newStatus = (body?.status ?? "").trim().toLowerCase();
-
-    if (!publicId) {
-      return apiValidationError("public_id は必須です。");
+    const parsed = certStatusSchema.safeParse(await req.json().catch(() => ({})));
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.issues[0]?.message ?? "invalid payload");
     }
-    if (!isValidStatus(newStatus)) {
-      return apiValidationError("status は active / void / draft のいずれかを指定してください。");
-    }
+    const { public_id: publicId, status: newStatus } = parsed.data;
 
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
