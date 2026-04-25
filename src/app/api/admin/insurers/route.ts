@@ -170,11 +170,13 @@ async function sendInsurerNotification(params: {
     });
 
     if (!res.ok) {
-      const resBody = await res.text().catch(() => "");
-      console.error("[admin/insurers] notification email error:", res.status, resBody);
+      // resBody は Resend のエラーレスポンスで、稀に request の email 等を
+      // 含み得るため status のみログ。
+      console.error("[admin/insurers] notification email error", { status: res.status });
     }
   } catch (e) {
-    console.error("[admin/insurers] notification email failed:", e);
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[admin/insurers] notification email failed", { error: msg });
   }
 }
 
