@@ -21,11 +21,11 @@ export async function POST(req: NextRequest) {
       return apiError({ code: "validation_error", message: "tenant_id is required", status: 400 });
     }
 
-    // テナントの LINE 設定を取得 (dual-read: ciphertext 優先)
+    // テナントの LINE 設定を取得 (encrypted column only)
     const admin = createServiceRoleAdmin("LINE webhook — resolves tenant from LINE channel id, pre-resolution");
     const { data: tenant } = await admin
       .from("tenants")
-      .select("line_channel_secret, line_channel_secret_ciphertext, line_enabled")
+      .select("line_channel_secret_ciphertext, line_enabled")
       .eq("id", tenantId)
       .single();
 
@@ -33,11 +33,7 @@ export async function POST(req: NextRequest) {
       return apiError({ code: "forbidden", message: "LINE integration not enabled", status: 403 });
     }
 
-    const channelSecret = await readSecret(
-      tenant.line_channel_secret_ciphertext,
-      tenant.line_channel_secret,
-      "tenants.line_channel_secret",
-    );
+    const channelSecret = await readSecret(tenant.line_channel_secret_ciphertext, "tenants.line_channel_secret");
     if (!channelSecret) {
       return apiError({ code: "forbidden", message: "LINE integration not enabled", status: 403 });
     }

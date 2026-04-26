@@ -16,62 +16,47 @@ describe("tenantSecrets", () => {
   });
 
   describe("buildSecretWrite", () => {
-    it("returns both plain and ciphertext when key is set", async () => {
+    it("returns ciphertext when key is set", async () => {
       const out = await buildSecretWrite("super-secret");
-      expect(out.plain).toBe("super-secret");
       expect(out.ciphertext).toMatch(/^v1\..+\..+$/);
     });
 
-    it("returns nulls for empty input", async () => {
-      expect(await buildSecretWrite(null)).toEqual({ plain: null, ciphertext: null });
-      expect(await buildSecretWrite(undefined)).toEqual({ plain: null, ciphertext: null });
-      expect(await buildSecretWrite("")).toEqual({ plain: null, ciphertext: null });
+    it("returns null ciphertext for empty input", async () => {
+      expect(await buildSecretWrite(null)).toEqual({ ciphertext: null });
+      expect(await buildSecretWrite(undefined)).toEqual({ ciphertext: null });
+      expect(await buildSecretWrite("")).toEqual({ ciphertext: null });
     });
 
-    it("falls back to plain-only when key is missing", async () => {
+    it("throws when key is missing", async () => {
       delete process.env.SECRET_ENCRYPTION_KEY;
-      const out = await buildSecretWrite("still-need-to-store");
-      expect(out.plain).toBe("still-need-to-store");
-      expect(out.ciphertext).toBeNull();
+      await expect(buildSecretWrite("must-encrypt")).rejects.toThrow(/SECRET_ENCRYPTION_KEY/);
     });
   });
 
   describe("readSecret", () => {
-    it("prefers ciphertext when both columns are populated", async () => {
+    it("decrypts a ciphertext envelope", async () => {
       const cipher = await encryptSecret("encrypted-value");
-      const result = await readSecret(cipher, "plain-value", "test");
+      const result = await readSecret(cipher, "test");
       expect(result).toBe("encrypted-value");
     });
 
-    it("falls back to plain when ciphertext is null", async () => {
-      const result = await readSecret(null, "plain-only-value", "test");
-      expect(result).toBe("plain-only-value");
+    it("returns null when ciphertext is null/undefined", async () => {
+      expect(await readSecret(null, "test")).toBeNull();
+      expect(await readSecret(undefined, "test")).toBeNull();
+      expect(await readSecret("", "test")).toBeNull();
     });
 
-    it("falls back to plain when ciphertext fails to decrypt", async () => {
+    it("returns null and logs when decryption fails (e.g. wrong key)", async () => {
       const cipher = await encryptSecret("encrypted-value");
       // 鍵を別のものに変える → 復号失敗
       process.env.SECRET_ENCRYPTION_KEY = "/////////////////////////////////////////w==";
-      const result = await readSecret(cipher, "plain-fallback", "test");
-      expect(result).toBe("plain-fallback");
-    });
-
-    it("returns null when both columns are empty", async () => {
-      expect(await readSecret(null, null, "test")).toBeNull();
-      expect(await readSecret(undefined, undefined, "test")).toBeNull();
-    });
-
-    it("returns null when ciphertext fails and plain is also null", async () => {
-      const cipher = await encryptSecret("encrypted-value");
-      process.env.SECRET_ENCRYPTION_KEY = "/////////////////////////////////////////w==";
-      const result = await readSecret(cipher, null, "test");
+      const result = await readSecret(cipher, "test");
       expect(result).toBeNull();
     });
 
-    it("ignores ciphertext that does not look like an envelope", async () => {
-      // 平文がそのまま ciphertext 列に紛れ込んでいるケース
-      const result = await readSecret("not-an-envelope", "real-plain", "test");
-      expect(result).toBe("real-plain");
+    it("returns null for malformed envelopes", async () => {
+      expect(await readSecret("not-an-envelope", "test")).toBeNull();
+      expect(await readSecret("v1.only-one-segment", "test")).toBeNull();
     });
   });
 });

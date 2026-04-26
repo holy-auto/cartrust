@@ -82,8 +82,6 @@ export async function POST(req: NextRequest) {
     const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     if (data.action === "configure") {
-      // dual-write: 平文列と ciphertext 列の両方に書く (PR1)。
-      // 後続 PR で平文列は backfill 後 DROP 予定。
       const secretPayload = await buildSecretWrite(data.channel_secret);
       const accessTokenPayload = await buildSecretWrite(data.channel_access_token);
 
@@ -91,9 +89,7 @@ export async function POST(req: NextRequest) {
         .from("tenants")
         .update({
           line_channel_id: data.channel_id,
-          line_channel_secret: secretPayload.plain,
           line_channel_secret_ciphertext: secretPayload.ciphertext,
-          line_channel_access_token: accessTokenPayload.plain,
           line_channel_access_token_ciphertext: accessTokenPayload.ciphertext,
           line_liff_id: data.liff_id,
           line_enabled: true,
@@ -111,9 +107,7 @@ export async function POST(req: NextRequest) {
       .from("tenants")
       .update({
         line_channel_id: null,
-        line_channel_secret: null,
         line_channel_secret_ciphertext: null,
-        line_channel_access_token: null,
         line_channel_access_token_ciphertext: null,
         line_liff_id: null,
         line_enabled: false,

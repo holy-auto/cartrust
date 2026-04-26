@@ -162,7 +162,7 @@ async function resolveTenant(merchantId: string) {
   );
   const { data: conn, error } = await admin
     .from("square_connections")
-    .select("tenant_id, square_access_token, square_access_token_ciphertext, square_location_ids")
+    .select("tenant_id, square_access_token_ciphertext, square_location_ids")
     .eq("square_merchant_id", merchantId)
     .eq("status", "active")
     .maybeSingle();
@@ -173,10 +173,8 @@ async function resolveTenant(merchantId: string) {
   }
   if (!conn) return null;
 
-  // dual-read: ciphertext 優先 / 平文 fallback
   const accessToken = await readSecret(
     conn.square_access_token_ciphertext as string | null,
-    conn.square_access_token as string | null,
     "square_connections.square_access_token",
   );
 

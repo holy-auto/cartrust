@@ -21,22 +21,16 @@ async function getLineConfig(tenantId: string): Promise<LineConfig | null> {
   const { data: tenant } = await admin
     .from("tenants")
     .select(
-      "line_channel_id, line_channel_secret, line_channel_secret_ciphertext, line_channel_access_token, line_channel_access_token_ciphertext, line_liff_id, line_enabled",
+      "line_channel_id, line_channel_secret_ciphertext, line_channel_access_token_ciphertext, line_liff_id, line_enabled",
     )
     .eq("id", tenantId)
     .single();
 
   if (!tenant?.line_enabled) return null;
 
-  // dual-read: ciphertext 優先 / 平文 fallback
-  const channelSecret = await readSecret(
-    tenant.line_channel_secret_ciphertext,
-    tenant.line_channel_secret,
-    "tenants.line_channel_secret",
-  );
+  const channelSecret = await readSecret(tenant.line_channel_secret_ciphertext, "tenants.line_channel_secret");
   const channelAccessToken = await readSecret(
     tenant.line_channel_access_token_ciphertext,
-    tenant.line_channel_access_token,
     "tenants.line_channel_access_token",
   );
 
