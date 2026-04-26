@@ -15,6 +15,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
 
   const title = dbPost?.title ?? mdxEntry?.frontmatter.title ?? "Ledra ブログ";
   const subtitle = dbPost?.excerpt ?? mdxEntry?.frontmatter.excerpt ?? undefined;
+  const imageUrl = dbPost?.hero_image_url ?? undefined;
 
-  return makeOgImage({ badge: "BLOG", title, subtitle });
+  return makeOgImage({ badge: "BLOG", title, subtitle, imageUrl });
 }

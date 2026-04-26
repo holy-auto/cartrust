@@ -3,7 +3,7 @@ import { SectionHeading } from "@/components/marketing/SectionHeading";
 import { FAQList } from "@/components/marketing/FAQList";
 import { FAQItem } from "@/components/marketing/FAQItem";
 import { CTABanner } from "@/components/marketing/CTABanner";
-import { FAQJsonLd } from "@/components/marketing/JsonLd";
+import { FAQJsonLd, BreadcrumbJsonLd } from "@/components/marketing/JsonLd";
 
 export const metadata = {
   title: "よくある質問",
@@ -109,6 +109,10 @@ export default function FAQPage() {
   return (
     <>
       <FAQJsonLd items={ALL_FAQ_ITEMS} />
+      <BreadcrumbJsonLd items={[
+        { name: "ホーム", url: "/" },
+        { name: "よくある質問", url: "/faq" },
+      ]} />
 
       <Section bg="white">
         <SectionHeading title="よくある質問" subtitle="Ledraに関するよくあるご質問をまとめました。" />

@@ -6,7 +6,7 @@ import { CTABanner } from "@/components/marketing/CTABanner";
 import { ScrollReveal } from "@/components/marketing/ScrollReveal";
 import { FAQList } from "@/components/marketing/FAQList";
 import { FAQItem } from "@/components/marketing/FAQItem";
-import { PricingJsonLd } from "@/components/marketing/JsonLd";
+import { PricingJsonLd, BreadcrumbJsonLd } from "@/components/marketing/JsonLd";
 import {
   PLANS,
   FEATURE_COMPARISON,
@@ -31,6 +31,10 @@ export default function PricingPage() {
   return (
     <>
       <PricingJsonLd plans={PLAN_OFFERS} />
+      <BreadcrumbJsonLd items={[
+        { name: "ホーム", url: "/" },
+        { name: "料金プラン", url: "/pricing" },
+      ]} />
       {/* Hero */}
       <Section bg="white">
         <SectionHeading

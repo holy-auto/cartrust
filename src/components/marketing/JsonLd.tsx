@@ -94,3 +94,21 @@ export async function PricingJsonLd({ plans }: { plans: PlanOffer[] }) {
   const nonce = await getNonce();
   return <script type="application/ld+json" nonce={nonce} dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />;
 }
+
+type BreadcrumbItem = { name: string; url: string };
+
+export async function BreadcrumbJsonLd({ items }: { items: BreadcrumbItem[] }) {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map(({ name, url }, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name,
+      item: `${siteConfig.siteUrl}${url}`,
+    })),
+  };
+
+  const nonce = await getNonce();
+  return <script type="application/ld+json" nonce={nonce} dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />;
+}
