@@ -192,7 +192,7 @@ export default function PocPage() {
                   <div className="h-3 w-3 rounded-full bg-green-500/60" />
                 </div>
                 <div className="flex-1 rounded-md bg-white/[0.05] px-3 py-1 text-center font-mono text-xs text-white/30">
-                  ledra.jp/v/JT2BF22K1W0066983
+                  ledra.co.jp/v/JT2BF22K1W0066983
                 </div>
               </div>
               {/* コンテンツ */}
