@@ -228,6 +228,8 @@ export default function OrdersClient() {
     category: "",
     budget: "",
     deadline: "",
+    requester_email: "",
+    requester_company: "",
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -344,12 +346,14 @@ export default function OrdersClient() {
           to_tenant_id: selectedTenant?.tenant_id || null,
           budget: formData.budget ? Number(formData.budget) : null,
           deadline: formData.deadline || null,
+          requester_email: formData.requester_email || null,
+          requester_company: formData.requester_company || null,
         }),
       });
       const j = await parseJsonSafe(res);
       if (!res.ok) throw new Error(j?.error ?? `HTTP ${res.status}`);
       setShowForm(false);
-      setFormData({ title: "", description: "", category: "", budget: "", deadline: "" });
+      setFormData({ title: "", description: "", category: "", budget: "", deadline: "", requester_email: "", requester_company: "" });
       setSelectedTenant(null);
       setTenantQuery("");
       await fetchOrders(typeFilter, statusFilter);
@@ -644,6 +648,34 @@ export default function OrdersClient() {
                   value={formData.deadline}
                   onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
                 />
+              </div>
+            </div>
+
+            {/* 請求書送付先 */}
+            <div className="rounded-lg border border-border bg-surface-hover p-4 space-y-3">
+              <p className="text-xs font-semibold text-secondary">請求書の自動送付先（任意）</p>
+              <p className="text-[11px] text-muted">入力すると検収承認時に請求書PDFをメールで自動送付します。プラットフォーム手数料10%を差し引いた金額が施工店に自動送金されます。</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted">請求書送付先メール</label>
+                  <input
+                    type="email"
+                    className="input-field"
+                    value={formData.requester_email}
+                    onChange={(e) => setFormData({ ...formData, requester_email: e.target.value })}
+                    placeholder="例: billing@company.co.jp"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted">請求先会社名</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={formData.requester_company}
+                    onChange={(e) => setFormData({ ...formData, requester_company: e.target.value })}
+                    placeholder="例: 株式会社〇〇"
+                  />
+                </div>
               </div>
             </div>
             <div className="flex gap-2">
