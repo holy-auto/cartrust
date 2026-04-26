@@ -12,7 +12,7 @@ import { CTAButton } from "@/components/marketing/CTAButton";
 export const metadata = {
   title: "施工を依頼したい企業の方へ",
   description:
-    "コーティング・PPF・ラッピング・板金塗装の外注先をお探しですか？Ledraなら全国の認定施工店へ発注から支払いまで一元管理。取引手数料0円で、現場に直接利益を届けます。",
+    "コーティング・PPF・ラッピング・板金塗装の外注先をお探しですか？Ledraなら全国の認定施工店へ発注から支払いまで一元管理。プラットフォーム手数料10%で決済・証明書発行まで完全自動化します。",
   alternates: { canonical: "/for-btob" },
 };
 
@@ -30,8 +30,8 @@ const challenges = [
     desc: "施工が終わっても記録は口頭だけ。後から確認を求められても、証拠が何もない。",
   },
   {
-    title: "中間マージンで現場に利益が残らない",
-    desc: "仲介業者を通すたびに手数料が乗る。実際に施工してくれる職人には、思ったより報酬が届いていない。",
+    title: "支払いと証明書の管理が煩雑",
+    desc: "施工完了後の請求確認・振込・証明書回収を手作業で行うと、件数が増えるほど工数が膨らむ。",
   },
 ];
 
@@ -54,12 +54,12 @@ const steps = [
   {
     step: "4",
     title: "デジタル施工証明書で完了確認",
-    desc: "施工完了と同時に証明書が発行。QRコードと写真つきで、施工内容が永久に記録されます。",
+    desc: "施工完了と同時に証明書が自動発行。QRコードと写真つきで、施工内容が永久に記録されます。",
   },
   {
     step: "5",
-    title: "プラットフォーム上で精算",
-    desc: "合意した金額を施工店に直接支払い。取引手数料は0円。中間マージンは発生しません。",
+    title: "決済を自動処理、施工店に自動送金",
+    desc: "合意金額からプラットフォーム手数料10%を引いた金額が施工店へ自動送金されます。請求書の発行・入金確認・振込の手間がすべてなくなります。",
   },
 ];
 
@@ -70,9 +70,9 @@ const features = [
       "PPF・コーティング・ラッピング・板金塗装など、専門施工店へ直接依頼。エリアや得意分野で絞り込めます。",
   },
   {
-    title: "取引手数料0円",
+    title: "決済・送金の完全自動化",
     description:
-      "Ledraは施工店と依頼企業の間に取引手数料を課しません。合意した金額がそのまま現場に届きます。",
+      "Stripeによる決済処理と施工店への自動送金。支払い確認・振込の手作業がゼロになります。手数料10%で全てを自動化。",
   },
   {
     title: "デジタル施工証明書",
@@ -121,10 +121,10 @@ export default function ForBtoBPage() {
       <PageHero
         badge="FOR BUSINESS"
         title="施工を依頼したい企業の方へ"
-        subtitle="全国の認定施工店に直接発注。取引手数料0円で、現場の職人に利益が届く新しいBtoBプラットフォームです。見積もり・進捗管理・デジタル証明書まで、ひとつの画面で完結します。"
+        subtitle="全国の認定施工店に直接発注。プラットフォーム手数料10%で決済・証明書発行・進捗管理まで完全自動化します。見積もりから支払いまで、ひとつの画面で完結。"
       />
 
-      {/* Hero CTA + zero fee badge */}
+      {/* Hero CTA + fee badge */}
       <Section>
         <div className="text-center space-y-6">
           <div className="flex flex-col sm:flex-row justify-center gap-3">
@@ -136,7 +136,7 @@ export default function ForBtoBPage() {
             </CTAButton>
           </div>
           <div className="flex justify-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 border border-green-500/20 text-green-300 text-sm font-medium">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-sm font-medium">
               <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 shrink-0">
                 <path
                   fillRule="evenodd"
@@ -144,7 +144,7 @@ export default function ForBtoBPage() {
                   clipRule="evenodd"
                 />
               </svg>
-              取引手数料0円 — 合意金額の100%が施工店に届きます
+              プラットフォーム手数料10% — 決済自動化・証明書発行・進捗管理が全て込み
             </div>
           </div>
         </div>
@@ -163,35 +163,34 @@ export default function ForBtoBPage() {
         </FeatureGrid>
       </Section>
 
-      {/* Zero fee emphasis */}
+      {/* Fee structure emphasis */}
       <Section>
         <div className="mx-auto max-w-3xl">
           <ScrollReveal variant="fade-up">
-            <div className="rounded-2xl border border-green-500/20 bg-green-500/[0.04] p-8 md:p-12 text-center">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium text-green-300 bg-green-500/10 border border-green-500/20 mb-6">
-                取引手数料について
+            <div className="rounded-2xl border border-blue-500/20 bg-blue-500/[0.04] p-8 md:p-12 text-center">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium text-blue-300 bg-blue-500/10 border border-blue-500/20 mb-6">
+                手数料の仕組み
               </div>
               <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">
-                施工店に届くのは、合意金額の
-                <span className="text-green-400"> 100%</span>
+                手数料<span className="text-blue-400"> 10%</span> で、決済を丸ごと自動化
               </h2>
               <p className="mt-4 text-[0.938rem] leading-[1.9] text-white/60 max-w-xl mx-auto">
-                Ledraの受発注プラットフォームは、取引ごとの手数料を一切課しません。
-                仲介マージンがない分、施工店は適正価格で受注でき、依頼企業は余計なコストを払わずに済みます。
-                プラットフォームの維持はサブスクリプション型の月額料金でまかなわれており、
-                取引そのものには課金しません。
+                合意金額の10%をプラットフォーム手数料としていただきます。
+                その代わり、決済処理・施工店への自動送金・施工証明書の発行・進捗通知まで、
+                支払い周りの作業が全て自動化されます。
+                従来の仲介業者（20〜30%）と比べて低コストで、煩雑な手作業もなくなります。
               </p>
               <div className="mt-8 grid grid-cols-3 gap-4 max-w-sm mx-auto">
                 {[
-                  { label: "取引手数料", value: "0円" },
-                  { label: "仲介マージン", value: "なし" },
-                  { label: "隠れたコスト", value: "なし" },
+                  { label: "プラットフォーム手数料", value: "10%" },
+                  { label: "決済自動化", value: "込み" },
+                  { label: "証明書発行", value: "自動" },
                 ].map((item) => (
                   <div
                     key={item.label}
-                    className="rounded-xl border border-green-500/20 bg-green-500/[0.04] p-4 text-center"
+                    className="rounded-xl border border-blue-500/20 bg-blue-500/[0.04] p-4 text-center"
                   >
-                    <div className="text-xl font-bold text-green-400">{item.value}</div>
+                    <div className="text-xl font-bold text-blue-400">{item.value}</div>
                     <div className="mt-1 text-xs text-white/40">{item.label}</div>
                   </div>
                 ))}
@@ -258,8 +257,8 @@ export default function ForBtoBPage() {
             answer="現在のBtoBプラットフォームはLedra登録施工店間での受発注に対応しています。連携させたい施工店がある場合は、施工店側に無料アカウントを作成いただくことで発注が可能になります。"
           />
           <FAQItem
-            question="取引手数料が本当に0円というのは本当ですか？"
-            answer="はい。受発注の取引ごとに手数料は発生しません。Ledraはサブスクリプション型の月額プランで運営されており、施工店が受け取る金額から差し引かれるものはありません。"
+            question="プラットフォーム手数料の10%は誰が負担しますか？"
+            answer="手数料は取引金額から差し引かれ、施工店の受取金額が合意額の90%になります。決済自動化・証明書発行・進捗管理の全機能がこの10%に含まれます。従来の仲介業者（20〜30%）よりも低コストで、かつ手作業がゼロになります。"
           />
           <FAQItem
             question="施工証明書は保険会社や社内向けに使えますか？"
@@ -270,7 +269,7 @@ export default function ForBtoBPage() {
             answer="はい。受発注管理画面では複数の案件をステータス別に一覧表示できます。申請中・見積中・作業中・完了など、進捗をリアルタイムで把握できます。"
           />
           <FAQItem
-            question="利用料金はどのくらいかかりますか？"
+            question="月額プランの費用はどのくらいかかりますか？"
             answer={
               <>
                 受発注機能は無料プランから利用可能です。より高度な管理機能が必要な場合はStarter / Standard / Proプランをご検討ください。詳細は
@@ -285,8 +284,8 @@ export default function ForBtoBPage() {
       </Section>
 
       <CTABanner
-        title="現場に、利益が届く仕組みを。"
-        subtitle="取引手数料0円のBtoBプラットフォームで、施工依頼をはじめましょう。"
+        title="発注から支払いまで、全て自動化。"
+        subtitle="プラットフォーム手数料10%で、施工外注の面倒をまるごと解消します。"
         primaryLabel="無料で相談する"
         primaryHref="/contact?role=btob"
         secondaryLabel="アカウントを作成"

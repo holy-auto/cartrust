@@ -402,17 +402,19 @@ export default function OrdersClient() {
         }
       />
 
-      {/* Zero-fee banner */}
-      <div className="flex items-center gap-3 rounded-xl border border-green-500/20 bg-green-500/[0.04] px-4 py-3 text-sm">
-        <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 shrink-0 text-green-400">
+      {/* Platform fee banner */}
+      <div className="flex items-start gap-3 rounded-xl border border-blue-500/20 bg-blue-500/[0.04] px-4 py-3 text-sm">
+        <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 shrink-0 text-blue-400 mt-0.5">
           <path
             fillRule="evenodd"
-            d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z"
+            d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z"
             clipRule="evenodd"
           />
         </svg>
-        <span className="text-green-300 font-medium">取引手数料0円</span>
-        <span className="text-secondary">— 合意金額の100%が受注した施工店に届きます。中間マージンは発生しません。</span>
+        <div>
+          <span className="text-blue-300 font-medium">プラットフォーム手数料 10%</span>
+          <span className="text-secondary ml-2">— 決済自動化・証明書発行・進捗管理が全て込みです。受注金額の90%が施工店に自動送金されます。</span>
+        </div>
       </div>
 
       {/* Stats */}
