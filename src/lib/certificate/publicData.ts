@@ -222,12 +222,12 @@ export async function getPublicCertificateData(pid: string): Promise<PublicCerti
   let passportVin: string | null = null;
   const vinNormalized = vehicle?.vin_code_normalized ?? null;
   if (vinNormalized) {
-    const { data: passportRow } = await supabase
+    // vehicle_passports is not yet in the Supabase generated types, so cast through any
+    const { data: passportRow } = await (supabase as any)
       .from("vehicle_passports")
       .select("vin_code_normalized")
       .eq("vin_code_normalized", vinNormalized)
-      .returns<{ vin_code_normalized: string }>()
-      .maybeSingle();
+      .maybeSingle() as { data: { vin_code_normalized: string } | null };
     passportVin = passportRow?.vin_code_normalized ?? null;
   }
 
