@@ -36,7 +36,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const { data: order, error: fetchErr } = await admin
       .from("job_orders")
-      .select("id, status, from_tenant_id, inspection_signed_at")
+      .select("id, status, from_tenant_id, inspection_signed_at, billing_timing")
       .eq("id", id)
       .single();
 
@@ -90,11 +90,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       })
       .then(() => {}, console.error);
 
-    // 請求書メール自動送付
-    const { sendOrderInvoiceEmail } = await import("@/lib/orders/orderInvoice");
-    sendOrderInvoiceEmail(id).catch((e: unknown) =>
-      console.error("[inspection-sign] invoice email failed:", e),
-    );
+    // 請求書メール自動送付（都度払いのみ。末締めは月末cronで処理）
+    if (!order.billing_timing || order.billing_timing === "on_inspection") {
+      const { sendOrderInvoiceEmail } = await import("@/lib/orders/orderInvoice");
+      sendOrderInvoiceEmail(id).catch((e: unknown) =>
+        console.error("[inspection-sign] invoice email failed:", e),
+      );
+    }
 
     return apiJson({ ok: true, order: data });
   } catch (e: unknown) {

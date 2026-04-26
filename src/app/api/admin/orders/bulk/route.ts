@@ -38,6 +38,14 @@ export async function POST(req: NextRequest) {
 
     const { admin } = createTenantScopedAdmin(caller.tenantId);
 
+    // 発注元の請求タイミング設定を一度だけ取得して全行に適用
+    const { data: billingSettings } = await admin
+      .from("tenant_billing_settings")
+      .select("billing_timing")
+      .eq("tenant_id", caller.tenantId)
+      .maybeSingle();
+    const billingTiming = billingSettings?.billing_timing ?? "on_inspection";
+
     let created = 0;
     const failed: { index: number; title: string; error: string }[] = [];
 
@@ -50,6 +58,7 @@ export async function POST(req: NextRequest) {
         from_tenant_id: caller.tenantId,
         title,
         status: "pending",
+        billing_timing: billingTiming,
       };
       if (to_tenant_id) insertPayload.to_tenant_id = to_tenant_id;
       if (description) insertPayload.description = description;

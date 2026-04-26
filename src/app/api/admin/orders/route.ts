@@ -197,6 +197,14 @@ export async function POST(req: NextRequest) {
     // Use admin client to bypass RLS (API already validated auth above)
     const { admin } = createTenantScopedAdmin(caller.tenantId);
 
+    // 発注元の請求タイミング設定を引き継ぐ
+    const { data: billingSettings } = await admin
+      .from("tenant_billing_settings")
+      .select("billing_timing")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+    const billingTiming = billingSettings?.billing_timing ?? "on_inspection";
+
     // Build insert payload — only include non-null fields to avoid
     // hitting unexpected NOT NULL constraints on columns with defaults
     const insertPayload: Record<string, unknown> = {
@@ -204,6 +212,7 @@ export async function POST(req: NextRequest) {
       from_tenant_id: tenantId,
       title,
       status: "pending",
+      billing_timing: billingTiming,
     };
     if (to_tenant_id) insertPayload.to_tenant_id = to_tenant_id;
     if (description) insertPayload.description = description;
