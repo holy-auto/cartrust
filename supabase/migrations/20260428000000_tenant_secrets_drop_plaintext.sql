@@ -19,7 +19,52 @@
 --   square_connections.square_refresh_token
 -- ============================================================
 
--- 1) Pre-flight check: 暗号化されていない平文がまだ残っていないか確認
+-- 1) Pre-flight: PR1 (ciphertext 列追加) が適用されていることを確認。
+--    これが無いと後続の `*_ciphertext` 参照が "column does not exist" で
+--    落ちるため、明確なメッセージで早期に失敗させる。
+DO $$
+DECLARE
+  missing text[] := ARRAY[]::text[];
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'tenants'
+      AND column_name = 'line_channel_secret_ciphertext'
+  ) THEN
+    missing := array_append(missing, 'tenants.line_channel_secret_ciphertext');
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'tenants'
+      AND column_name = 'line_channel_access_token_ciphertext'
+  ) THEN
+    missing := array_append(missing, 'tenants.line_channel_access_token_ciphertext');
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'square_connections'
+      AND column_name = 'square_access_token_ciphertext'
+  ) THEN
+    missing := array_append(missing, 'square_connections.square_access_token_ciphertext');
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'square_connections'
+      AND column_name = 'square_refresh_token_ciphertext'
+  ) THEN
+    missing := array_append(missing, 'square_connections.square_refresh_token_ciphertext');
+  END IF;
+
+  IF array_length(missing, 1) > 0 THEN
+    RAISE EXCEPTION
+      'PR1 (20260427000000_tenant_secrets_ciphertext.sql) must be applied before this migration. Missing columns: %',
+      array_to_string(missing, ', ');
+  END IF;
+END
+$$;
+
+-- 2) Pre-flight: 平文だけで暗号化されていない行が無いことを確認。
+--    PR1 が適用されていても、PR2 の backfill cron 未実行ならここで止まる。
 DO $$
 DECLARE
   unencrypted_count integer;
@@ -46,13 +91,13 @@ BEGIN
 END
 $$;
 
--- 2) square_connections: 元々 NOT NULL だった列を NULL 許可へ
+-- 3) square_connections: 元々 NOT NULL だった列を NULL 許可へ
 --    (DROP COLUMN するので実質的には無意味だが、定義の整合性のため明示)
 ALTER TABLE square_connections
   ALTER COLUMN square_access_token DROP NOT NULL,
   ALTER COLUMN square_refresh_token DROP NOT NULL;
 
--- 3) 平文列を DROP
+-- 4) 平文列を DROP
 ALTER TABLE tenants
   DROP COLUMN IF EXISTS line_channel_secret,
   DROP COLUMN IF EXISTS line_channel_access_token;
