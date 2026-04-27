@@ -49,9 +49,7 @@ export default async function NewsDetailPage({ params }: Props) {
           </div>
           <div className="mt-6 flex flex-wrap items-center gap-3 text-xs text-white/75">
             {entry.frontmatter.publishedAt && (
-              <time dateTime={entry.frontmatter.publishedAt}>
-                {formatDate(entry.frontmatter.publishedAt)}
-              </time>
+              <time dateTime={entry.frontmatter.publishedAt}>{formatDate(entry.frontmatter.publishedAt)}</time>
             )}
             {entry.frontmatter.tags?.map((t) => (
               <span

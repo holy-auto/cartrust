@@ -79,9 +79,7 @@ export function ROICalculator() {
       {/* Inputs */}
       <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-7 md:p-8">
         <h3 className="text-[1.125rem] font-bold text-white">現状の数値を入力</h3>
-        <p className="mt-2 text-xs text-white/80">
-          おおよその値で問題ありません。推定値を自動で計算します。
-        </p>
+        <p className="mt-2 text-xs text-white/80">おおよその値で問題ありません。推定値を自動で計算します。</p>
 
         <div className="mt-6 space-y-5">
           <NumberField
@@ -165,9 +163,7 @@ export function ROICalculator() {
           <div className="w-full max-w-xl rounded-2xl border border-white/[0.08] bg-[#0b111c] shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
             <div className="flex items-start justify-between p-6 border-b border-white/[0.06]">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-blue-300">
-                  ROI 詳細レポート
-                </p>
+                <p className="text-xs font-medium uppercase tracking-wider text-blue-300">ROI 詳細レポート</p>
                 <h4 className="mt-2 text-lg font-bold text-white leading-snug">
                   試算結果 {formatYen(result.totalSavingYen)} / 年 のレポートをお送りします
                 </h4>
@@ -178,7 +174,15 @@ export function ROICalculator() {
                 className="rounded-lg p-2 text-white/75 hover:bg-white/[0.06] hover:text-white"
                 aria-label="閉じる"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                >
                   <line x1="6" y1="6" x2="18" y2="18" />
                   <line x1="6" y1="18" x2="18" y2="6" />
                 </svg>

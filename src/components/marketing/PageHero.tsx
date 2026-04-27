@@ -1,14 +1,6 @@
 import { Container } from "./Container";
 
-export function PageHero({
-  badge,
-  title,
-  subtitle,
-}: {
-  badge?: string;
-  title: string;
-  subtitle?: string;
-}) {
+export function PageHero({ badge, title, subtitle }: { badge?: string; title: string; subtitle?: string }) {
   return (
     <section className="relative overflow-hidden bg-[#070b14] flex items-center">
       {/* Animated background */}

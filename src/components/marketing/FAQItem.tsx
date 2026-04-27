@@ -2,13 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 
-export function FAQItem({
-  question,
-  answer,
-}: {
-  question: string;
-  answer: ReactNode;
-}) {
+export function FAQItem({ question, answer }: { question: string; answer: ReactNode }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -35,9 +29,7 @@ export function FAQItem({
         className={`grid transition-[grid-template-rows] duration-200 ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
       >
         <div className="overflow-hidden">
-          <div className="pb-6 text-[0.938rem] leading-[1.75] text-white/80">
-            {answer}
-          </div>
+          <div className="pb-6 text-[0.938rem] leading-[1.75] text-white/80">{answer}</div>
         </div>
       </div>
     </div>

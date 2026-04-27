@@ -50,18 +50,15 @@ const supportOfferings = [
   },
   {
     title: "オンボーディング教材",
-    description:
-      "ロール別チュートリアル動画・操作マニュアルPDF・FAQ を提供。新入スタッフの教育も自走できる形に。",
+    description: "ロール別チュートリアル動画・操作マニュアルPDF・FAQ を提供。新入スタッフの教育も自走できる形に。",
   },
   {
     title: "定期ヘルスチェック",
-    description:
-      "四半期ごとに利用状況・KPIの振り返りを実施。未使用機能の活用提案・運用改善のご提案をお送りします。",
+    description: "四半期ごとに利用状況・KPIの振り返りを実施。未使用機能の活用提案・運用改善のご提案をお送りします。",
   },
   {
     title: "優先サポート窓口",
-    description:
-      "Pro / Enterprise プランには専用Slackまたはメール窓口を開設。担当者が直接対応します。",
+    description: "Pro / Enterprise プランには専用Slackまたはメール窓口を開設。担当者が直接対応します。",
   },
   {
     title: "カスタム開発・API連携",
@@ -70,8 +67,7 @@ const supportOfferings = [
   },
   {
     title: "知識共有コミュニティ",
-    description:
-      "導入企業限定のオンラインコミュニティ。運用ノウハウ・事例の共有、プロダクトロードマップのプレビュー。",
+    description: "導入企業限定のオンラインコミュニティ。運用ノウハウ・事例の共有、プロダクトロードマップのプレビュー。",
   },
 ];
 
@@ -125,12 +121,8 @@ export default function SupportPage() {
                   {s.step}
                 </div>
                 <div>
-                  <h3 className="text-[1.063rem] font-bold text-white leading-snug">
-                    {s.title}
-                  </h3>
-                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white/80">
-                    {s.desc}
-                  </p>
+                  <h3 className="text-[1.063rem] font-bold text-white leading-snug">{s.title}</h3>
+                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white/80">{s.desc}</p>
                 </div>
               </div>
             </ScrollReveal>
@@ -140,18 +132,10 @@ export default function SupportPage() {
 
       {/* Support offerings */}
       <Section bg="alt">
-        <SectionHeading
-          title="提供するサポート"
-          subtitle="プランに応じて、必要な支援を必要な深さで。"
-        />
+        <SectionHeading title="提供するサポート" subtitle="プランに応じて、必要な支援を必要な深さで。" />
         <FeatureGrid className="mt-10">
           {supportOfferings.map((item, i) => (
-            <FeatureCard
-              key={item.title}
-              title={item.title}
-              description={item.description}
-              delay={i * 50}
-            />
+            <FeatureCard key={item.title} title={item.title} description={item.description} delay={i * 50} />
           ))}
         </FeatureGrid>
       </Section>
@@ -166,26 +150,15 @@ export default function SupportPage() {
           <table className="w-full text-left text-sm">
             <thead className="border-b border-white/[0.08] bg-white/[0.02]">
               <tr>
-                <th className="px-4 py-4 text-xs font-medium text-white/80 uppercase tracking-widest">
-                  プラン
-                </th>
-                <th className="px-4 py-4 text-xs font-medium text-white/80 uppercase tracking-widest">
-                  初回応答
-                </th>
-                <th className="px-4 py-4 text-xs font-medium text-white/80 uppercase tracking-widest">
-                  対応時間
-                </th>
-                <th className="px-4 py-4 text-xs font-medium text-white/80 uppercase tracking-widest">
-                  チャネル
-                </th>
+                <th className="px-4 py-4 text-xs font-medium text-white/80 uppercase tracking-widest">プラン</th>
+                <th className="px-4 py-4 text-xs font-medium text-white/80 uppercase tracking-widest">初回応答</th>
+                <th className="px-4 py-4 text-xs font-medium text-white/80 uppercase tracking-widest">対応時間</th>
+                <th className="px-4 py-4 text-xs font-medium text-white/80 uppercase tracking-widest">チャネル</th>
               </tr>
             </thead>
             <tbody>
               {slaTable.map((row, idx) => (
-                <tr
-                  key={row.plan}
-                  className={idx > 0 ? "border-t border-white/[0.04]" : ""}
-                >
+                <tr key={row.plan} className={idx > 0 ? "border-t border-white/[0.04]" : ""}>
                   <td className="px-4 py-5 font-semibold text-white">{row.plan}</td>
                   <td className="px-4 py-5 text-white/70">{row.response}</td>
                   <td className="px-4 py-5 text-white/70">{row.hours}</td>

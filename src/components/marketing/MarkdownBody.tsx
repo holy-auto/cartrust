@@ -19,15 +19,9 @@ export function MarkdownBody({ content }: { content: string }) {
             {children}
           </h2>
         ),
-        h3: ({ children }) => (
-          <h3 className="mt-10 mb-4 text-lg font-bold text-white leading-snug">
-            {children}
-          </h3>
-        ),
+        h3: ({ children }) => <h3 className="mt-10 mb-4 text-lg font-bold text-white leading-snug">{children}</h3>,
         p: ({ children }) => (
-          <p className="my-5 text-[0.938rem] md:text-base leading-[1.9] text-white/75">
-            {children}
-          </p>
+          <p className="my-5 text-[0.938rem] md:text-base leading-[1.9] text-white/75">{children}</p>
         ),
         a: ({ href, children }) => (
           <a
@@ -66,9 +60,7 @@ export function MarkdownBody({ content }: { content: string }) {
           </pre>
         ),
         hr: () => <hr className="my-10 border-white/[0.08]" />,
-        strong: ({ children }) => (
-          <strong className="font-bold text-white">{children}</strong>
-        ),
+        strong: ({ children }) => <strong className="font-bold text-white">{children}</strong>,
         em: ({ children }) => <em className="italic text-white/80">{children}</em>,
       }}
     >

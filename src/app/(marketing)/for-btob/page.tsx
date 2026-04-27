@@ -66,8 +66,7 @@ const steps = [
 const features = [
   {
     title: "全国の認定施工店ネットワーク",
-    description:
-      "PPF・コーティング・ラッピング・板金塗装など、専門施工店へ直接依頼。エリアや得意分野で絞り込めます。",
+    description: "PPF・コーティング・ラッピング・板金塗装など、専門施工店へ直接依頼。エリアや得意分野で絞り込めます。",
   },
   {
     title: "決済・送金の完全自動化",
@@ -76,23 +75,19 @@ const features = [
   },
   {
     title: "デジタル施工証明書",
-    description:
-      "施工完了と同時にQRコード付き証明書が自動発行。保険会社への提出や社内の納品確認がスムーズになります。",
+    description: "施工完了と同時にQRコード付き証明書が自動発行。保険会社への提出や社内の納品確認がスムーズになります。",
   },
   {
     title: "一元化された発注管理",
-    description:
-      "複数の案件を一画面で管理。申請中・作業中・完了まで、ステータスをリアルタイムで把握できます。",
+    description: "複数の案件を一画面で管理。申請中・作業中・完了まで、ステータスをリアルタイムで把握できます。",
   },
   {
     title: "パートナーランクで品質を可視化",
-    description:
-      "施工店の完了件数・評価・納期遵守率がスコア化されています。依頼先選びの参考にできます。",
+    description: "施工店の完了件数・評価・納期遵守率がスコア化されています。依頼先選びの参考にできます。",
   },
   {
     title: "ブロックチェーン証明",
-    description:
-      "施工証明書はPolygonブロックチェーンに刻まれます。改ざん不可の記録として、法的証拠にも使えます。",
+    description: "施工証明書はPolygonブロックチェーンに刻まれます。改ざん不可の記録として、法的証拠にも使えます。",
   },
 ];
 
@@ -202,7 +197,10 @@ export default function ForBtoBPage() {
 
       {/* Use cases */}
       <Section bg="alt">
-        <SectionHeading title="こんな企業に使われています" subtitle="業種を問わず、車両施工の外注管理にご活用いただけます。" />
+        <SectionHeading
+          title="こんな企業に使われています"
+          subtitle="業種を問わず、車両施工の外注管理にご活用いただけます。"
+        />
         <div className="mx-auto mt-10 max-w-4xl grid grid-cols-1 sm:grid-cols-2 gap-5">
           {usecases.map((u, i) => (
             <ScrollReveal key={u.title} variant="fade-up" delay={i * 60}>
@@ -217,10 +215,7 @@ export default function ForBtoBPage() {
 
       {/* How it works */}
       <Section>
-        <SectionHeading
-          title="発注の流れ"
-          subtitle="アカウントを作成すれば、すぐに施工依頼を開始できます。"
-        />
+        <SectionHeading title="発注の流れ" subtitle="アカウントを作成すれば、すぐに施工依頼を開始できます。" />
         <div className="mx-auto mt-10 max-w-3xl space-y-4">
           {steps.map((s, i) => (
             <ScrollReveal key={s.step} variant="fade-up" delay={i * 60}>
@@ -272,7 +267,8 @@ export default function ForBtoBPage() {
             question="月額プランの費用はどのくらいかかりますか？"
             answer={
               <>
-                受発注機能は無料プランから利用可能です。より高度な管理機能が必要な場合はStarter / Standard / Proプランをご検討ください。詳細は
+                受発注機能は無料プランから利用可能です。より高度な管理機能が必要な場合はStarter / Standard /
+                Proプランをご検討ください。詳細は
                 <a href="/pricing" className="text-blue-400 underline">
                   料金ページ
                 </a>

@@ -9,8 +9,7 @@ import { listContent } from "@/lib/marketing/content";
 
 export const metadata = {
   title: "導入事例",
-  description:
-    "Ledra を導入いただいている施工店・代理店・保険会社の事例をご紹介します。",
+  description: "Ledra を導入いただいている施工店・代理店・保険会社の事例をご紹介します。",
   alternates: { canonical: "/cases" },
 };
 
@@ -37,7 +36,8 @@ export default async function CasesPage() {
                 この場所には、あなたの事例が入る。
               </h2>
               <p className="mt-5 text-[0.938rem] md:text-base leading-[1.9] text-white/80 max-w-xl mx-auto">
-                Ledra は正式サービスを開始したばかりです。いま、先行導入に参加いただける施工店・代理店・保険会社様を募集しています。
+                Ledra
+                は正式サービスを開始したばかりです。いま、先行導入に参加いただける施工店・代理店・保険会社様を募集しています。
                 <br />
                 <br />
                 「はじめての1社」として、業界の記録文化を一緒に作り直していただける方と、お話ししたいと考えています。
@@ -81,9 +81,7 @@ export default async function CasesPage() {
                     {e.frontmatter.title}
                   </h2>
                   {e.frontmatter.excerpt && (
-                    <p className="mt-4 text-[0.938rem] leading-[1.75] text-white/80">
-                      {e.frontmatter.excerpt}
-                    </p>
+                    <p className="mt-4 text-[0.938rem] leading-[1.75] text-white/80">{e.frontmatter.excerpt}</p>
                   )}
                   <p className="mt-6 inline-flex items-center gap-1 text-xs font-medium text-blue-300 group-hover:text-blue-200 transition-colors">
                     事例を読む →

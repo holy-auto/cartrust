@@ -11,9 +11,7 @@ function Article({ children }: { children: ReactNode }) {
 }
 
 function H2({ children }: { children: ReactNode }) {
-  return (
-    <h2 className="mb-3 mt-10 text-lg font-bold text-white">{children}</h2>
-  );
+  return <h2 className="mb-3 mt-10 text-lg font-bold text-white">{children}</h2>;
 }
 
 function P({ children }: { children: ReactNode }) {
@@ -21,11 +19,7 @@ function P({ children }: { children: ReactNode }) {
 }
 
 function Ul({ children }: { children: ReactNode }) {
-  return (
-    <ul className="mb-4 list-disc space-y-1 pl-5 text-sm text-white/80">
-      {children}
-    </ul>
-  );
+  return <ul className="mb-4 list-disc space-y-1 pl-5 text-sm text-white/80">{children}</ul>;
 }
 
 export default function TermsPage() {
@@ -126,10 +120,7 @@ export default function TermsPage() {
       <H2>お問い合わせ</H2>
       <P>
         本規約に関するお問い合わせは{" "}
-        <a
-          href={`mailto:${siteConfig.contactEmail}`}
-          className="font-medium text-blue-400 hover:underline"
-        >
+        <a href={`mailto:${siteConfig.contactEmail}`} className="font-medium text-blue-400 hover:underline">
           {siteConfig.contactEmail}
         </a>{" "}
         までご連絡ください。

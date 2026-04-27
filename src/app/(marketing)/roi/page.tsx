@@ -6,8 +6,7 @@ import { CTABanner } from "@/components/marketing/CTABanner";
 
 export const metadata = {
   title: "ROIシミュレーター",
-  description:
-    "月間の施工証明書発行数・事務時間・再発行コストから、Ledra 導入時の年間削減効果を試算いただけます。",
+  description: "月間の施工証明書発行数・事務時間・再発行コストから、Ledra 導入時の年間削減効果を試算いただけます。",
   alternates: { canonical: "/roi" },
 };
 
@@ -41,8 +40,8 @@ export default function ROIPage() {
             <p className="text-xs font-medium uppercase tracking-wider text-blue-300">01</p>
             <h3 className="mt-3 text-base font-bold text-white">事務時間のロス</h3>
             <p className="mt-3 text-sm leading-relaxed text-white/80">
-              紙・Excel での書類作成、郵送、保管、検索。
-              Ledra は発行から送付までを1タップにまとめ、1件あたりの事務時間を大幅に削減します。
+              紙・Excel での書類作成、郵送、保管、検索。 Ledra
+              は発行から送付までを1タップにまとめ、1件あたりの事務時間を大幅に削減します。
             </p>
           </div>
           <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6">

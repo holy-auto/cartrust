@@ -30,9 +30,7 @@ function Digit({ value, label }: { value: number; label: string }) {
           {String(value).padStart(2, "0")}
         </span>
       </div>
-      <span className="mt-3 text-xs sm:text-sm text-white/75 font-medium tracking-widest uppercase">
-        {label}
-      </span>
+      <span className="mt-3 text-xs sm:text-sm text-white/75 font-medium tracking-widest uppercase">{label}</span>
     </div>
   );
 }

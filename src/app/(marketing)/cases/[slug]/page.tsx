@@ -59,9 +59,7 @@ export default async function CaseDetailPage({ params }: Props) {
             {entry.frontmatter.title}
           </h1>
           {entry.frontmatter.excerpt && (
-            <p className="mt-6 text-base leading-relaxed text-white/80">
-              {entry.frontmatter.excerpt}
-            </p>
+            <p className="mt-6 text-base leading-relaxed text-white/80">{entry.frontmatter.excerpt}</p>
           )}
           <div className="mt-10">
             <MarkdownBody content={entry.body} />

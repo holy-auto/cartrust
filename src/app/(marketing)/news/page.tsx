@@ -41,9 +41,7 @@ export default async function NewsPage() {
                 >
                   <div className="flex flex-wrap items-center gap-3 text-xs text-white/75">
                     {e.frontmatter.publishedAt && (
-                      <time dateTime={e.frontmatter.publishedAt}>
-                        {formatDate(e.frontmatter.publishedAt)}
-                      </time>
+                      <time dateTime={e.frontmatter.publishedAt}>{formatDate(e.frontmatter.publishedAt)}</time>
                     )}
                     {e.frontmatter.tags?.map((t) => (
                       <span
@@ -58,9 +56,7 @@ export default async function NewsPage() {
                     {e.frontmatter.title}
                   </h2>
                   {e.frontmatter.excerpt && (
-                    <p className="mt-3 text-sm leading-relaxed text-white/80">
-                      {e.frontmatter.excerpt}
-                    </p>
+                    <p className="mt-3 text-sm leading-relaxed text-white/80">{e.frontmatter.excerpt}</p>
                   )}
                 </Link>
               </ScrollReveal>

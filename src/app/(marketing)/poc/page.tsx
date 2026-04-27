@@ -14,17 +14,22 @@ export const metadata = {
 // ─── 共通スタイル ──────────────────────────────────────────────
 const card =
   "bg-white/[0.04] backdrop-blur-sm rounded-2xl p-7 border border-white/[0.08] hover:bg-white/[0.06] hover:border-white/[0.14] transition-all duration-300";
-const badge =
-  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold";
+const badge = "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold";
 const divider = "border-t border-white/[0.07] my-8";
 
 // ─── 小コンポーネント ──────────────────────────────────────────
-function Chip({ children, color = "blue" }: { children: React.ReactNode; color?: "blue" | "green" | "purple" | "amber" }) {
+function Chip({
+  children,
+  color = "blue",
+}: {
+  children: React.ReactNode;
+  color?: "blue" | "green" | "purple" | "amber";
+}) {
   const cls: Record<string, string> = {
-    blue:   "border-blue-500/30   bg-blue-500/10   text-blue-300",
-    green:  "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+    blue: "border-blue-500/30   bg-blue-500/10   text-blue-300",
+    green: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
     purple: "border-purple-500/30  bg-purple-500/10  text-purple-300",
-    amber:  "border-amber-500/30   bg-amber-500/10   text-amber-300",
+    amber: "border-amber-500/30   bg-amber-500/10   text-amber-300",
   };
   return <span className={`${badge} ${cls[color]}`}>{children}</span>;
 }
@@ -40,8 +45,18 @@ function StepDot({ n }: { n: number }) {
 function TxLine({ hash }: { hash: string }) {
   return (
     <div className="flex items-center gap-2 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2 font-mono text-xs text-white/75">
-      <svg className="h-3.5 w-3.5 shrink-0 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <svg
+        className="h-3.5 w-3.5 shrink-0 text-emerald-400"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2.5}
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
       </svg>
       <span className="truncate">{hash}</span>
     </div>
@@ -52,7 +67,6 @@ function TxLine({ hash }: { hash: string }) {
 export default function PocPage() {
   return (
     <div className="bg-[#060a12]">
-
       {/* ━━━ 1. ヒーロー ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <section className="relative overflow-hidden bg-[#060a12] pt-32 pb-24 md:pt-40 md:pb-32">
         {/* 背景グラデーション */}
@@ -68,24 +82,30 @@ export default function PocPage() {
               <Chip color="amber">PoC 2026</Chip>
             </div>
             <h1 className="text-[2.25rem] font-extrabold leading-[1.15] tracking-tight text-white md:text-[3.5rem]">
-              施工記録の信頼性を、<br />
+              施工記録の信頼性を、
+              <br />
               <span className="bg-gradient-to-r from-blue-400 to-blue-200 bg-clip-text text-transparent">
                 ブロックチェーンで証明する
               </span>
             </h1>
             <p className="mt-6 text-base leading-relaxed text-white/80 md:text-lg max-w-2xl mx-auto">
-              Ledra は、コーティング・PPF・鈑金塗装などの施工証明書を
-              C2PA 署名と Polygon ブロックチェーンで改ざん検知可能にし、
-              VIN 単位で車両全体の施工履歴を集約するインフラです。
+              Ledra は、コーティング・PPF・鈑金塗装などの施工証明書を C2PA 署名と Polygon
+              ブロックチェーンで改ざん検知可能にし、 VIN 単位で車両全体の施工履歴を集約するインフラです。
             </p>
             <div className="mt-10 flex flex-wrap justify-center gap-3">
-              <a href="#poc" className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-[0_0_24px_rgba(59,130,246,0.4)] transition hover:bg-blue-500 no-underline">
+              <a
+                href="#poc"
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-[0_0_24px_rgba(59,130,246,0.4)] transition hover:bg-blue-500 no-underline"
+              >
                 PoC 内容を見る
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                 </svg>
               </a>
-              <a href="#demo" className="inline-flex items-center gap-2 rounded-xl border border-white/[0.12] bg-white/[0.04] px-6 py-3 text-sm font-bold text-white transition hover:bg-white/[0.08] no-underline">
+              <a
+                href="#demo"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/[0.12] bg-white/[0.04] px-6 py-3 text-sm font-bold text-white transition hover:bg-white/[0.08] no-underline"
+              >
                 デモを見る
               </a>
             </div>
@@ -180,7 +200,6 @@ export default function PocPage() {
           subtitle="VIN を URL に入れるだけで、その車両のブロックチェーン証明済み施工履歴が誰でも確認できます"
         />
         <div className="grid gap-6 md:grid-cols-2">
-
           {/* パスポートページのモック */}
           <ScrollReveal variant="fade-right">
             <div className="rounded-2xl border border-white/[0.1] bg-[#0d1220] overflow-hidden">
@@ -209,8 +228,8 @@ export default function PocPage() {
                 <div className="space-y-3">
                   {[
                     { date: "2024-06-15", type: "セラミックコーティング", shop: "Woven City モビリティセンター" },
-                    { date: "2024-09-03", type: "PPF施工（フロント）",      shop: "Woven City モビリティセンター" },
-                    { date: "2025-02-20", type: "車両整備",                shop: "トヨタモビリティ東京" },
+                    { date: "2024-09-03", type: "PPF施工（フロント）", shop: "Woven City モビリティセンター" },
+                    { date: "2025-02-20", type: "車両整備", shop: "トヨタモビリティ東京" },
                   ].map((cert, i) => (
                     <div key={i} className="flex gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
                       <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full border-2 border-emerald-500 bg-emerald-500/20" />
@@ -219,7 +238,9 @@ export default function PocPage() {
                           <span className="text-xs font-semibold text-white">{cert.type}</span>
                           <Chip color="green">Polygon済</Chip>
                         </div>
-                        <div className="text-xs text-white/70 mt-0.5">{cert.shop} · {cert.date}</div>
+                        <div className="text-xs text-white/70 mt-0.5">
+                          {cert.shop} · {cert.date}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -259,11 +280,17 @@ export default function PocPage() {
               <ScrollReveal key={item.title} variant="fade-left" delay={i * 100}>
                 <div className={card}>
                   <div className="flex items-start gap-3">
-                    <div className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${
-                      item.color === "blue" ? "bg-blue-400" :
-                      item.color === "green" ? "bg-emerald-400" :
-                      item.color === "purple" ? "bg-purple-400" : "bg-amber-400"
-                    }`} />
+                    <div
+                      className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${
+                        item.color === "blue"
+                          ? "bg-blue-400"
+                          : item.color === "green"
+                            ? "bg-emerald-400"
+                            : item.color === "purple"
+                              ? "bg-purple-400"
+                              : "bg-amber-400"
+                      }`}
+                    />
                     <div>
                       <div className="font-semibold text-white">{item.title}</div>
                       <p className="mt-1 text-sm leading-relaxed text-white/80">{item.body}</p>
@@ -286,36 +313,41 @@ export default function PocPage() {
         {/* ライフサイクル図 */}
         <ScrollReveal variant="fade-up">
           <div className="mb-12 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6">
-            <div className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-4">車両ライフサイクルとカバレッジ</div>
+            <div className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-4">
+              車両ライフサイクルとカバレッジ
+            </div>
             <div className="flex flex-wrap items-center gap-2">
               {[
-                { label: "製造・出荷", covered: true,  who: "TBL" },
+                { label: "製造・出荷", covered: true, who: "TBL" },
                 { label: "→", sep: true },
-                { label: "ディーラー整備", covered: true,  who: "TBL" },
+                { label: "ディーラー整備", covered: true, who: "TBL" },
                 { label: "→", sep: true },
                 { label: "アフター施工", covered: false, who: "Ledra" },
                 { label: "→", sep: true },
-                { label: "中古車売買", covered: true,  who: "MON" },
+                { label: "中古車売買", covered: true, who: "MON" },
                 { label: "→", sep: true },
-                { label: "廃車", covered: true,  who: "TBL" },
+                { label: "廃車", covered: true, who: "TBL" },
               ].map((item, i) =>
                 item.sep ? (
-                  <span key={i} className="text-white/70 text-lg">→</span>
+                  <span key={i} className="text-white/70 text-lg">
+                    →
+                  </span>
                 ) : (
-                  <div key={i} className={`rounded-xl border px-4 py-3 text-center ${
-                    item.covered
-                      ? "border-white/[0.1] bg-white/[0.04] text-white/80"
-                      : "border-blue-500/40 bg-blue-500/15 text-blue-300 shadow-[0_0_20px_rgba(59,130,246,0.2)]"
-                  }`}>
+                  <div
+                    key={i}
+                    className={`rounded-xl border px-4 py-3 text-center ${
+                      item.covered
+                        ? "border-white/[0.1] bg-white/[0.04] text-white/80"
+                        : "border-blue-500/40 bg-blue-500/15 text-blue-300 shadow-[0_0_20px_rgba(59,130,246,0.2)]"
+                    }`}
+                  >
                     <div className="text-sm font-bold">{item.label}</div>
                     <div className={`text-xs mt-0.5 font-mono ${item.covered ? "text-white/70" : "text-blue-400"}`}>
                       {item.who}
                     </div>
-                    {!item.covered && (
-                      <div className="text-[10px] mt-1 text-blue-400 font-semibold">← 空白地帯</div>
-                    )}
+                    {!item.covered && <div className="text-[10px] mt-1 text-blue-400 font-semibold">← 空白地帯</div>}
                   </div>
-                )
+                ),
               )}
             </div>
           </div>
@@ -360,7 +392,6 @@ export default function PocPage() {
           subtitle="最小限のコミットメントで、最大限のデータを得られるよう設計されています"
         />
         <div className="grid gap-8 lg:grid-cols-2">
-
           {/* PoC スコープ */}
           <ScrollReveal variant="fade-right">
             <div className={card}>
@@ -385,14 +416,16 @@ export default function PocPage() {
           {/* 成功指標 */}
           <ScrollReveal variant="fade-left">
             <div className={card}>
-              <div className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-5">PoC 成功指標（3ヶ月）</div>
+              <div className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-5">
+                PoC 成功指標（3ヶ月）
+              </div>
               <div className="space-y-4">
                 {[
-                  { metric: "発行証明書数",            target: "50件以上",   desc: "実際に使われた証拠" },
-                  { metric: "Polygon アンカー成功率",   target: "95%以上",    desc: "システム信頼性の検証" },
-                  { metric: "車両パスポート発行数",     target: "30 VIN以上", desc: "「Ledra証明付き車両」の創出" },
-                  { metric: "パスポートページ閲覧数",   target: "延べ100回",  desc: "外部からの参照実績" },
-                  { metric: "スタッフ継続利用率",       target: "3ヶ月継続",  desc: "業務フローへの定着確認" },
+                  { metric: "発行証明書数", target: "50件以上", desc: "実際に使われた証拠" },
+                  { metric: "Polygon アンカー成功率", target: "95%以上", desc: "システム信頼性の検証" },
+                  { metric: "車両パスポート発行数", target: "30 VIN以上", desc: "「Ledra証明付き車両」の創出" },
+                  { metric: "パスポートページ閲覧数", target: "延べ100回", desc: "外部からの参照実績" },
+                  { metric: "スタッフ継続利用率", target: "3ヶ月継続", desc: "業務フローへの定着確認" },
                 ].map((row) => (
                   <div key={row.metric} className="flex items-start justify-between gap-4">
                     <div>
@@ -409,7 +442,9 @@ export default function PocPage() {
 
         {/* PoC フロー */}
         <div className="mt-10">
-          <div className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-6 text-center">PoC 運用フロー</div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-6 text-center">
+            PoC 運用フロー
+          </div>
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:gap-0">
             {[
               { from: "施工完了", arrow: false },
@@ -423,7 +458,9 @@ export default function PocPage() {
               { from: "QR / NFC で\n第三者が検証", arrow: false },
             ].map((item, i) =>
               item.arrow ? (
-                <div key={i} className="flex items-center justify-center px-2 text-white/70 text-2xl">→</div>
+                <div key={i} className="flex items-center justify-center px-2 text-white/70 text-2xl">
+                  →
+                </div>
               ) : (
                 <div
                   key={i}
@@ -431,7 +468,7 @@ export default function PocPage() {
                 >
                   {item.from}
                 </div>
-              )
+              ),
             )}
           </div>
         </div>
@@ -482,7 +519,9 @@ export default function PocPage() {
 
         <ScrollReveal variant="fade-up" delay={300}>
           <div className="mt-8 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6">
-            <div className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-4">FAQ — よくある懸念事項</div>
+            <div className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-4">
+              FAQ — よくある懸念事項
+            </div>
             <div className="grid gap-4 md:grid-cols-2">
               {[
                 {
@@ -526,8 +565,8 @@ export default function PocPage() {
               まず 15 分、話しませんか
             </h2>
             <p className="mt-5 text-base leading-relaxed text-white/80 max-w-xl mx-auto">
-              長文の提案書も、複雑な契約も必要ありません。
-              デモを見ていただき、PoC に関心があれば NDA のみで始められます。
+              長文の提案書も、複雑な契約も必要ありません。 デモを見ていただき、PoC に関心があれば NDA
+              のみで始められます。
             </p>
             <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
               <Link
@@ -539,12 +578,12 @@ export default function PocPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                 </svg>
               </Link>
-              <a
+              <Link
                 href="/v/DEMO-VIN-001"
                 className="inline-flex items-center gap-2 rounded-xl border border-white/[0.12] bg-white/[0.04] px-8 py-4 text-sm font-bold text-white transition hover:bg-white/[0.08] no-underline"
               >
                 デモパスポートを見る
-              </a>
+              </Link>
             </div>
 
             <div className={`${divider} max-w-lg mx-auto mt-12`} />
@@ -561,7 +600,6 @@ export default function PocPage() {
           </ScrollReveal>
         </Container>
       </section>
-
     </div>
   );
 }

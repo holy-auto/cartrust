@@ -41,7 +41,7 @@ const blocks: Block[] = [
       },
       {
         title: "Polygon anchoring",
-        desc: "証明書のハッシュはPolygon ブロックチェーンに刻印。仮にDB側のデータが改変されても、チェーン上のアンカーと突き合わせて不整合を即検知できます。",
+        desc: "施工写真の SHA-256 ハッシュを Polygon ブロックチェーンに刻印。仮に DB 側の写真が差し替えられても、チェーン上のアンカーと突き合わせて不整合を即検知できます。",
       },
     ],
   },
@@ -112,12 +112,11 @@ const blocks: Block[] = [
         title: "脆弱性報告窓口",
         desc: (
           <>
-            セキュリティに関する問題を発見された場合は、 <a
-              href="mailto:security@ledra.co.jp"
-              className="text-blue-400 hover:underline"
-            >
+            セキュリティに関する問題を発見された場合は、{" "}
+            <a href="mailto:security@ledra.co.jp" className="text-blue-400 hover:underline">
               security@ledra.co.jp
-            </a> までご連絡ください。ご連絡から3営業日以内に初期対応いたします。
+            </a>{" "}
+            までご連絡ください。ご連絡から3営業日以内に初期対応いたします。
           </>
         ),
       },
@@ -210,12 +209,8 @@ export default function SecurityPage() {
             {b.items.map((item, i) => (
               <ScrollReveal key={item.title} variant="fade-up" delay={i * 50}>
                 <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 md:p-7">
-                  <h3 className="text-[1.063rem] font-bold text-white leading-snug">
-                    {item.title}
-                  </h3>
-                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white/80">
-                    {item.desc}
-                  </p>
+                  <h3 className="text-[1.063rem] font-bold text-white leading-snug">{item.title}</h3>
+                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white/80">{item.desc}</p>
                 </div>
               </ScrollReveal>
             ))}
@@ -236,10 +231,7 @@ export default function SecurityPage() {
       ))}
 
       <Section>
-        <SectionHeading
-          title="認証・コンプライアンス"
-          subtitle="第三者認証の取得状況を、率直にお伝えします。"
-        />
+        <SectionHeading title="認証・コンプライアンス" subtitle="第三者認証の取得状況を、率直にお伝えします。" />
         <div className="mx-auto max-w-2xl space-y-4">
           {certifications.map((c) => (
             <div
@@ -259,11 +251,7 @@ export default function SecurityPage() {
                       : "bg-white/[0.06] text-white/80 border border-white/[0.1]"
                 }`}
               >
-                {c.status === "obtained"
-                  ? "取得済"
-                  : c.status === "in-progress"
-                    ? "取得中"
-                    : "未取得・計画中"}
+                {c.status === "obtained" ? "取得済" : c.status === "in-progress" ? "取得中" : "未取得・計画中"}
               </span>
             </div>
           ))}

@@ -2,15 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-type Phase =
-  | "loading"
-  | "form"
-  | "submitting"
-  | "complete"
-  | "expired"
-  | "already_signed"
-  | "not_found"
-  | "error";
+type Phase = "loading" | "form" | "submitting" | "complete" | "expired" | "already_signed" | "not_found" | "error";
 
 type ContractInfo = {
   request_id: string;
@@ -157,11 +149,7 @@ export default function AgentSignClient({ token }: { token: string }) {
   if (phase === "already_signed") {
     return (
       <Shell>
-        <StatusCard
-          icon="✅"
-          title="署名済み"
-          message="この契約書はすでに署名されています。"
-        />
+        <StatusCard icon="✅" title="署名済み" message="この契約書はすでに署名されています。" />
       </Shell>
     );
   }
@@ -173,32 +161,16 @@ export default function AgentSignClient({ token }: { token: string }) {
           <div className="text-center py-4">
             <div className="text-5xl mb-3">✅</div>
             <h2 className="text-white text-2xl font-bold mb-2">署名が完了しました</h2>
-            <p className="text-gray-200 text-sm">
-              電子署名法に基づく電子署名が正常に記録されました
-            </p>
+            <p className="text-gray-200 text-sm">電子署名法に基づく電子署名が正常に記録されました</p>
           </div>
 
           <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
             <h3 className="text-gray-300 text-sm font-medium mb-3">署名情報</h3>
             <dl className="space-y-2">
-              <InfoRow
-                label="契約書"
-                value={contract?.title ?? ""}
-              />
-              <InfoRow
-                label="署名日時"
-                value={new Date(complete.signed_at).toLocaleString("ja-JP")}
-              />
-              <InfoRow
-                label="署名値（省略）"
-                value={complete.signature_preview}
-                mono
-              />
-              <InfoRow
-                label="セッション ID"
-                value={complete.session_id}
-                mono
-              />
+              <InfoRow label="契約書" value={contract?.title ?? ""} />
+              <InfoRow label="署名日時" value={new Date(complete.signed_at).toLocaleString("ja-JP")} />
+              <InfoRow label="署名値（省略）" value={complete.signature_preview} mono />
+              <InfoRow label="セッション ID" value={complete.session_id} mono />
             </dl>
           </div>
 
@@ -225,9 +197,7 @@ export default function AgentSignClient({ token }: { token: string }) {
           <dl className="space-y-3">
             <InfoRow label="種別" value={contract?.template_label ?? ""} />
             <InfoRow label="タイトル" value={contract?.title ?? ""} />
-            {contract?.signer_name && (
-              <InfoRow label="署名者" value={contract.signer_name} />
-            )}
+            {contract?.signer_name && <InfoRow label="署名者" value={contract.signer_name} />}
           </dl>
         </div>
 
@@ -271,9 +241,7 @@ export default function AgentSignClient({ token }: { token: string }) {
           </label>
 
           {errorMsg && (
-            <div className="mb-4 p-3 bg-red-950 border border-red-800 rounded-lg text-red-300 text-sm">
-              {errorMsg}
-            </div>
+            <div className="mb-4 p-3 bg-red-950 border border-red-800 rounded-lg text-red-300 text-sm">{errorMsg}</div>
           )}
 
           <button
@@ -294,9 +262,7 @@ export default function AgentSignClient({ token }: { token: string }) {
             )}
           </button>
 
-          {timeLeft && (
-            <p className="text-center text-gray-300 text-xs mt-3">{timeLeft}</p>
-          )}
+          {timeLeft && <p className="text-center text-gray-300 text-xs mt-3">{timeLeft}</p>}
         </div>
 
         <p className="text-center text-gray-600 text-xs leading-relaxed px-2">
@@ -318,9 +284,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <div className="mb-6">
           <span className="text-blue-400 font-bold text-xl tracking-wide">Ledra</span>
           <h1 className="text-white text-2xl font-bold mt-1">代理店契約書 電子署名</h1>
-          <p className="text-gray-200 text-sm mt-1">
-            契約書の内容を確認し、電子署名を行ってください
-          </p>
+          <p className="text-gray-200 text-sm mt-1">契約書の内容を確認し、電子署名を行ってください</p>
         </div>
         {children}
       </div>
@@ -328,11 +292,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function StatusCard({
-  icon, title, message,
-}: {
-  icon: string; title: string; message: string;
-}) {
+function StatusCard({ icon, title, message }: { icon: string; title: string; message: string }) {
   return (
     <div className="text-center py-16">
       <div className="text-5xl mb-4">{icon}</div>
@@ -345,17 +305,11 @@ function StatusCard({
   );
 }
 
-function InfoRow({
-  label, value, mono,
-}: {
-  label: string; value: string; mono?: boolean;
-}) {
+function InfoRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex justify-between items-start gap-3">
       <dt className="text-gray-300 text-sm shrink-0">{label}</dt>
-      <dd className={`text-gray-200 text-sm text-right ${mono ? "font-mono text-xs" : ""}`}>
-        {value}
-      </dd>
+      <dd className={`text-gray-200 text-sm text-right ${mono ? "font-mono text-xs" : ""}`}>{value}</dd>
     </div>
   );
 }

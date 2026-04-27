@@ -30,9 +30,7 @@ export async function NewsTeaser() {
             >
               <div className="flex flex-wrap items-center gap-3 text-xs text-white/75">
                 {e.frontmatter.publishedAt && (
-                  <time dateTime={e.frontmatter.publishedAt}>
-                    {formatDate(e.frontmatter.publishedAt)}
-                  </time>
+                  <time dateTime={e.frontmatter.publishedAt}>{formatDate(e.frontmatter.publishedAt)}</time>
                 )}
                 {e.frontmatter.tags?.slice(0, 1).map((t) => (
                   <span
@@ -47,9 +45,7 @@ export async function NewsTeaser() {
                 {e.frontmatter.title}
               </h3>
               {e.frontmatter.excerpt && (
-                <p className="mt-2 text-sm leading-relaxed text-white/80 line-clamp-2">
-                  {e.frontmatter.excerpt}
-                </p>
+                <p className="mt-2 text-sm leading-relaxed text-white/80 line-clamp-2">{e.frontmatter.excerpt}</p>
               )}
             </Link>
           </ScrollReveal>
