@@ -11,9 +11,7 @@ function Article({ children }: { children: ReactNode }) {
 }
 
 function H2({ children }: { children: ReactNode }) {
-  return (
-    <h2 className="mb-3 mt-10 text-lg font-bold text-white">{children}</h2>
-  );
+  return <h2 className="mb-3 mt-10 text-lg font-bold text-white">{children}</h2>;
 }
 
 function P({ children }: { children: ReactNode }) {
@@ -21,11 +19,7 @@ function P({ children }: { children: ReactNode }) {
 }
 
 function Ul({ children }: { children: ReactNode }) {
-  return (
-    <ul className="mb-4 list-disc space-y-1 pl-5 text-sm text-white/80">
-      {children}
-    </ul>
-  );
+  return <ul className="mb-4 list-disc space-y-1 pl-5 text-sm text-white/80">{children}</ul>;
 }
 
 export default function PrivacyPage() {
@@ -33,10 +27,8 @@ export default function PrivacyPage() {
 
   return (
     <Article>
-      <h1 className="mb-2 text-3xl font-bold text-white">
-        プライバシーポリシー
-      </h1>
-      <p className="mb-10 text-sm text-white/40">最終更新日：{updated}</p>
+      <h1 className="mb-2 text-3xl font-bold text-white">プライバシーポリシー</h1>
+      <p className="mb-10 text-sm text-white/75">最終更新日：{updated}</p>
 
       <P>
         {siteConfig.siteName}（以下「当社」）は、お客様の個人情報の保護を重要な責務と認識し、
@@ -72,16 +64,11 @@ export default function PrivacyPage() {
       </Ul>
 
       <H2>3. 第三者提供</H2>
-      <P>
-        当社は、以下のいずれかに該当する場合を除き、個人情報を第三者に提供しません。
-      </P>
+      <P>当社は、以下のいずれかに該当する場合を除き、個人情報を第三者に提供しません。</P>
       <Ul>
         <li>ご本人の同意がある場合</li>
         <li>法令に基づく場合</li>
-        <li>
-          業務委託先（クラウドインフラ事業者等）に必要な範囲で提供する場合
-          ※委託先に対しては適切な監督を行います
-        </li>
+        <li>業務委託先（クラウドインフラ事業者等）に必要な範囲で提供する場合 ※委託先に対しては適切な監督を行います</li>
         <li>事業の承継に伴い情報を引き継ぐ場合</li>
       </Ul>
 
@@ -94,22 +81,17 @@ export default function PrivacyPage() {
 
       <H2>5. 安全管理措置</H2>
       <P>
-        個人情報への不正アクセス・紛失・破壊・改ざん・漏洩を防止するため、
-        適切な技術的・組織的安全管理措置を講じます。
+        個人情報への不正アクセス・紛失・破壊・改ざん・漏洩を防止するため、 適切な技術的・組織的安全管理措置を講じます。
       </P>
 
       <H2>6. 開示・訂正・削除の請求</H2>
       <P>
         ご本人から個人情報の開示・訂正・利用停止・削除等のご請求があった場合、
-        本人確認の上、法令の定めに従って対応します。
-        ご請求は下記お問い合わせ先までご連絡ください。
+        本人確認の上、法令の定めに従って対応します。 ご請求は下記お問い合わせ先までご連絡ください。
       </P>
 
       <H2>7. 未成年者について</H2>
-      <P>
-        本サービスは事業者を対象としており、未成年者を対象としていません。
-        18歳未満の方はご利用いただけません。
-      </P>
+      <P>本サービスは事業者を対象としており、未成年者を対象としていません。 18歳未満の方はご利用いただけません。</P>
 
       <H2>8. ポリシーの変更</H2>
       <P>
@@ -122,10 +104,7 @@ export default function PrivacyPage() {
         個人情報の取り扱いに関するお問い合わせは、以下までご連絡ください。
         <br />
         メール：
-        <a
-          href={`mailto:${siteConfig.contactEmail}`}
-          className="font-medium text-blue-400 hover:underline"
-        >
+        <a href={`mailto:${siteConfig.contactEmail}`} className="font-medium text-blue-400 hover:underline">
           {siteConfig.contactEmail}
         </a>
       </P>

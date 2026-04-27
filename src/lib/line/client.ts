@@ -1,4 +1,5 @@
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
+import { readSecret } from "@/lib/crypto/tenantSecrets";
 
 /**
  * LINE Messaging API クライアント
@@ -19,16 +20,26 @@ async function getLineConfig(tenantId: string): Promise<LineConfig | null> {
   const { admin } = createTenantScopedAdmin(tenantId);
   const { data: tenant } = await admin
     .from("tenants")
-    .select("line_channel_id, line_channel_secret, line_channel_access_token, line_liff_id, line_enabled")
+    .select(
+      "line_channel_id, line_channel_secret_ciphertext, line_channel_access_token_ciphertext, line_liff_id, line_enabled",
+    )
     .eq("id", tenantId)
     .single();
 
-  if (!tenant?.line_enabled || !tenant.line_channel_access_token) return null;
+  if (!tenant?.line_enabled) return null;
+
+  const channelSecret = await readSecret(tenant.line_channel_secret_ciphertext, "tenants.line_channel_secret");
+  const channelAccessToken = await readSecret(
+    tenant.line_channel_access_token_ciphertext,
+    "tenants.line_channel_access_token",
+  );
+
+  if (!channelAccessToken || !channelSecret) return null;
 
   return {
     channelId: tenant.line_channel_id,
-    channelSecret: tenant.line_channel_secret,
-    channelAccessToken: tenant.line_channel_access_token,
+    channelSecret,
+    channelAccessToken,
     liffId: tenant.line_liff_id || null,
   };
 }
@@ -76,10 +87,25 @@ async function replyMessage(
 }
 
 /**
+ * 文字列を timing-safe に比較する。
+ * 長さが異なる場合は早期 false だが、長さ一致時は全文字を走査するため
+ * バイト単位の差異がレスポンス時間に漏れない。
+ */
+function timingSafeStringEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
+/**
  * Webhook 署名検証
  * LINE Platform からのリクエストが正規のものか確認
  */
 export async function verifySignature(body: string, signature: string, channelSecret: string): Promise<boolean> {
+  if (typeof signature !== "string" || signature.length === 0) return false;
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw",
@@ -90,7 +116,7 @@ export async function verifySignature(body: string, signature: string, channelSe
   );
   const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(body));
   const expected = btoa(String.fromCharCode(...new Uint8Array(sig)));
-  return expected === signature;
+  return timingSafeStringEqual(expected, signature);
 }
 
 /** 予約確認メッセージを送信 */

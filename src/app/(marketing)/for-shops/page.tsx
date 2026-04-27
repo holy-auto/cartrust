@@ -57,43 +57,35 @@ const outcomes = [
 const features = [
   {
     title: "デジタル施工証明書",
-    description:
-      "写真・施工内容・施工者・日時を証明書としてワンクリック発行。QRコードで顧客に即共有できます。",
+    description: "写真・施工内容・施工者・日時を証明書としてワンクリック発行。QRコードで顧客に即共有できます。",
   },
   {
     title: "車検証OCR",
-    description:
-      "車検証をカメラで撮影するだけで車両情報を自動入力。手入力の手間を大幅に削減します。",
+    description: "車検証をカメラで撮影するだけで車両情報を自動入力。手入力の手間を大幅に削減します。",
   },
   {
     title: "予約・作業管理",
-    description:
-      "予約受付からチェックイン、作業進捗、完了までを一元管理。Googleカレンダーとも双方向同期。",
+    description: "予約受付からチェックイン、作業進捗、完了までを一元管理。Googleカレンダーとも双方向同期。",
   },
   {
     title: "POS会計・Tap to Pay",
-    description:
-      "施工完了後のお会計をその場で。カード・現金・QR・iPhoneのTap to Payにも対応。",
+    description: "施工完了後のお会計をその場で。カード・現金・QR・iPhoneのTap to Payにも対応。",
   },
   {
     title: "請求書・帳票",
-    description:
-      "請求書をPDFで自動生成、メール送信や共有リンクで顧客に送付。未回収アラート付き。",
+    description: "請求書をPDFで自動生成、メール送信や共有リンクで顧客に送付。未回収アラート付き。",
   },
   {
     title: "顧客 360°ビュー",
-    description:
-      "顧客の車両・施工履歴・予約・請求を一画面で。リピート営業が自然に回る設計です。",
+    description: "顧客の車両・施工履歴・予約・請求を一画面で。リピート営業が自然に回る設計です。",
   },
   {
     title: "BtoB受発注",
-    description:
-      "他の施工店と連携。得意分野を活かした仕事の受発注がプラットフォーム上で完結します。",
+    description: "他の施工店と連携。得意分野を活かした仕事の受発注がプラットフォーム上で完結します。",
   },
   {
     title: "NFCタグ連携",
-    description:
-      "NFCタグに証明書を紐付け。スマホをかざすだけで施工証明を確認できるプレミアム体験。",
+    description: "NFCタグに証明書を紐付け。スマホをかざすだけで施工証明を確認できるプレミアム体験。",
   },
 ];
 
@@ -122,13 +114,7 @@ export default function ForShopsPage() {
         />
         <FeatureGrid className="mt-10">
           {challenges.map((c, i) => (
-            <FeatureCard
-              key={c.title}
-              variant="bordered"
-              title={c.title}
-              description={c.desc}
-              delay={i * 70}
-            />
+            <FeatureCard key={c.title} variant="bordered" title={c.title} description={c.desc} delay={i * 70} />
           ))}
         </FeatureGrid>
       </Section>
@@ -144,8 +130,8 @@ export default function ForShopsPage() {
             <ScrollReveal key={o.before} variant="fade-up" delay={i * 50}>
               <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center gap-5 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 md:p-6">
                 <div>
-                  <p className="text-[0.688rem] uppercase tracking-wider text-white/35">Before</p>
-                  <p className="mt-1.5 text-[0.938rem] text-white/55 leading-relaxed">{o.before}</p>
+                  <p className="text-[0.688rem] uppercase tracking-wider text-white/75">Before</p>
+                  <p className="mt-1.5 text-[0.938rem] text-white/80 leading-relaxed">{o.before}</p>
                 </div>
                 <svg
                   viewBox="0 0 24 24"
@@ -158,9 +144,7 @@ export default function ForShopsPage() {
                 </svg>
                 <div>
                   <p className="text-[0.688rem] uppercase tracking-wider text-blue-300">After</p>
-                  <p className="mt-1.5 text-[0.938rem] font-medium text-white leading-relaxed">
-                    {o.after}
-                  </p>
+                  <p className="mt-1.5 text-[0.938rem] font-medium text-white leading-relaxed">{o.after}</p>
                 </div>
               </div>
             </ScrollReveal>
@@ -196,7 +180,7 @@ export default function ForShopsPage() {
                 </div>
                 <div>
                   <h3 className="text-[1.063rem] font-bold text-white leading-snug">{s.title}</h3>
-                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white/60">{s.desc}</p>
+                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white/80">{s.desc}</p>
                 </div>
               </div>
             </ScrollReveal>
@@ -213,7 +197,7 @@ export default function ForShopsPage() {
           <h2 className="mt-6 text-2xl md:text-3xl font-bold text-white leading-tight">
             施工店パイロット参加店舗を募集しています
           </h2>
-          <p className="mt-4 text-[0.938rem] md:text-base leading-[1.9] text-white/60 max-w-xl mx-auto">
+          <p className="mt-4 text-[0.938rem] md:text-base leading-[1.9] text-white/80 max-w-xl mx-auto">
             先行導入いただく施工店様には、導入支援の無償優遇、事例化とロゴ掲載、機能リクエストの優先反映をご用意しています。
             <br />
             「はじめての1店」として、業界の記録文化を一緒に作り直しませんか。
@@ -267,7 +251,7 @@ export default function ForShopsPage() {
               className="group block rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 md:p-7 hover:bg-white/[0.06] hover:border-white/[0.14] transition-colors"
             >
               <h3 className="text-[1.063rem] font-bold text-white leading-snug">{item.title}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-white/55">{item.desc}</p>
+              <p className="mt-3 text-sm leading-relaxed text-white/80">{item.desc}</p>
               <p className="mt-5 text-xs font-medium text-blue-300 group-hover:text-blue-200 transition-colors">
                 {item.cta}
               </p>

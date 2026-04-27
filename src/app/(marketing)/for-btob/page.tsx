@@ -66,8 +66,7 @@ const steps = [
 const features = [
   {
     title: "全国の認定施工店ネットワーク",
-    description:
-      "PPF・コーティング・ラッピング・板金塗装など、専門施工店へ直接依頼。エリアや得意分野で絞り込めます。",
+    description: "PPF・コーティング・ラッピング・板金塗装など、専門施工店へ直接依頼。エリアや得意分野で絞り込めます。",
   },
   {
     title: "決済・送金の完全自動化",
@@ -76,23 +75,19 @@ const features = [
   },
   {
     title: "デジタル施工証明書",
-    description:
-      "施工完了と同時にQRコード付き証明書が自動発行。保険会社への提出や社内の納品確認がスムーズになります。",
+    description: "施工完了と同時にQRコード付き証明書が自動発行。保険会社への提出や社内の納品確認がスムーズになります。",
   },
   {
     title: "一元化された発注管理",
-    description:
-      "複数の案件を一画面で管理。申請中・作業中・完了まで、ステータスをリアルタイムで把握できます。",
+    description: "複数の案件を一画面で管理。申請中・作業中・完了まで、ステータスをリアルタイムで把握できます。",
   },
   {
     title: "パートナーランクで品質を可視化",
-    description:
-      "施工店の完了件数・評価・納期遵守率がスコア化されています。依頼先選びの参考にできます。",
+    description: "施工店の完了件数・評価・納期遵守率がスコア化されています。依頼先選びの参考にできます。",
   },
   {
     title: "ブロックチェーン証明",
-    description:
-      "施工証明書はPolygonブロックチェーンに刻まれます。改ざん不可の記録として、法的証拠にも使えます。",
+    description: "施工証明書はPolygonブロックチェーンに刻まれます。改ざん不可の記録として、法的証拠にも使えます。",
   },
 ];
 
@@ -174,7 +169,7 @@ export default function ForBtoBPage() {
               <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">
                 手数料<span className="text-blue-400"> 10%</span> で、決済を丸ごと自動化
               </h2>
-              <p className="mt-4 text-[0.938rem] leading-[1.9] text-white/60 max-w-xl mx-auto">
+              <p className="mt-4 text-[0.938rem] leading-[1.9] text-white/80 max-w-xl mx-auto">
                 合意金額の10%をプラットフォーム手数料としていただきます。
                 その代わり、決済処理・施工店への自動送金・施工証明書の発行・進捗通知まで、
                 支払い周りの作業が全て自動化されます。
@@ -191,7 +186,7 @@ export default function ForBtoBPage() {
                     className="rounded-xl border border-blue-500/20 bg-blue-500/[0.04] p-4 text-center"
                   >
                     <div className="text-xl font-bold text-blue-400">{item.value}</div>
-                    <div className="mt-1 text-xs text-white/40">{item.label}</div>
+                    <div className="mt-1 text-xs text-white/75">{item.label}</div>
                   </div>
                 ))}
               </div>
@@ -202,13 +197,16 @@ export default function ForBtoBPage() {
 
       {/* Use cases */}
       <Section bg="alt">
-        <SectionHeading title="こんな企業に使われています" subtitle="業種を問わず、車両施工の外注管理にご活用いただけます。" />
+        <SectionHeading
+          title="こんな企業に使われています"
+          subtitle="業種を問わず、車両施工の外注管理にご活用いただけます。"
+        />
         <div className="mx-auto mt-10 max-w-4xl grid grid-cols-1 sm:grid-cols-2 gap-5">
           {usecases.map((u, i) => (
             <ScrollReveal key={u.title} variant="fade-up" delay={i * 60}>
               <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 h-full">
                 <h3 className="text-[1.063rem] font-bold text-white leading-snug">{u.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-white/55">{u.desc}</p>
+                <p className="mt-3 text-sm leading-relaxed text-white/80">{u.desc}</p>
               </div>
             </ScrollReveal>
           ))}
@@ -217,10 +215,7 @@ export default function ForBtoBPage() {
 
       {/* How it works */}
       <Section>
-        <SectionHeading
-          title="発注の流れ"
-          subtitle="アカウントを作成すれば、すぐに施工依頼を開始できます。"
-        />
+        <SectionHeading title="発注の流れ" subtitle="アカウントを作成すれば、すぐに施工依頼を開始できます。" />
         <div className="mx-auto mt-10 max-w-3xl space-y-4">
           {steps.map((s, i) => (
             <ScrollReveal key={s.step} variant="fade-up" delay={i * 60}>
@@ -230,7 +225,7 @@ export default function ForBtoBPage() {
                 </div>
                 <div>
                   <h3 className="text-[1.063rem] font-bold text-white leading-snug">{s.title}</h3>
-                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white/60">{s.desc}</p>
+                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white/80">{s.desc}</p>
                 </div>
               </div>
             </ScrollReveal>
@@ -272,7 +267,8 @@ export default function ForBtoBPage() {
             question="月額プランの費用はどのくらいかかりますか？"
             answer={
               <>
-                受発注機能は無料プランから利用可能です。より高度な管理機能が必要な場合はStarter / Standard / Proプランをご検討ください。詳細は
+                受発注機能は無料プランから利用可能です。より高度な管理機能が必要な場合はStarter / Standard /
+                Proプランをご検討ください。詳細は
                 <a href="/pricing" className="text-blue-400 underline">
                   料金ページ
                 </a>

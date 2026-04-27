@@ -50,61 +50,50 @@ const securityHighlights = [
   },
   {
     title: "C2PA 画像署名",
-    description:
-      "施工写真にコンテンツクレデンシャルを埋め込み。SNS や別経路で流通しても、出自を追跡可能に。",
+    description: "施工写真にコンテンツクレデンシャルを埋め込み。SNS や別経路で流通しても、出自を追跡可能に。",
   },
   {
     title: "Row Level Security",
-    description:
-      "Supabase の RLS を全テーブルで有効化。テナント・役割・所有者の3軸で、SQL レイヤでアクセス制限。",
+    description: "Supabase の RLS を全テーブルで有効化。テナント・役割・所有者の3軸で、SQL レイヤでアクセス制限。",
   },
   {
     title: "完全な操作ログ",
-    description:
-      "閲覧・検索・案件操作のすべてを監査ログとして保存。コンプライアンス対応を即時化。",
+    description: "閲覧・検索・案件操作のすべてを監査ログとして保存。コンプライアンス対応を即時化。",
   },
 ];
 
 const features = [
   {
     title: "証明書検索",
-    description:
-      "Public ID・顧客名・車両情報・ナンバーで証明書を即検索。ステータス・日付・施工内容での絞り込みも。",
+    description: "Public ID・顧客名・車両情報・ナンバーで証明書を即検索。ステータス・日付・施工内容での絞り込みも。",
   },
   {
     title: "案件管理",
-    description:
-      "問い合わせから査定完了までを案件として管理。メッセージ・添付・テンプレートで効率化。",
+    description: "問い合わせから査定完了までを案件として管理。メッセージ・添付・テンプレートで効率化。",
   },
   {
     title: "自動振り分け",
-    description:
-      "ルールベースで案件を担当者に自動アサイン。SLA管理で対応漏れを防止します。",
+    description: "ルールベースで案件を担当者に自動アサイン。SLA管理で対応漏れを防止します。",
   },
   {
     title: "ウォッチリスト",
-    description:
-      "気になる証明書をウォッチリストに登録。ステータス変更時に自動通知。",
+    description: "気になる証明書をウォッチリストに登録。ステータス変更時に自動通知。",
   },
   {
     title: "分析レポート",
-    description:
-      "検索パターン分析、案件処理統計、施工店別の傾向把握。査定業務の品質改善に。",
+    description: "検索パターン分析、案件処理統計、施工店別の傾向把握。査定業務の品質改善に。",
   },
   {
     title: "監査ログ",
-    description:
-      "誰がいつ何を閲覧・操作したかを完全記録。コンプライアンス・内部監査に対応。",
+    description: "誰がいつ何を閲覧・操作したかを完全記録。コンプライアンス・内部監査に対応。",
   },
   {
     title: "API連携",
-    description:
-      "既存の損害サービスシステム・基幹システムと API で連携可能。バッチ照会も対応。",
+    description: "既存の損害サービスシステム・基幹システムと API で連携可能。バッチ照会も対応。",
   },
   {
     title: "ロール管理",
-    description:
-      "Owner / Admin / Adjuster / Viewer の役割別権限。チームの規模・組織に合わせた運用が可能。",
+    description: "Owner / Admin / Adjuster / Viewer の役割別権限。チームの規模・組織に合わせた運用が可能。",
   },
 ];
 
@@ -149,13 +138,7 @@ export default function ForInsurersPage() {
         />
         <FeatureGrid className="mt-10">
           {challenges.map((c, i) => (
-            <FeatureCard
-              key={c.title}
-              variant="bordered"
-              title={c.title}
-              description={c.desc}
-              delay={i * 70}
-            />
+            <FeatureCard key={c.title} variant="bordered" title={c.title} description={c.desc} delay={i * 70} />
           ))}
         </FeatureGrid>
       </Section>
@@ -171,8 +154,8 @@ export default function ForInsurersPage() {
             <ScrollReveal key={o.before} variant="fade-up" delay={i * 50}>
               <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center gap-5 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 md:p-6">
                 <div>
-                  <p className="text-[0.688rem] uppercase tracking-wider text-white/35">Before</p>
-                  <p className="mt-1.5 text-[0.938rem] text-white/55 leading-relaxed">{o.before}</p>
+                  <p className="text-[0.688rem] uppercase tracking-wider text-white/75">Before</p>
+                  <p className="mt-1.5 text-[0.938rem] text-white/80 leading-relaxed">{o.before}</p>
                 </div>
                 <svg
                   viewBox="0 0 24 24"
@@ -185,9 +168,7 @@ export default function ForInsurersPage() {
                 </svg>
                 <div>
                   <p className="text-[0.688rem] uppercase tracking-wider text-blue-300">After</p>
-                  <p className="mt-1.5 text-[0.938rem] font-medium text-white leading-relaxed">
-                    {o.after}
-                  </p>
+                  <p className="mt-1.5 text-[0.938rem] font-medium text-white leading-relaxed">{o.after}</p>
                 </div>
               </div>
             </ScrollReveal>
@@ -203,21 +184,11 @@ export default function ForInsurersPage() {
         />
         <FeatureGrid className="mt-10">
           {securityHighlights.map((s, i) => (
-            <FeatureCard
-              key={s.title}
-              variant="bordered"
-              title={s.title}
-              description={s.description}
-              delay={i * 60}
-            />
+            <FeatureCard key={s.title} variant="bordered" title={s.title} description={s.description} delay={i * 60} />
           ))}
         </FeatureGrid>
         <div className="mt-10 text-center">
-          <CTAButton
-            variant="outline"
-            href="/security"
-            trackLocation="for-insurers-security"
-          >
+          <CTAButton variant="outline" href="/security" trackLocation="for-insurers-security">
             セキュリティの全体像を見る →
           </CTAButton>
         </div>
@@ -251,7 +222,7 @@ export default function ForInsurersPage() {
                 </div>
                 <div>
                   <h3 className="text-[1.063rem] font-bold text-white leading-snug">{s.title}</h3>
-                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white/60">{s.desc}</p>
+                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white/80">{s.desc}</p>
                 </div>
               </div>
             </ScrollReveal>
@@ -268,24 +239,16 @@ export default function ForInsurersPage() {
           <h2 className="mt-6 text-2xl md:text-3xl font-bold text-white leading-tight">
             保険会社パイロットの参加企業を募集中
           </h2>
-          <p className="mt-4 text-[0.938rem] md:text-base leading-[1.9] text-white/60 max-w-xl mx-auto">
+          <p className="mt-4 text-[0.938rem] md:text-base leading-[1.9] text-white/80 max-w-xl mx-auto">
             先行導入企業様には、API・基幹連携の無償実装支援、優先サポート、共同プレスリリース発信機会をご提供します。
             <br />
             業界共通の検証インフラを、一緒に立ち上げてみませんか。
           </p>
           <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
-            <CTAButton
-              variant="primary"
-              href="/contact?role=insurer"
-              trackLocation="for-insurers-pilot"
-            >
+            <CTAButton variant="primary" href="/contact?role=insurer" trackLocation="for-insurers-pilot">
               パイロット参加を申し込む
             </CTAButton>
-            <CTAButton
-              variant="outline"
-              href="/resources"
-              trackLocation="for-insurers-pilot"
-            >
+            <CTAButton variant="outline" href="/resources" trackLocation="for-insurers-pilot">
               技術ホワイトペーパー
             </CTAButton>
           </div>

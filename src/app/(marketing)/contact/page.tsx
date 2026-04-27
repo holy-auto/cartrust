@@ -26,24 +26,36 @@ export default function ContactPage() {
               <div className="mt-8 space-y-6">
                 <div className="flex gap-4 items-start">
                   <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-500/[0.1] flex items-center justify-center">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-blue-400">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="w-5 h-5 text-blue-400"
+                    >
                       <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                   </div>
                   <div>
                     <div className="text-sm font-medium text-white">メール</div>
-                    <div className="mt-1 text-sm text-white/50">info@ledra.co.jp</div>
+                    <div className="mt-1 text-sm text-white/80">info@ledra.co.jp</div>
                   </div>
                 </div>
                 <div className="flex gap-4 items-start">
                   <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-500/[0.1] flex items-center justify-center">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-blue-400">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="w-5 h-5 text-blue-400"
+                    >
                       <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
                   <div>
                     <div className="text-sm font-medium text-white">対応時間</div>
-                    <div className="mt-1 text-sm text-white/50">通常1営業日以内にご返信いたします</div>
+                    <div className="mt-1 text-sm text-white/80">通常1営業日以内にご返信いたします</div>
                   </div>
                 </div>
               </div>

@@ -33,23 +33,33 @@ export function MobileAppSection() {
               MOBILE
             </span>
             <h2 className="mt-6 text-[1.75rem] md:text-[2.5rem] font-bold leading-[1.2] tracking-tight text-white">
-              現場のスマホで、<br />
+              現場のスマホで、
+              <br />
               現場の速度で。
             </h2>
-            <p className="mt-5 text-[0.938rem] md:text-base leading-[1.85] text-white/55">
-              Ledra の中核機能は、モバイルブラウザから直接操作できます。PCを開かなくても、撮影から証明書発行、その場決済まで、現場で完結します。
+            <p className="mt-5 text-[0.938rem] md:text-base leading-[1.85] text-white/80">
+              Ledra
+              の中核機能は、モバイルブラウザから直接操作できます。PCを開かなくても、撮影から証明書発行、その場決済まで、現場で完結します。
             </p>
             <ul className="mt-8 space-y-5">
               {POINTS.map((p) => (
                 <li key={p.title} className="flex items-start gap-3">
                   <span className="mt-1 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500/30 to-blue-500/10 border border-blue-500/20">
-                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-300">
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="text-blue-300"
+                    >
                       <path d="M2 6l3 3 5-6" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </span>
                   <div>
                     <p className="text-sm font-semibold text-white">{p.title}</p>
-                    <p className="mt-1 text-xs leading-relaxed text-white/50">{p.desc}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-white/80">{p.desc}</p>
                   </div>
                 </li>
               ))}
@@ -71,7 +81,7 @@ export function MobileAppSection() {
               {/* Mock UI content */}
               <div className="relative h-full flex flex-col px-5 pt-12 pb-6">
                 {/* Status row */}
-                <div className="flex items-center justify-between text-[0.65rem] text-white/40 mb-6">
+                <div className="flex items-center justify-between text-[0.65rem] text-white/75 mb-6">
                   <span>10:24</span>
                   <span className="flex items-center gap-1">
                     <span className="block w-3 h-1 bg-white/30 rounded-sm" />
@@ -81,20 +91,24 @@ export function MobileAppSection() {
 
                 {/* "Card" */}
                 <div className="rounded-2xl border border-white/[0.1] bg-white/[0.04] p-4 backdrop-blur-md">
-                  <p className="text-[0.625rem] uppercase tracking-wider text-blue-300/80">
-                    今日の作業
-                  </p>
+                  <p className="text-[0.625rem] uppercase tracking-wider text-blue-300/80">今日の作業</p>
                   <p className="mt-2 text-sm font-bold text-white leading-snug">
-                    ガラスコーティング<br />施工完了
+                    ガラスコーティング
+                    <br />
+                    施工完了
                   </p>
                   <div className="mt-3 h-1 w-full rounded-full bg-white/10 overflow-hidden">
                     <div className="h-full w-3/4 bg-gradient-to-r from-blue-500 to-violet-500" />
                   </div>
-                  <p className="mt-2 text-[0.65rem] text-white/45">3 / 4 ステップ完了</p>
+                  <p className="mt-2 text-[0.65rem] text-white/80">3 / 4 ステップ完了</p>
                 </div>
 
                 {/* Action button */}
-                <button className="mt-5 w-full rounded-xl py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-500 shadow-[0_1px_12px_rgba(59,130,246,0.3)]" type="button" disabled>
+                <button
+                  className="mt-5 w-full rounded-xl py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-500 shadow-[0_1px_12px_rgba(59,130,246,0.3)]"
+                  type="button"
+                  disabled
+                >
                   証明書を発行
                 </button>
 
@@ -110,7 +124,7 @@ export function MobileAppSection() {
                       className="flex items-center gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2"
                     >
                       <span className="text-sm">{r.icon}</span>
-                      <span className="text-[0.7rem] text-white/60">{r.text}</span>
+                      <span className="text-[0.7rem] text-white/80">{r.text}</span>
                     </div>
                   ))}
                 </div>

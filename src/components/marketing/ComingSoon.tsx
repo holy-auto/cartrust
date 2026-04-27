@@ -17,12 +17,8 @@ export function ComingSoon({
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium text-blue-300 bg-blue-500/10 border border-blue-500/20 mb-8">
           COMING SOON
         </div>
-        <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
-          {title}
-        </h1>
-        <p className="mt-5 text-base text-white/50 max-w-md mx-auto leading-relaxed">
-          {message}
-        </p>
+        <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">{title}</h1>
+        <p className="mt-5 text-base text-white/80 max-w-md mx-auto leading-relaxed">{message}</p>
         <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
           <Link
             href="/"

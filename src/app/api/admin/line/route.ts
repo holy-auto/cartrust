@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiOk, apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { buildSecretWrite } from "@/lib/crypto/tenantSecrets";
 
 export const dynamic = "force-dynamic";
 
@@ -81,12 +82,15 @@ export async function POST(req: NextRequest) {
     const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     if (data.action === "configure") {
+      const secretPayload = await buildSecretWrite(data.channel_secret);
+      const accessTokenPayload = await buildSecretWrite(data.channel_access_token);
+
       await admin
         .from("tenants")
         .update({
           line_channel_id: data.channel_id,
-          line_channel_secret: data.channel_secret,
-          line_channel_access_token: data.channel_access_token,
+          line_channel_secret_ciphertext: secretPayload.ciphertext,
+          line_channel_access_token_ciphertext: accessTokenPayload.ciphertext,
           line_liff_id: data.liff_id,
           line_enabled: true,
         })
@@ -103,8 +107,8 @@ export async function POST(req: NextRequest) {
       .from("tenants")
       .update({
         line_channel_id: null,
-        line_channel_secret: null,
-        line_channel_access_token: null,
+        line_channel_secret_ciphertext: null,
+        line_channel_access_token_ciphertext: null,
         line_liff_id: null,
         line_enabled: false,
       })
