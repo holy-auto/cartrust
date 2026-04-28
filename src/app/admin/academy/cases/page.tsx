@@ -44,6 +44,7 @@ export default function AcademyCasesPage() {
   const [loading, setLoading] = useState(false);
   const [publishing, setPublishing] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [knowHowLocked, setKnowHowLocked] = useState(false);
 
   const fetchCases = async () => {
     setLoading(true);
@@ -53,8 +54,10 @@ export default function AcademyCasesPage() {
       const res = await fetch(`/api/admin/academy/cases?${params}`);
       const data = await res.json();
       setCases(data.cases ?? []);
+      setKnowHowLocked(Boolean(data.know_how_locked));
     } catch {
       setCases([]);
+      setKnowHowLocked(false);
     } finally {
       setLoading(false);
     }
@@ -132,6 +135,19 @@ export default function AcademyCasesPage() {
         </div>
       )}
 
+      {/* ノウハウロックバナー (Free) */}
+      {tab === "published" && knowHowLocked && (
+        <div className="mb-4 p-3 bg-warning-dim border border-warning/30 rounded-xl text-xs text-warning flex items-start gap-2">
+          <span className="mt-0.5">🔒</span>
+          <div>
+            <p className="font-medium">ノウハウ詳細はStarterプラン以上で閲覧できます</p>
+            <p className="text-warning/70 mt-0.5">
+              先輩加盟店が共有した知見を尊重するため、AI要約・良かった点・注意点はFreeプランでは表示されません。
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* コンテンツ */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
@@ -170,7 +186,13 @@ export default function AcademyCasesPage() {
                     ))}
                     <span className="text-xs text-yellow-400">{DIFFICULTY_STARS(c.difficulty)}</span>
                   </div>
-                  <p className="text-sm text-secondary line-clamp-2">{c.ai_summary ?? "AI要約なし"}</p>
+                  <p className="text-sm text-secondary line-clamp-2">
+                    {tab === "published" && knowHowLocked ? (
+                      <span className="text-muted italic">🔒 AI要約はStarterプラン以上で閲覧できます</span>
+                    ) : (
+                      (c.ai_summary ?? "AI要約なし")
+                    )}
+                  </p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <span className={`text-sm font-bold px-2 py-1 rounded-lg ${scoreColor(c.quality_score)}`}>
@@ -195,34 +217,50 @@ export default function AcademyCasesPage() {
               {/* 展開コンテンツ */}
               {expanded === c.id && (
                 <div className="px-4 pb-4 border-t border-border-subtle pt-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {c.good_points.length > 0 && (
-                      <div>
-                        <h3 className="text-xs font-semibold text-success mb-2">✅ 良かった点</h3>
-                        <ul className="space-y-1">
-                          {c.good_points.map((p, i) => (
-                            <li key={i} className="text-xs text-secondary flex gap-1">
-                              <span className="text-success shrink-0">•</span>
-                              {p}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {c.caution_points.length > 0 && (
-                      <div>
-                        <h3 className="text-xs font-semibold text-warning mb-2">⚠️ 注意点</h3>
-                        <ul className="space-y-1">
-                          {c.caution_points.map((p, i) => (
-                            <li key={i} className="text-xs text-secondary flex gap-1">
-                              <span className="text-warning shrink-0">•</span>
-                              {p}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
+                  {tab === "published" && knowHowLocked ? (
+                    <div className="rounded-xl bg-inset border border-border-subtle p-5 text-center">
+                      <div className="text-2xl mb-2">🔒</div>
+                      <p className="text-sm font-medium text-primary">ノウハウ詳細はStarterプラン以上で閲覧できます</p>
+                      <p className="text-xs text-muted mt-1">
+                        先輩加盟店が時間をかけて積み上げた知見です。閲覧にはアップグレードが必要です。
+                      </p>
+                      <a
+                        href="/admin/billing"
+                        className="inline-block mt-3 text-xs px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
+                      >
+                        プランをアップグレード
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {c.good_points.length > 0 && (
+                        <div>
+                          <h3 className="text-xs font-semibold text-success mb-2">✅ 良かった点</h3>
+                          <ul className="space-y-1">
+                            {c.good_points.map((p, i) => (
+                              <li key={i} className="text-xs text-secondary flex gap-1">
+                                <span className="text-success shrink-0">•</span>
+                                {p}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {c.caution_points.length > 0 && (
+                        <div>
+                          <h3 className="text-xs font-semibold text-warning mb-2">⚠️ 注意点</h3>
+                          <ul className="space-y-1">
+                            {c.caution_points.map((p, i) => (
+                              <li key={i} className="text-xs text-secondary flex gap-1">
+                                <span className="text-warning shrink-0">•</span>
+                                {p}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div className="mt-3 flex items-center gap-4 text-xs text-muted">
                     <span>👁 {c.view_count}</span>
                     <span>👍 {c.helpful_count}</span>

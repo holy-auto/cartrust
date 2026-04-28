@@ -27,6 +27,7 @@ const MATRIX: Record<PlanTier, Record<FeatureKey, boolean>> = {
     ai_follow_up: false,
     ai_academy_feedback: false,
     ai_academy_qa: false,
+    academy_know_how: false,
     ai_proposal: false,
     ai_follow_up_email: false,
   },
@@ -48,6 +49,7 @@ const MATRIX: Record<PlanTier, Record<FeatureKey, boolean>> = {
     ai_follow_up: false,
     ai_academy_feedback: false,
     ai_academy_qa: false,
+    academy_know_how: true,
     ai_proposal: false,
     ai_follow_up_email: false,
   },
@@ -69,6 +71,7 @@ const MATRIX: Record<PlanTier, Record<FeatureKey, boolean>> = {
     ai_follow_up: true,
     ai_academy_feedback: true,
     ai_academy_qa: true,
+    academy_know_how: true,
     ai_proposal: true,
     ai_follow_up_email: true,
   },
@@ -90,6 +93,7 @@ const MATRIX: Record<PlanTier, Record<FeatureKey, boolean>> = {
     ai_follow_up: true,
     ai_academy_feedback: true,
     ai_academy_qa: true,
+    academy_know_how: true,
     ai_proposal: true,
     ai_follow_up_email: true,
   },
@@ -143,6 +147,8 @@ export function featureLabel(feature: FeatureKey): string {
       return "Academy AIフィードバック";
     case "ai_academy_qa":
       return "Academy QAアシスタント";
+    case "academy_know_how":
+      return "Academy ノウハウ閲覧";
     case "ai_proposal":
       return "AIヒアリング提案";
     case "ai_follow_up_email":
