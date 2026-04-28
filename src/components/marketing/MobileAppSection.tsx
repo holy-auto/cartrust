@@ -1,3 +1,6 @@
+import { existsSync } from "fs";
+import { join } from "path";
+import Image from "next/image";
 import { Section } from "./Section";
 import { ScrollReveal } from "./ScrollReveal";
 
@@ -7,8 +10,8 @@ const POINTS = [
     desc: "タブレット・スマホ前提のUI。撮影→証明書紐付け→発行を、作業の手を止めずに。",
   },
   {
-    title: "Tap to Pay（iPhone）対応",
-    desc: "iPhone をそのままカードリーダーに。追加機材なしで、現場決済が可能です。",
+    title: "顧客もスマホで、施工履歴を即確認",
+    desc: "発行された証明書は URL を開くだけ。専用アプリ不要で、保証や施工内容をいつでも見られます。",
   },
   {
     title: "PWA でオフラインも強い",
@@ -16,13 +19,25 @@ const POINTS = [
   },
 ];
 
+const MOBILE_SCREENSHOT = "/marketing/screenshots/06-public-cert-mobile.png";
+
+function publicFileExists(publicPath: string): boolean {
+  try {
+    return existsSync(join(process.cwd(), "public", publicPath.replace(/^\//, "")));
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Mobile appeal section.
  *
- * Illustration box is intentionally abstract — swap in real screenshots
- * once the demo tenant is ready (Phase 5).
+ * 公開証明書ページの実スクショをスマホ型フレームに表示。
+ * 画像が無ければ Tailwind 製モック UI にフォールバック。
  */
 export function MobileAppSection() {
+  const showScreenshot = publicFileExists(MOBILE_SCREENSHOT);
+
   return (
     <Section id="mobile">
       <div className="mx-auto max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
@@ -38,8 +53,8 @@ export function MobileAppSection() {
               現場の速度で。
             </h2>
             <p className="mt-5 text-[0.938rem] md:text-base leading-[1.85] text-white/80">
-              Ledra
-              の中核機能は、モバイルブラウザから直接操作できます。PCを開かなくても、撮影から証明書発行、その場決済まで、現場で完結します。
+              施工店は現場のスマホから撮影→発行→共有まで。発行された証明書は URL
+              ひとつで、顧客も保険会社もそのまま確認できます。
             </p>
             <ul className="mt-8 space-y-5">
               {POINTS.map((p) => (
@@ -67,78 +82,90 @@ export function MobileAppSection() {
           </div>
         </ScrollReveal>
 
-        {/* Illustration */}
+        {/* Phone frame with real screenshot (or fallback mock) */}
         <ScrollReveal variant="fade-left" delay={120}>
-          <div className="relative aspect-[4/5] md:aspect-[3/4] max-w-sm mx-auto">
-            <div className="absolute inset-0 rounded-[2.5rem] border border-white/[0.12] bg-gradient-to-br from-[#0a0f1a] to-[#0b111c] shadow-[0_20px_60px_rgba(0,0,0,0.5)] overflow-hidden">
-              {/* Decorative ambient glow */}
-              <div className="absolute top-[-20%] right-[-20%] w-[320px] h-[320px] bg-blue-500/20 rounded-full blur-[80px]" />
-              <div className="absolute bottom-[-20%] left-[-10%] w-[260px] h-[260px] bg-violet-500/15 rounded-full blur-[70px]" />
+          <div className="relative aspect-[9/19] max-w-[260px] md:max-w-[280px] mx-auto">
+            {/* Ambient glow behind phone */}
+            <div className="absolute -inset-8 bg-gradient-to-br from-blue-500/20 via-violet-500/10 to-transparent blur-3xl pointer-events-none" />
 
+            <div className="relative h-full rounded-[2.5rem] border border-white/[0.12] bg-[#0a0f1a] shadow-[0_20px_60px_rgba(0,0,0,0.5)] overflow-hidden">
               {/* Notch */}
-              <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-[80px] h-5 rounded-full bg-black/60" />
+              <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-[70px] h-5 rounded-full bg-black/80 z-10" />
 
-              {/* Mock UI content */}
-              <div className="relative h-full flex flex-col px-5 pt-12 pb-6">
-                {/* Status row */}
-                <div className="flex items-center justify-between text-[0.65rem] text-white/75 mb-6">
-                  <span>10:24</span>
-                  <span className="flex items-center gap-1">
-                    <span className="block w-3 h-1 bg-white/30 rounded-sm" />
-                    <span className="block w-3 h-3 border border-white/30 rounded" />
-                  </span>
-                </div>
-
-                {/* "Card" */}
-                <div className="rounded-2xl border border-white/[0.1] bg-white/[0.04] p-4 backdrop-blur-md">
-                  <p className="text-[0.625rem] uppercase tracking-wider text-blue-300/80">今日の作業</p>
-                  <p className="mt-2 text-sm font-bold text-white leading-snug">
-                    ガラスコーティング
-                    <br />
-                    施工完了
-                  </p>
-                  <div className="mt-3 h-1 w-full rounded-full bg-white/10 overflow-hidden">
-                    <div className="h-full w-3/4 bg-gradient-to-r from-blue-500 to-violet-500" />
-                  </div>
-                  <p className="mt-2 text-[0.65rem] text-white/80">3 / 4 ステップ完了</p>
-                </div>
-
-                {/* Action button */}
-                <button
-                  className="mt-5 w-full rounded-xl py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-500 shadow-[0_1px_12px_rgba(59,130,246,0.3)]"
-                  type="button"
-                  disabled
-                >
-                  証明書を発行
-                </button>
-
-                {/* Dotted list */}
-                <div className="mt-6 space-y-3">
-                  {[
-                    { icon: "📸", text: "施工写真 6 枚を紐付け" },
-                    { icon: "🏷️", text: "メニュー: ガラスコーティング" },
-                    { icon: "🚗", text: "車両: TOYOTA プリウス" },
-                  ].map((r) => (
-                    <div
-                      key={r.text}
-                      className="flex items-center gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2"
-                    >
-                      <span className="text-sm">{r.icon}</span>
-                      <span className="text-[0.7rem] text-white/80">{r.text}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Payment hint */}
-                <div className="mt-auto rounded-xl border border-blue-500/25 bg-blue-500/[0.08] p-3 text-center">
-                  <p className="text-[0.65rem] text-blue-200/80">この端末で Tap to Pay</p>
-                  <p className="mt-0.5 text-xs font-semibold text-white">そのまま決済に進めます</p>
-                </div>
-              </div>
+              {showScreenshot ? (
+                <Image
+                  src={MOBILE_SCREENSHOT}
+                  alt="Ledra 公開証明書 (モバイル表示)"
+                  fill
+                  sizes="(min-width: 768px) 280px, 260px"
+                  className="object-cover"
+                  style={{ objectPosition: "center top" }}
+                />
+              ) : (
+                <FallbackMobileMock />
+              )}
             </div>
           </div>
         </ScrollReveal>
       </div>
     </Section>
+  );
+}
+
+function FallbackMobileMock() {
+  return (
+    <>
+      {/* Decorative ambient glow */}
+      <div className="absolute top-[-20%] right-[-20%] w-[320px] h-[320px] bg-blue-500/20 rounded-full blur-[80px]" />
+      <div className="absolute bottom-[-20%] left-[-10%] w-[260px] h-[260px] bg-violet-500/15 rounded-full blur-[70px]" />
+
+      <div className="relative h-full flex flex-col px-5 pt-12 pb-6">
+        <div className="flex items-center justify-between text-[0.65rem] text-white/75 mb-6">
+          <span>10:24</span>
+          <span className="flex items-center gap-1">
+            <span className="block w-3 h-1 bg-white/30 rounded-sm" />
+            <span className="block w-3 h-3 border border-white/30 rounded" />
+          </span>
+        </div>
+
+        <div className="rounded-2xl border border-white/[0.1] bg-white/[0.04] p-4 backdrop-blur-md">
+          <p className="text-[0.625rem] uppercase tracking-wider text-blue-300/80">今日の作業</p>
+          <p className="mt-2 text-sm font-bold text-white leading-snug">
+            ガラスコーティング
+            <br />
+            施工完了
+          </p>
+          <div className="mt-3 h-1 w-full rounded-full bg-white/10 overflow-hidden">
+            <div className="h-full w-3/4 bg-gradient-to-r from-blue-500 to-violet-500" />
+          </div>
+          <p className="mt-2 text-[0.65rem] text-white/80">3 / 4 ステップ完了</p>
+        </div>
+
+        <div className="mt-5 w-full rounded-xl py-3 text-center text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-500 shadow-[0_1px_12px_rgba(59,130,246,0.3)]">
+          証明書を発行
+        </div>
+
+        <div className="mt-6 space-y-3">
+          {[
+            { icon: "📸", text: "施工写真 6 枚を紐付け" },
+            { icon: "🏷️", text: "メニュー: ガラスコーティング" },
+            { icon: "🚗", text: "車両: TOYOTA プリウス" },
+          ].map((r) => (
+            <div
+              key={r.text}
+              className="flex items-center gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2"
+            >
+              <span className="text-sm">{r.icon}</span>
+              <span className="text-[0.7rem] text-white/80">{r.text}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-auto rounded-xl border border-blue-500/25 bg-blue-500/[0.08] p-3 text-center">
+          <p className="text-[0.65rem] text-blue-200/80">URL ひとつで顧客と共有</p>
+          <p className="mt-0.5 text-xs font-semibold text-white">そのまま開ける公開ページ</p>
+        </div>
+      </div>
+    </>
   );
 }
