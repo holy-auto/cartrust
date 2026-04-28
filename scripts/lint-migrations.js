@@ -46,8 +46,34 @@ const RULES = [
     id: "create-index-without-concurrently",
     description: "CREATE INDEX must use CONCURRENTLY (otherwise locks the table for writes).",
     check(sql) {
-      const matches = sql.match(/^[ \t]*CREATE\s+(UNIQUE\s+)?INDEX\b(?!\s+CONCURRENTLY)/gim) ?? [];
-      return matches.map((m) => `${m.trim()} — add CONCURRENTLY (and split into its own migration; CONCURRENTLY cannot run inside a transaction).`);
+      // Tables CREATE TABLE'd in this same migration: index-on-empty-table is OK,
+      // because there are no concurrent writers to block. CONCURRENTLY in a
+      // separate file is impractical anyway since Supabase wraps each migration
+      // file in a transaction (CONCURRENTLY cannot run inside a transaction).
+      const createdTables = new Set();
+      const tableRe = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([a-zA-Z_][a-zA-Z0-9_]*)/gi;
+      let tm;
+      while ((tm = tableRe.exec(sql)) !== null) {
+        createdTables.add(tm[1].toLowerCase());
+      }
+
+      // Find every CREATE INDEX statement (with or without CONCURRENTLY / IF NOT EXISTS).
+      const indexRe =
+        /^[ \t]*CREATE\s+(?:UNIQUE\s+)?INDEX\b[^;]*?\bON\s+([a-zA-Z_][a-zA-Z0-9_]*)/gim;
+      const violations = [];
+      let im;
+      while ((im = indexRe.exec(sql)) !== null) {
+        const stmt = im[0];
+        if (/\bCONCURRENTLY\b/i.test(stmt)) continue;
+        const table = im[1].toLowerCase();
+        if (createdTables.has(table)) continue; // empty new table → safe
+        // First word(s) of the statement for a tidy message
+        const head = stmt.match(/^[ \t]*CREATE\s+(?:UNIQUE\s+)?INDEX\b[^\n]*/i);
+        violations.push(
+          `${(head ? head[0] : stmt).trim()} — add CONCURRENTLY (and split into its own migration; CONCURRENTLY cannot run inside a transaction).`,
+        );
+      }
+      return violations;
     },
   },
   {

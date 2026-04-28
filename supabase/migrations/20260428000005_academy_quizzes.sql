@@ -3,7 +3,8 @@
 -- - 質問は lesson に紐づき position で順序付け
 -- - 採点はサーバー側で行い、70% 以上で合格 → lesson 完了を自動マーク
 --
--- インデックスは別マイグレーション (CONCURRENTLY)
+-- 新規空テーブルなのでインデックスは通常の CREATE INDEX (非 CONCURRENTLY)。
+-- Supabase のトランザクションラップで CONCURRENTLY は使えないため。
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS academy_quiz_questions (
@@ -31,6 +32,13 @@ CREATE TABLE IF NOT EXISTS academy_quiz_attempts (
   answers       jsonb NOT NULL DEFAULT '[]'::jsonb, -- [{question_id, selected_index, is_correct}]
   attempted_at  timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE INDEX IF NOT EXISTS idx_academy_quiz_questions_lesson
+  ON academy_quiz_questions (lesson_id, position);
+CREATE INDEX IF NOT EXISTS idx_academy_quiz_attempts_lesson_user
+  ON academy_quiz_attempts (lesson_id, user_id, attempted_at DESC);
+CREATE INDEX IF NOT EXISTS idx_academy_quiz_attempts_user
+  ON academy_quiz_attempts (user_id, attempted_at DESC);
 
 -- RLS
 ALTER TABLE academy_quiz_questions ENABLE ROW LEVEL SECURITY;
