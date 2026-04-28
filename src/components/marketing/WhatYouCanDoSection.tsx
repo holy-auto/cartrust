@@ -19,7 +19,7 @@ export function WhatYouCanDoSection() {
         subtitle="現場の発行作業から、経営の意思決定まで。Ledra ひとつで完結します。"
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
         {/* 1. 証明書を WEB で発行 */}
         <FeatureCard
           eyebrow="01 — Issue"
@@ -31,6 +31,7 @@ export function WhatYouCanDoSection() {
             src="/marketing/screenshots/07-certificate-new.png"
             alt="証明書の発行画面"
             url="admin.ledra.app/certs/new"
+            objectPosition="right center"
           >
             <CertNewMockBody />
           </ScreenshotFrame>
@@ -47,6 +48,7 @@ export function WhatYouCanDoSection() {
             src="/marketing/screenshots/02-certificates-list.png"
             alt="証明書一覧画面"
             url="admin.ledra.app/certs"
+            objectPosition="right center"
           >
             <ListMockBody
               label="証明書一覧"
@@ -70,6 +72,7 @@ export function WhatYouCanDoSection() {
             src="/marketing/screenshots/04-vehicle-timeline.png"
             alt="車両ごとの施工履歴タイムライン"
             url="admin.ledra.app/vehicles/.../timeline"
+            objectPosition="right center"
           >
             <ListMockBody
               label="車両タイムライン"
@@ -93,6 +96,7 @@ export function WhatYouCanDoSection() {
             src="/marketing/screenshots/05-customer-360.png"
             alt="顧客 360 画面"
             url="admin.ledra.app/customers/..."
+            objectPosition="right center"
           >
             <ListMockBody
               label="顧客詳細"
@@ -129,6 +133,7 @@ export function WhatYouCanDoSection() {
             src="/marketing/screenshots/01-admin-dashboard.png"
             alt="管理ダッシュボード"
             url="admin.ledra.app/dashboard"
+            objectPosition="right center"
           >
             <DashboardMockBody />
           </ScreenshotFrame>
