@@ -9,6 +9,7 @@ import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiOk, apiUnauthorized, apiInternalError, apiValidationError, apiNotFound } from "@/lib/api/response";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { generateAcademyCaseSummary } from "@/lib/ai/academyFeedback";
+import { canUseFeature } from "@/lib/billing/planFeatures";
 
 const academyCaseActionSchema = z.object({
   case_id: z.string().uuid("case_id が必要です"),
@@ -50,7 +51,21 @@ export async function GET(req: NextRequest) {
 
     if (error) return apiInternalError(error);
 
-    return apiOk({ cases: cases ?? [] });
+    // ノウハウ詳細(AI要約・良点・注意点・車両情報)は有料プラン限定。
+    // 候補事例は自テナント所有データのため対象外。
+    const knowHowAllowed = canUseFeature(caller.planTier, "academy_know_how");
+    const shouldMask = type !== "candidates" && !knowHowAllowed;
+    const sanitized = shouldMask
+      ? (cases ?? []).map((c) => ({
+          ...c,
+          ai_summary: null,
+          good_points: [],
+          caution_points: [],
+          vehicle_info: {},
+        }))
+      : (cases ?? []);
+
+    return apiOk({ cases: sanitized, know_how_locked: shouldMask });
   } catch (e: unknown) {
     return apiInternalError(e);
   }

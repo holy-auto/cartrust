@@ -16,6 +16,7 @@ export const FEATURES = {
   ai_follow_up: "ai_follow_up", // B-4: フォローAI
   ai_academy_feedback: "ai_academy_feedback", // C-2: Academy添削
   ai_academy_qa: "ai_academy_qa", // C-3: QAアシスタント
+  academy_know_how: "academy_know_how", // C-1: 公開事例のノウハウ詳細閲覧 (要約・良点・注意点)
   ai_proposal: "ai_proposal", // ヒアリング提案（既存）
   ai_follow_up_email: "ai_follow_up_email", // フォローメール（既存）
 } as const;
