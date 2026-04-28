@@ -35,23 +35,6 @@ export default async function HomePage() {
       {/* Hero */}
       <Hero />
 
-      {/* ブランドストーリー — ナラティブ進行 */}
-      <section className="relative bg-[#060a12] overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-[0.025] pointer-events-none"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
-            backgroundSize: "80px 80px",
-            maskImage: "radial-gradient(ellipse 90% 70% at 50% 50%, black 30%, transparent 80%)",
-            WebkitMaskImage: "radial-gradient(ellipse 90% 70% at 50% 50%, black 30%, transparent 80%)",
-          }}
-        />
-        <Container className="relative py-24 md:py-32">
-          <NarrativeTypewriter />
-        </Container>
-      </section>
-
       {/* Ledra でできること — 旧: 課題提起 / 解決 / 流れ / エコシステム / 証明書プレビュー を統合 */}
       <WhatYouCanDoSection />
 
@@ -232,6 +215,23 @@ export default async function HomePage() {
 
       {/* コミュニティ・教育・イベント */}
       <CommunityEducationSection />
+
+      {/* ブランドストーリー — 機能紹介を一通り見た読者へのクロージング */}
+      <section className="relative bg-[#060a12] overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-[0.025] pointer-events-none"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
+            backgroundSize: "80px 80px",
+            maskImage: "radial-gradient(ellipse 90% 70% at 50% 50%, black 30%, transparent 80%)",
+            WebkitMaskImage: "radial-gradient(ellipse 90% 70% at 50% 50%, black 30%, transparent 80%)",
+          }}
+        />
+        <Container className="relative py-24 md:py-32">
+          <NarrativeTypewriter />
+        </Container>
+      </section>
 
       {/* Quick Start + Reliability */}
       <QuickStartReliabilityBar />
