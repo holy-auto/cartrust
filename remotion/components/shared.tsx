@@ -1,5 +1,7 @@
 import { useCurrentFrame, useVideoConfig, spring, interpolate } from "remotion";
 
+export const FONT = "'Noto Sans CJK JP', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif";
+
 export const BLUE = "#3b82f6";
 export const ACCENT = "#0071e3";
 export const BG = "#060a12";
@@ -18,6 +20,7 @@ export function SlideLayout({ children }: { children: React.ReactNode }) {
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
+        fontFamily: FONT,
         boxSizing: "border-box",
         position: "relative",
       }}

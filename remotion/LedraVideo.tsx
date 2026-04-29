@@ -1,4 +1,5 @@
 import { AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig, interpolate, spring } from "remotion";
+import { FONT } from "./components/shared";
 import { TitleSlide } from "./slides/TitleSlide";
 import { ProblemsSlide } from "./slides/ProblemsSlide";
 import { SolutionSlide } from "./slides/SolutionSlide";
@@ -28,7 +29,7 @@ export const LedraVideo: React.FC = () => {
   ];
 
   return (
-    <AbsoluteFill style={{ background: "#060a12", fontFamily: "sans-serif" }}>
+    <AbsoluteFill style={{ background: "#060a12", fontFamily: FONT }}>
       {slides.map((SlideComponent, i) => (
         <Sequence key={i} from={i * SLIDE_FRAMES} durationInFrames={SLIDE_FRAMES}>
           <SlideTransition>
