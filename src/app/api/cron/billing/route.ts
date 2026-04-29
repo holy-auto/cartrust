@@ -5,6 +5,7 @@ import { sendCronFailureAlert } from "@/lib/cronAlert";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { withCronLock } from "@/lib/cron/lock";
 import { escapeHtml } from "@/lib/sanitize";
+import { fetchWithTimeout } from "@/lib/http/fetchWithTimeout";
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +16,11 @@ async function sendReminderEmail(to: string, subject: string, html: string) {
   const from = process.env.RESEND_FROM;
   if (!apiKey || !from) return false;
   try {
-    const res = await fetch(RESEND_API, {
+    const res = await fetchWithTimeout(RESEND_API, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({ from, to, subject, html }),
+      timeoutMs: 10_000,
     });
     return res.ok;
   } catch {

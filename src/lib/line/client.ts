@@ -1,5 +1,6 @@
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { readSecret } from "@/lib/crypto/tenantSecrets";
+import { fetchWithTimeout } from "@/lib/http/fetchWithTimeout";
 
 /**
  * LINE Messaging API クライアント
@@ -50,13 +51,14 @@ async function sendMessage(
   to: string,
   messages: Array<{ type: string; text?: string; [key: string]: unknown }>,
 ): Promise<void> {
-  const res = await fetch("https://api.line.me/v2/bot/message/push", {
+  const res = await fetchWithTimeout("https://api.line.me/v2/bot/message/push", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify({ to, messages }),
+    timeoutMs: 10_000,
   });
 
   if (!res.ok) {
@@ -71,13 +73,14 @@ async function replyMessage(
   replyToken: string,
   messages: Array<{ type: string; text?: string; [key: string]: unknown }>,
 ): Promise<void> {
-  const res = await fetch("https://api.line.me/v2/bot/message/reply", {
+  const res = await fetchWithTimeout("https://api.line.me/v2/bot/message/reply", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify({ replyToken, messages }),
+    timeoutMs: 10_000,
   });
 
   if (!res.ok) {

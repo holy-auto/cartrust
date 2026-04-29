@@ -2,6 +2,7 @@ import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { buildSecretWrite } from "@/lib/crypto/tenantSecrets";
+import { fetchWithTimeout } from "@/lib/http/fetchWithTimeout";
 
 export const dynamic = "force-dynamic";
 
@@ -66,10 +67,11 @@ export async function GET(req: NextRequest) {
       redirect_uri: redirectUri,
     };
 
-    const tokenRes = await fetch("https://connect.squareup.com/oauth2/token", {
+    const tokenRes = await fetchWithTimeout("https://connect.squareup.com/oauth2/token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(tokenBody),
+      timeoutMs: 10_000,
     });
 
     if (!tokenRes.ok) {
@@ -86,8 +88,9 @@ export async function GET(req: NextRequest) {
     // 2. Fetch locations
     let locationIds: string[] = [];
     try {
-      const locRes = await fetch("https://connect.squareup.com/v2/locations", {
+      const locRes = await fetchWithTimeout("https://connect.squareup.com/v2/locations", {
         headers: { Authorization: `Bearer ${access_token}` },
+        timeoutMs: 10_000,
       });
       if (locRes.ok) {
         const locData = await locRes.json();

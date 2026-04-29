@@ -14,6 +14,7 @@
  */
 
 import type { C2paResult } from "./types";
+import { fetchWithTimeout } from "@/lib/http/fetchWithTimeout";
 
 export type C2paMode = "disabled" | "dev-signed" | "production";
 
@@ -41,15 +42,13 @@ async function pinToPinata(signedBuffer: Buffer): Promise<string | null> {
     const blob = new Blob([new Uint8Array(signedBuffer)]);
     const form = new FormData();
     form.append("file", blob, "c2pa-manifest.bin");
-    form.append(
-      "pinataMetadata",
-      JSON.stringify({ name: `ledra-c2pa-${Date.now()}` }),
-    );
+    form.append("pinataMetadata", JSON.stringify({ name: `ledra-c2pa-${Date.now()}` }));
 
-    const res = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
+    const res = await fetchWithTimeout("https://api.pinata.cloud/pinning/pinFileToIPFS", {
       method: "POST",
       headers: { Authorization: `Bearer ${jwt}` },
       body: form,
+      timeoutMs: 30_000, // IPFS pinning は数十秒かかることがある
     });
 
     if (!res.ok) {

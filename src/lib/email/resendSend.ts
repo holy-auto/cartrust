@@ -1,4 +1,5 @@
 import { logger } from "@/lib/logger";
+import { fetchWithTimeout } from "@/lib/http/fetchWithTimeout";
 
 const RESEND_API = "https://api.resend.com/emails";
 
@@ -82,10 +83,11 @@ export async function sendResendEmail(msg: ResendMessage, opts: SendOptions = {}
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const res = await fetch(RESEND_API, {
+      const res = await fetchWithTimeout(RESEND_API, {
         method: "POST",
         headers,
         body: JSON.stringify(payload),
+        timeoutMs: 15_000,
       });
 
       if (res.ok) {

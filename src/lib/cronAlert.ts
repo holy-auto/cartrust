@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from "@/lib/http/fetchWithTimeout";
+
 const RESEND_API = "https://api.resend.com/emails";
 
 /** Lazily forward to Sentry without blocking cron completion. */
@@ -35,12 +37,13 @@ export async function sendCronFailureAlert(jobName: string, error: unknown): Pro
   if (!apiKey || !alertEmail) return;
 
   try {
-    await fetch(RESEND_API, {
+    await fetchWithTimeout(RESEND_API, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
+      timeoutMs: 10_000,
       body: JSON.stringify({
         from,
         to: alertEmail,

@@ -3,6 +3,7 @@
  */
 
 import { escapeHtml } from "@/lib/sanitize";
+import { fetchWithTimeout } from "@/lib/http/fetchWithTimeout";
 
 const RESEND_API = "https://api.resend.com/emails";
 
@@ -25,10 +26,11 @@ async function send(to: string, subject: string, html: string): Promise<boolean>
   const from = process.env.RESEND_FROM;
   if (!apiKey || !from) return false;
   try {
-    const res = await fetch(RESEND_API, {
+    const res = await fetchWithTimeout(RESEND_API, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({ from, to, subject, html }),
+      timeoutMs: 15_000,
     });
     return res.ok;
   } catch {
@@ -91,9 +93,5 @@ export async function sendDocumentEmail(params: {
     `,
   );
 
-  return send(
-    params.to,
-    `[${sender}] ${docType} ${docNumber} のご送付`,
-    html,
-  );
+  return send(params.to, `[${sender}] ${docType} ${docNumber} のご送付`, html);
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { apiJson, apiUnauthorized } from "@/lib/api/response";
 import { verifyCronRequest } from "@/lib/cronAuth";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
+import { fetchWithTimeout } from "@/lib/http/fetchWithTimeout";
 
 export const dynamic = "force-dynamic";
 
@@ -111,12 +112,13 @@ export async function GET(req: NextRequest) {
     const alertEmail = process.env.CONTACT_TO_EMAIL;
     if (apiKey && alertEmail) {
       try {
-        await fetch(RESEND_API, {
+        await fetchWithTimeout(RESEND_API, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${apiKey}`,
             "Content-Type": "application/json",
           },
+          timeoutMs: 10_000,
           body: JSON.stringify({
             from: process.env.RESEND_FROM ?? "noreply@ledra.co.jp",
             to: alertEmail,

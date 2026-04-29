@@ -4,6 +4,7 @@
  */
 
 import { escapeHtml } from "@/lib/sanitize";
+import { fetchWithTimeout } from "@/lib/http/fetchWithTimeout";
 
 const RESEND_API = "https://api.resend.com/emails";
 
@@ -16,13 +17,14 @@ async function sendEmail(to: string, subject: string, html: string) {
   }
 
   try {
-    const res = await fetch(RESEND_API, {
+    const res = await fetchWithTimeout(RESEND_API, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ from, to, subject, html }),
+      timeoutMs: 15_000,
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");

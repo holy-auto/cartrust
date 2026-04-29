@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiJson, apiValidationError, apiInternalError, apiError } from "@/lib/api/response";
 import { captureSecurityEvent } from "@/lib/observability/sentry";
+import { fetchWithTimeout } from "@/lib/http/fetchWithTimeout";
 import { escapeHtml } from "@/lib/sanitize";
 import { executeOrderPayout } from "@/lib/orders/orderPayout";
 
@@ -47,10 +48,11 @@ async function sendPayoutFailedEmail(params: {
   `;
 
   try {
-    await fetch("https://api.resend.com/emails", {
+    await fetchWithTimeout("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({ from, to: params.to, subject: "[Ledra] 振込処理が失敗しました", html }),
+      timeoutMs: 10_000,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

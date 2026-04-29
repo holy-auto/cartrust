@@ -5,6 +5,7 @@ import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { emailSchema } from "@/lib/validation/schemas";
 import { sha256Hex } from "@/lib/customerPortalServer";
 import { apiJson, apiValidationError, apiInternalError, apiError } from "@/lib/api/response";
+import { fetchWithTimeout } from "@/lib/http/fetchWithTimeout";
 
 export const runtime = "nodejs";
 
@@ -40,12 +41,13 @@ async function sendEmailResend(to: string, code: string) {
     </div>
   `;
 
-  const res = await fetch("https://api.resend.com/emails", {
+  const res = await fetchWithTimeout("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
+    timeoutMs: 15_000,
     body: JSON.stringify({
       from,
       to,

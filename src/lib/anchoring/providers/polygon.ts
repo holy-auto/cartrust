@@ -137,13 +137,13 @@ export async function anchorToPolygon(sha256: string): Promise<PolygonAnchorResu
 
     const publicClient = createPublicClient({
       chain,
-      transport: http(config.rpcUrl),
+      transport: http(config.rpcUrl, { timeout: 15_000 }),
     });
 
     const walletClient = createWalletClient({
       account,
       chain,
-      transport: http(config.rpcUrl),
+      transport: http(config.rpcUrl, { timeout: 15_000 }),
     });
 
     // Submit the hash to the LedraAnchor contract
@@ -156,10 +156,12 @@ export async function anchorToPolygon(sha256: string): Promise<PolygonAnchorResu
       account,
     });
 
-    // Wait for the transaction to be included in a block
+    // Wait for the transaction to be included in a block.
+    // viem の既定 timeout は 180s で Vercel function (60s/120s) を超えるため明示。
     const receipt = await publicClient.waitForTransactionReceipt({
       hash: txHash,
       confirmations: 1,
+      timeout: 45_000,
     });
 
     if (receipt.status === "success") {
@@ -187,10 +189,7 @@ export async function anchorToPolygon(sha256: string): Promise<PolygonAnchorResu
  *                   checked against Amoy even after the runtime moved to
  *                   mainnet.
  */
-export async function verifyAnchor(
-  sha256: string,
-  network?: PolygonNetwork | null,
-): Promise<boolean> {
+export async function verifyAnchor(sha256: string, network?: PolygonNetwork | null): Promise<boolean> {
   const config = getReadConfig(network);
   if (!config) return false;
 
@@ -206,7 +205,7 @@ export async function verifyAnchor(
 
     const client = createPublicClient({
       chain,
-      transport: http(config.rpcUrl),
+      transport: http(config.rpcUrl, { timeout: 15_000 }),
     });
 
     const isAnchored = await client.readContract({
@@ -228,7 +227,10 @@ export async function verifyAnchor(
  * Build a Polygonscan explorer URL for a given transaction hash.
  * Returns null if inputs are missing.
  */
-export function buildExplorerUrl(txHash: string | null | undefined, network: PolygonNetwork | null | undefined): string | null {
+export function buildExplorerUrl(
+  txHash: string | null | undefined,
+  network: PolygonNetwork | null | undefined,
+): string | null {
   if (!txHash || !network) return null;
   const base = network === "amoy" ? "https://amoy.polygonscan.com" : "https://polygonscan.com";
   return `${base}/tx/${txHash}`;
@@ -263,7 +265,7 @@ export async function findAnchorTx(
     const { polygon, polygonAmoy } = await import("viem/chains");
 
     const chain = config.network === "amoy" ? polygonAmoy : polygon;
-    const client = createPublicClient({ chain, transport: http(config.rpcUrl) });
+    const client = createPublicClient({ chain, transport: http(config.rpcUrl, { timeout: 15_000 }) });
 
     const logs = await client.getLogs({
       address: config.contractAddress as `0x${string}`,
@@ -275,9 +277,7 @@ export async function findAnchorTx(
 
     if (logs.length === 0) return null;
     // Take the earliest event (first anchor)
-    const first = logs.reduce((acc, cur) =>
-      BigInt(cur.blockNumber ?? 0) < BigInt(acc.blockNumber ?? 0) ? cur : acc,
-    );
+    const first = logs.reduce((acc, cur) => (BigInt(cur.blockNumber ?? 0) < BigInt(acc.blockNumber ?? 0) ? cur : acc));
 
     return { txHash: first.transactionHash as `0x${string}`, network: config.network };
   } catch (error) {

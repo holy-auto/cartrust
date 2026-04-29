@@ -5,6 +5,7 @@ import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { Client } from "@upstash/qstash";
 import { buildSecretWrite, readSecret } from "@/lib/crypto/tenantSecrets";
+import { fetchWithTimeout } from "@/lib/http/fetchWithTimeout";
 
 const squareSyncSchema = z.object({
   job_id: z.string().uuid(),
@@ -34,7 +35,7 @@ async function refreshSquareToken(
   admin: ReturnType<typeof createTenantScopedAdmin>["admin"],
 ): Promise<string | null> {
   try {
-    const res = await fetch("https://connect.squareup.com/oauth2/token", {
+    const res = await fetchWithTimeout("https://connect.squareup.com/oauth2/token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -43,6 +44,7 @@ async function refreshSquareToken(
         grant_type: "refresh_token",
         refresh_token: refreshToken,
       }),
+      timeoutMs: 10_000,
     });
 
     if (!res.ok) {
@@ -161,13 +163,14 @@ async function handler(req: NextRequest) {
     };
     if (resumeCursor) searchBody.cursor = resumeCursor;
 
-    const res = await fetch("https://connect.squareup.com/v2/orders/search", {
+    const res = await fetchWithTimeout("https://connect.squareup.com/v2/orders/search", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(searchBody),
+      timeoutMs: 15_000,
     });
 
     if (res.status === 401) {

@@ -24,6 +24,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { apiJson, apiUnauthorized } from "@/lib/api/response";
 import { verifyCronRequest } from "@/lib/cronAuth";
+import { fetchWithTimeout } from "@/lib/http/fetchWithTimeout";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -114,13 +115,14 @@ async function sendAlertEmail(summary: SignerSummary): Promise<void> {
   ].join("\n");
 
   try {
-    await fetch(RESEND_API, {
+    await fetchWithTimeout(RESEND_API, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ from, to, subject, text: body }),
+      timeoutMs: 10_000,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

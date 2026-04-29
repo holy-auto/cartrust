@@ -4,6 +4,7 @@ import { resolveInsurerCaller, enforceInsurerPlan } from "@/lib/api/insurerAuth"
 import { apiJson, apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
 import { maskEmail } from "@/lib/logger";
 import { escapeHtml } from "@/lib/sanitize";
+import { fetchWithTimeout } from "@/lib/http/fetchWithTimeout";
 
 export const runtime = "nodejs";
 
@@ -91,12 +92,13 @@ async function sendInviteEmail(to: string, companyName: string) {
   `;
 
   try {
-    await fetch("https://api.resend.com/emails", {
+    await fetchWithTimeout("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
+      timeoutMs: 15_000,
       body: JSON.stringify({
         from,
         to,

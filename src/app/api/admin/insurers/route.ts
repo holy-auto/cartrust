@@ -7,6 +7,7 @@ import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { getClientIp } from "@/lib/rateLimit";
 import { apiJson, apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 import { escapeHtml } from "@/lib/sanitize";
+import { fetchWithTimeout } from "@/lib/http/fetchWithTimeout";
 
 export const runtime = "nodejs";
 
@@ -159,12 +160,13 @@ async function sendInsurerNotification(params: {
   }
 
   try {
-    const res = await fetch("https://api.resend.com/emails", {
+    const res = await fetchWithTimeout("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
+      timeoutMs: 15_000,
       body: JSON.stringify({
         from,
         to: params.email,

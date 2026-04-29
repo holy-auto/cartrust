@@ -4,6 +4,7 @@ import { apiOk, apiUnauthorized, apiInternalError, apiError } from "@/lib/api/re
 import { verifyCronRequest } from "@/lib/cronAuth";
 import { sendCronFailureAlert } from "@/lib/cronAlert";
 import { buildSecretWrite, readSecret } from "@/lib/crypto/tenantSecrets";
+import { fetchWithTimeout } from "@/lib/http/fetchWithTimeout";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -18,7 +19,7 @@ async function refreshSquareToken(
   refreshToken: string,
 ): Promise<{ access_token: string; expires_at: string } | null> {
   try {
-    const res = await fetch("https://connect.squareup.com/oauth2/token", {
+    const res = await fetchWithTimeout("https://connect.squareup.com/oauth2/token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -27,6 +28,7 @@ async function refreshSquareToken(
         grant_type: "refresh_token",
         refresh_token: refreshToken,
       }),
+      timeoutMs: 10_000,
     });
 
     if (!res.ok) {
@@ -87,13 +89,14 @@ async function fetchAllOrders(
     };
     if (cursor) body.cursor = cursor;
 
-    const res = await fetch("https://connect.squareup.com/v2/orders/search", {
+    const res = await fetchWithTimeout("https://connect.squareup.com/v2/orders/search", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
+      timeoutMs: 15_000,
     });
 
     if (res.status === 429) {
