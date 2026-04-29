@@ -10,7 +10,7 @@ type ScreenshotFrameProps = {
    */
   src?: string;
   alt: string;
-  /** デフォルト 16/10。Tailwind の任意 aspect ratio 文字列。 */
+  /** デフォルトはスクショ実画像 (1920×991) に合わせた比率。Tailwind の任意 aspect ratio 文字列で上書き可能。 */
   aspect?: string;
   /** ブラウザ chrome (macOS 風) の URL ラベル。例: "admin.ledra.app/dashboard" */
   url?: string;
@@ -38,7 +38,7 @@ function publicFileExists(publicPath: string): boolean {
 export function ScreenshotFrame({
   src,
   alt,
-  aspect = "aspect-[16/10]",
+  aspect = "aspect-[1920/991]",
   url,
   chrome = "macos",
   sizes = "(min-width: 1024px) 56vw, 100vw",
