@@ -67,11 +67,7 @@ export async function sendExpiryReminder(params: {
       </p>
     `,
   );
-  return send(
-    params.customerEmail,
-    `[${shop}] 施工証明書の有効期限のお知らせ`,
-    html,
-  );
+  return send(params.customerEmail, `[${shop}] 施工証明書の有効期限のお知らせ`, html);
 }
 
 /** 施工後フォローメール */
@@ -102,9 +98,44 @@ export async function sendFollowUpEmail(params: {
       </p>
     `,
   );
-  return send(
-    params.customerEmail,
-    `[${shop}] 施工後のご確認`,
-    html,
+  return send(params.customerEmail, `[${shop}] 施工後のご確認`, html);
+}
+
+/**
+ * 定期メンテナンスリマインダー（6/12 ヶ月点検）
+ *
+ * recoat_proposal とは別の意図 — 「再施工してください」ではなく
+ * 「点検にいらしてください」というトーンで送る。月単位の節目
+ * (半年点検 / 1 年点検) で使う。
+ */
+export async function sendMaintenanceReminder(params: {
+  shopName: string;
+  customerEmail: string;
+  customerName: string;
+  certificateLabel: string;
+  monthsSince: number;
+}): Promise<boolean> {
+  const shop = escapeHtml(params.shopName);
+  const customer = escapeHtml(params.customerName);
+  const cert = escapeHtml(params.certificateLabel);
+  const milestone =
+    params.monthsSince === 6 ? "半年" : params.monthsSince === 12 ? "1 年" : `${params.monthsSince} ヶ月`;
+  const html = wrap(
+    `${milestone}メンテナンスのご案内`,
+    `
+      <p style="color: #1d1d1f; font-size: 14px;">
+        ${customer} 様<br><br>
+        ${shop}です。<br>
+        「${cert}」の施工から <strong>${milestone}</strong> が経過いたしました。
+      </p>
+      <p style="color: #1d1d1f; font-size: 14px;">
+        被膜・コーティングの状態確認や、撥水性能の回復メンテナンスのため、
+        ${milestone}点検にお越しいただくことをおすすめしております。
+      </p>
+      <p style="font-size: 13px; color: #86868b;">
+        ご予約・お問い合わせは ${shop} まで。
+      </p>
+    `,
   );
+  return send(params.customerEmail, `[${shop}] ${milestone}メンテナンスのご案内`, html);
 }
