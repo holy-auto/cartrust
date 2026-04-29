@@ -31,6 +31,33 @@ import { CertQRAndURL } from "./slides/certificate-deep/QRAndURL";
 import { CertBlockchain } from "./slides/certificate-deep/Blockchain";
 import { CertBatchAndExport } from "./slides/certificate-deep/BatchAndExport";
 
+// ── Admin 完全ガイド ───────────────────────────────────────────────────
+import { AdminFullIntro as AdminIntro } from "./slides/admin-full/00_Intro";
+import { Ch1Divider } from "./slides/admin-full/01_Ch1_Divider";
+import { DashboardKPI } from "./slides/admin-full/02_Dashboard_KPI";
+import { DashboardWidgets } from "./slides/admin-full/03_Dashboard_Widgets";
+import { Ch2Divider } from "./slides/admin-full/04_Ch2_Divider";
+import { CertList } from "./slides/admin-full/05_Cert_List";
+import { CertIssue } from "./slides/admin-full/06_Cert_Issue";
+import { CertOps } from "./slides/admin-full/07_Cert_Ops";
+import { Ch3Divider } from "./slides/admin-full/08_Ch3_Divider";
+import { VehicleRegister } from "./slides/admin-full/09_Vehicle_Register";
+import { VehicleTimeline } from "./slides/admin-full/10_Vehicle_Timeline";
+import { Customer360 } from "./slides/admin-full/11_Customer_360";
+import { Ch4Divider } from "./slides/admin-full/12_Ch4_Divider";
+import { ReservationMgmt } from "./slides/admin-full/13_Reservation_Mgmt";
+import { JobWorkflow } from "./slides/admin-full/14_Job_Workflow";
+import { WalkInJob } from "./slides/admin-full/15_WalkIn_Job";
+import { Ch5Divider } from "./slides/admin-full/16_Ch5_Divider";
+import { Invoice } from "./slides/admin-full/17_Invoice";
+import { POSSquare } from "./slides/admin-full/18_POS_Square";
+import { Analytics } from "./slides/admin-full/19_Analytics";
+import { Ch6Divider } from "./slides/admin-full/20_Ch6_Divider";
+import { BtoBFull } from "./slides/admin-full/21_BtoB";
+import { Ch7Divider } from "./slides/admin-full/22_Ch7_Divider";
+import { SettingsMembers } from "./slides/admin-full/23_Settings_Members";
+import { SecurityBilling } from "./slides/admin-full/24_Security_Billing";
+
 // ── ワークフロー 深掘り ────────────────────────────────────────────────
 import { WorkflowOverview } from "./slides/workflow-deep/Overview";
 import { WorkflowStatusStepper } from "./slides/workflow-deep/StatusStepper";
@@ -71,6 +98,36 @@ const CERT_SLIDES: SlideDef[] = [
   { component: CertQRAndURL },
   { component: CertBlockchain },
   { component: CertBatchAndExport },
+];
+
+// チャプター区切りは短め (450f = 15s)、本編スライドは長め (1500f = 50s)
+const ADMIN_FULL_SLIDES: SlideDef[] = [
+  { component: AdminIntro,        frames: 900  }, // 30s
+  { component: Ch1Divider,        frames: 450  }, // 15s
+  { component: DashboardKPI,      frames: 1500 },
+  { component: DashboardWidgets,  frames: 1500 },
+  { component: Ch2Divider,        frames: 450  },
+  { component: CertList,          frames: 1500 },
+  { component: CertIssue,         frames: 1500 },
+  { component: CertOps,           frames: 1500 },
+  { component: Ch3Divider,        frames: 450  },
+  { component: VehicleRegister,   frames: 1500 },
+  { component: VehicleTimeline,   frames: 1500 },
+  { component: Customer360,       frames: 1500 },
+  { component: Ch4Divider,        frames: 450  },
+  { component: ReservationMgmt,   frames: 1500 },
+  { component: JobWorkflow,       frames: 1500 },
+  { component: WalkInJob,         frames: 1500 },
+  { component: Ch5Divider,        frames: 450  },
+  { component: Invoice,           frames: 1500 },
+  { component: POSSquare,         frames: 1500 },
+  { component: Analytics,         frames: 1500 },
+  { component: Ch6Divider,        frames: 450  },
+  { component: BtoBFull,          frames: 1500 },
+  { component: Ch7Divider,        frames: 450  },
+  { component: SettingsMembers,   frames: 1500 },
+  { component: SecurityBilling,   frames: 1500 },
+  // 合計: 900 + 450×7 + 1500×18 = 900 + 3150 + 27000 = 31050f ≈ 17.3 min
 ];
 
 const WORKFLOW_SLIDES: SlideDef[] = [
@@ -144,6 +201,15 @@ export const RemotionRoot = () => (
       durationInFrames={totalFrames(WORKFLOW_SLIDES, DEFAULT_FRAMES)}
       fps={FPS} width={W} height={H}
       defaultProps={{ slides: WORKFLOW_SLIDES, defaultFrames: DEFAULT_FRAMES }}
+    />
+
+    {/* Admin 完全ガイド (長尺 約17分) */}
+    <Composition
+      id="AdminFullGuide"
+      component={Slideshow}
+      durationInFrames={totalFrames(ADMIN_FULL_SLIDES)}
+      fps={FPS} width={W} height={H}
+      defaultProps={{ slides: ADMIN_FULL_SLIDES }}
     />
   </>
 );
