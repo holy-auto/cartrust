@@ -75,7 +75,16 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   failed: { label: "失敗", cls: "bg-red-500/15 text-red-600 border-red-500/30" },
 };
 
-type Tab = "progress" | "rewards";
+type Tab = "progress" | "certificates" | "rewards";
+
+interface CertEligibility {
+  category: string;
+  label: string;
+  completed: number;
+  threshold: number;
+  eligible: boolean;
+  latest_at: string | null;
+}
 
 export default function AcademyProgressPage() {
   const [activeTab, setActiveTab] = useState<Tab>("progress");
@@ -84,6 +93,10 @@ export default function AcademyProgressPage() {
   const [badges, setBadges] = useState<Badge[]>([]);
   const [recent, setRecent] = useState<RecentCompletion[]>([]);
   const [loadingProgress, setLoadingProgress] = useState(true);
+
+  const [certs, setCerts] = useState<CertEligibility[]>([]);
+  const [certsFetched, setCertsFetched] = useState(false);
+  const [downloadingCat, setDownloadingCat] = useState<string | null>(null);
 
   const [rewards, setRewards] = useState<RewardRecord[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -154,11 +167,42 @@ export default function AcademyProgressPage() {
     }
   }
 
+  async function fetchCerts() {
+    try {
+      const res = await fetch("/api/admin/academy/certificates");
+      if (!res.ok) return;
+      const data = await res.json();
+      setCerts(data.categories ?? []);
+    } finally {
+      setCertsFetched(true);
+    }
+  }
+
+  async function handleDownloadCert(category: string) {
+    setDownloadingCat(category);
+    try {
+      const res = await fetch(`/api/admin/academy/certificates/${category}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error ?? "ダウンロードに失敗しました");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ledra-academy-${category}-certificate.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloadingCat(null);
+    }
+  }
+
   function handleTabChange(tab: Tab) {
     setActiveTab(tab);
-    if (tab === "rewards" && !rewardsFetched) {
-      fetchRewards();
-    }
+    if (tab === "rewards" && !rewardsFetched) fetchRewards();
+    if (tab === "certificates" && !certsFetched) fetchCerts();
   }
 
   async function handleCalculate() {
@@ -240,7 +284,7 @@ export default function AcademyProgressPage() {
 
       {/* タブ */}
       <div className="flex gap-1 mb-6 border-b border-border-subtle">
-        {(["progress", "rewards"] as Tab[]).map((t) => (
+        {(["progress", "certificates", "rewards"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => handleTabChange(t)}
@@ -250,7 +294,7 @@ export default function AcademyProgressPage() {
                 : "border-transparent text-muted hover:text-secondary"
             }`}
           >
-            {t === "progress" ? "📊 進捗・バッジ" : "💰 報酬履歴"}
+            {t === "progress" ? "📊 進捗・バッジ" : t === "certificates" ? "📜 修了証" : "💰 報酬履歴"}
           </button>
         ))}
       </div>
@@ -402,6 +446,72 @@ export default function AcademyProgressPage() {
             )}
           </div>
         </>
+      )}
+
+      {activeTab === "certificates" && (
+        <div>
+          <div className="glass-card p-5 mb-6 flex gap-3 items-start">
+            <span className="text-2xl">📜</span>
+            <div>
+              <p className="text-sm text-primary font-medium">カテゴリ別 修了証</p>
+              <p className="text-sm text-muted mt-1">
+                各カテゴリで <strong>10件以上</strong> のレッスンを完了すると修了証 PDF をダウンロードできます。
+              </p>
+            </div>
+          </div>
+
+          {!certsFetched ? (
+            <div className="flex justify-center py-12">
+              <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {certs.map((c) => (
+                <div
+                  key={c.category}
+                  className={`glass-card p-5 flex items-center justify-between gap-3 ${
+                    c.eligible ? "border-accent/30" : ""
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-semibold text-primary">{c.label}</span>
+                      {c.eligible && (
+                        <span className="text-xs px-1.5 py-0.5 bg-green-500/15 text-green-600 border border-green-500/30 rounded">
+                          取得可
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted">
+                      {c.completed} / {c.threshold} レッスン完了
+                    </div>
+                    {!c.eligible && (
+                      <div className="mt-1.5 h-1.5 bg-inset rounded-full overflow-hidden w-32">
+                        <div
+                          className="h-1.5 bg-accent rounded-full"
+                          style={{ width: `${Math.min(100, (c.completed / c.threshold) * 100)}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleDownloadCert(c.category)}
+                    disabled={!c.eligible || downloadingCat === c.category}
+                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition-colors disabled:opacity-40 disabled:cursor-not-allowed
+                      enabled:bg-accent enabled:text-white enabled:border-accent/50 enabled:hover:bg-accent/90"
+                  >
+                    {downloadingCat === c.category ? (
+                      <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <span>⬇</span>
+                    )}
+                    {downloadingCat === c.category ? "生成中…" : "PDF"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {activeTab === "rewards" && (

@@ -143,7 +143,7 @@ export async function applyStripeCredit(rewardId: string): Promise<ApplyResult> 
 
   const { data: reward, error: fetchError } = await supabase
     .from("academy_creator_rewards")
-    .select("id, tenant_id, author_user_id, period_month, total_amount_jpy, status")
+    .select("id, tenant_id, author_user_id, period_month, lesson_count, total_amount_jpy, status")
     .eq("id", rewardId)
     .maybeSingle();
 
