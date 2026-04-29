@@ -4,7 +4,9 @@
 -- - tenant_id 設定 = 加盟店投稿
 -- - level = 'intro' は Free でも閲覧可、それ以外は Starter+
 --
--- インデックスは別マイグレーション (CONCURRENTLY)
+-- 新規空テーブルなのでインデックスは通常の CREATE INDEX で同時に作成
+-- (CONCURRENTLY は Supabase のトランザクションラップで使えない、
+--  かつ空テーブルなのでブロック対象がない)
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS academy_lessons (
@@ -31,6 +33,16 @@ CREATE TABLE IF NOT EXISTS academy_lessons (
   updated_at      timestamptz NOT NULL DEFAULT now()
 );
 
+-- インデックス (新規空テーブルなので非 CONCURRENTLY で安全)
+CREATE INDEX IF NOT EXISTS idx_academy_lessons_status_level
+  ON academy_lessons (status, level, published_at DESC);
+CREATE INDEX IF NOT EXISTS idx_academy_lessons_category
+  ON academy_lessons (category);
+CREATE INDEX IF NOT EXISTS idx_academy_lessons_tenant
+  ON academy_lessons (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_academy_lessons_rating
+  ON academy_lessons (rating_avg DESC) WHERE status = 'published';
+
 -- 評価
 CREATE TABLE IF NOT EXISTS academy_lesson_ratings (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -43,6 +55,9 @@ CREATE TABLE IF NOT EXISTS academy_lesson_ratings (
   updated_at  timestamptz NOT NULL DEFAULT now(),
   UNIQUE(lesson_id, user_id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_academy_lesson_ratings_lesson
+  ON academy_lesson_ratings (lesson_id);
 
 -- 評価を集約してレッスンに反映するトリガー
 CREATE OR REPLACE FUNCTION refresh_academy_lesson_rating()

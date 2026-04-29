@@ -4,7 +4,8 @@
 -- - 完了時に academy_progress を集約更新するトリガー
 -- - スコアはレッスン level に応じて API 側で計算 (intro=10, basic=20, standard=30, pro=50)
 --
--- インデックスは別マイグレーション (CONCURRENTLY)
+-- 新規空テーブルなのでインデックスは通常の CREATE INDEX (非 CONCURRENTLY)。
+-- Supabase のトランザクションラップで CONCURRENTLY は使えないため。
 -- ============================================================
 
 -- 既存 academy_progress に lessons_completed カラムを追加
@@ -20,6 +21,13 @@ CREATE TABLE IF NOT EXISTS academy_lesson_completions (
   completed_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (lesson_id, user_id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_academy_lesson_completions_user
+  ON academy_lesson_completions (user_id, completed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_academy_lesson_completions_lesson
+  ON academy_lesson_completions (lesson_id);
+CREATE INDEX IF NOT EXISTS idx_academy_lesson_completions_tenant
+  ON academy_lesson_completions (tenant_id, completed_at DESC);
 
 -- 完了集計を academy_progress に反映
 CREATE OR REPLACE FUNCTION refresh_academy_progress_on_completion()
