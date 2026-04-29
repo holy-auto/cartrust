@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type Props = {
   src: string;
@@ -19,7 +20,8 @@ type Props = {
 /**
  * クリックで lightbox を開く Image。
  * - サムネイルは ScreenshotFrame 内の "画面領域" を占有
- * - クリック → 全画面オーバーレイで原寸に近いサイズで表示
+ * - クリック → document.body にポータルで全画面オーバーレイ
+ *   (祖先の transform/overflow に影響されないよう createPortal を使う)
  * - ESC / 背景クリック / 閉じるボタンで閉じる
  */
 export function ScreenshotLightboxImage({
@@ -51,6 +53,51 @@ export function ScreenshotLightboxImage({
       trigger?.focus();
     };
   }, [open]);
+
+  const overlay = (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={alt}
+      className="fixed inset-0 z-[1000] flex flex-col items-center justify-center gap-4 bg-black/90 backdrop-blur-md p-4 md:p-8 cursor-zoom-out animate-[hero-fade-in_180ms_ease-out_both]"
+      onClick={() => setOpen(false)}
+    >
+      {/* 画像本体 — 親への click 伝播は止める */}
+      <div className="relative cursor-default" onClick={(e) => e.stopPropagation()}>
+        {/* 原寸で読み込みたいので next/image ではなく plain img を使う
+            (サムネイルで next/image が optimized 版をキャッシュ済み) */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt={alt}
+          width={intrinsicWidth}
+          height={intrinsicHeight}
+          className="block rounded-xl border border-white/10 shadow-[0_30px_80px_rgba(0,0,0,0.65)] max-h-[85vh] max-w-[92vw] w-auto h-auto"
+        />
+        {/* 閉じるボタン */}
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="absolute -top-3 -right-3 w-9 h-9 rounded-full bg-white text-[#060a12] shadow-lg flex items-center justify-center hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          aria-label="閉じる"
+        >
+          <svg viewBox="0 0 20 20" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.4">
+            <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
+
+      {/* キャプション */}
+      {url && (
+        <div className="font-mono text-xs text-white/70 select-text" onClick={(e) => e.stopPropagation()}>
+          {url}
+        </div>
+      )}
+
+      {/* hint */}
+      <div className="text-[0.65rem] text-white/50">クリック / ESC で閉じる</div>
+    </div>
+  );
 
   return (
     <>
@@ -84,49 +131,9 @@ export function ScreenshotLightboxImage({
         </span>
       </button>
 
-      {open && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={alt}
-          className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-black/90 backdrop-blur-md p-4 md:p-8 cursor-zoom-out animate-[hero-fade-in_180ms_ease-out_both]"
-          onClick={() => setOpen(false)}
-        >
-          {/* 画像本体 — 親への click 伝播は止める */}
-          <div className="relative cursor-default" onClick={(e) => e.stopPropagation()}>
-            <Image
-              src={src}
-              alt={alt}
-              width={intrinsicWidth}
-              height={intrinsicHeight}
-              sizes="92vw"
-              className="rounded-xl border border-white/10 shadow-[0_30px_80px_rgba(0,0,0,0.65)] max-h-[85vh] w-auto h-auto"
-              priority
-            />
-            {/* 閉じるボタン */}
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="absolute -top-3 -right-3 w-9 h-9 rounded-full bg-white text-[#060a12] shadow-lg flex items-center justify-center hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              aria-label="閉じる"
-            >
-              <svg viewBox="0 0 20 20" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.4">
-                <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
-
-          {/* キャプション */}
-          {url && (
-            <div className="font-mono text-xs text-white/70 select-text" onClick={(e) => e.stopPropagation()}>
-              {url}
-            </div>
-          )}
-
-          {/* hint */}
-          <div className="text-[0.65rem] text-white/50">クリック / ESC で閉じる</div>
-        </div>
-      )}
+      {/* createPortal で body に直接出すことで、祖先の transform/overflow から隔離。
+          open が false の間は createPortal が評価されないため SSR でも安全。 */}
+      {open && createPortal(overlay, document.body)}
     </>
   );
 }
