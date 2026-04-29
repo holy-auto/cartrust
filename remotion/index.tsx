@@ -65,6 +65,44 @@ import { WorkflowWalkIn } from "./slides/workflow-deep/WalkIn";
 import { WorkflowDuplicateGuard } from "./slides/workflow-deep/DuplicateGuard";
 import { WorkflowContextCarryover } from "./slides/workflow-deep/ContextCarryover";
 
+// ── Insurer 完全ガイド ─────────────────────────────────────────────────
+import { InsurerFullIntro } from "./slides/insurer-full/00_Intro";
+import { InsurerCh1Divider } from "./slides/insurer-full/01_Ch1_Divider";
+import { SearchBasic } from "./slides/insurer-full/02_Search_Basic";
+import { SearchVehicle } from "./slides/insurer-full/03_Search_Vehicle";
+import { CertDetail } from "./slides/insurer-full/04_Cert_Detail";
+import { Watchlist } from "./slides/insurer-full/05_Watchlist";
+import { InsurerCh2Divider } from "./slides/insurer-full/06_Ch2_Divider";
+import { CaseCreate } from "./slides/insurer-full/07_Case_Create";
+import { CaseBulk } from "./slides/insurer-full/08_Case_Bulk";
+import { TemplatesRules } from "./slides/insurer-full/09_Templates_Rules";
+import { SLAManagement } from "./slides/insurer-full/10_SLA";
+import { InsurerCh3Divider } from "./slides/insurer-full/11_Ch3_Divider";
+import { InsurerAnalytics } from "./slides/insurer-full/12_Analytics";
+import { ReportsExport } from "./slides/insurer-full/13_Reports_Export";
+import { InsurerCh4Divider } from "./slides/insurer-full/14_Ch4_Divider";
+import { InsurerUsers } from "./slides/insurer-full/15_Users";
+import { AuditNotifications } from "./slides/insurer-full/16_Audit_Notifications";
+import { InsurerSecurity } from "./slides/insurer-full/17_Security";
+
+// ── Agent 完全ガイド ───────────────────────────────────────────────────
+import { AgentFullIntro } from "./slides/agent-full/00_Intro";
+import { AgentCh1Divider } from "./slides/agent-full/01_Ch1_Divider";
+import { ApplyProcess } from "./slides/agent-full/02_Apply_Process";
+import { AccountSetup } from "./slides/agent-full/03_Account_Setup";
+import { AgentCh2Divider } from "./slides/agent-full/04_Ch2_Divider";
+import { ReferralLinks } from "./slides/agent-full/05_Referral_Links";
+import { ReferralRegister } from "./slides/agent-full/06_Referral_Register";
+import { ReferralTracking } from "./slides/agent-full/07_Referral_Tracking";
+import { AgentCh3Divider } from "./slides/agent-full/08_Ch3_Divider";
+import { CommissionDetail } from "./slides/agent-full/09_Commission_Detail";
+import { ReportsRankings } from "./slides/agent-full/10_Reports_Rankings";
+import { Campaigns } from "./slides/agent-full/11_Campaigns";
+import { AgentCh4Divider } from "./slides/agent-full/12_Ch4_Divider";
+import { Training } from "./slides/agent-full/13_Training";
+import { MaterialsShared } from "./slides/agent-full/14_Materials_Shared";
+import { SupportNotifications } from "./slides/agent-full/15_Support_Notifications";
+
 // ─────────────────────────────────────────────────────────────────────
 // スライド定義
 // ─────────────────────────────────────────────────────────────────────
@@ -136,6 +174,48 @@ const WORKFLOW_SLIDES: SlideDef[] = [
   { component: WorkflowWalkIn },
   { component: WorkflowDuplicateGuard },
   { component: WorkflowContextCarryover },
+];
+
+// 900 + 450×4 + 1500×13 = 22200f ≈ 12.3 min
+const INSURER_FULL_SLIDES: SlideDef[] = [
+  { component: InsurerFullIntro,    frames: 900  },
+  { component: InsurerCh1Divider,   frames: 450  },
+  { component: SearchBasic,         frames: 1500 },
+  { component: SearchVehicle,       frames: 1500 },
+  { component: CertDetail,          frames: 1500 },
+  { component: Watchlist,           frames: 1500 },
+  { component: InsurerCh2Divider,   frames: 450  },
+  { component: CaseCreate,          frames: 1500 },
+  { component: CaseBulk,            frames: 1500 },
+  { component: TemplatesRules,      frames: 1500 },
+  { component: SLAManagement,       frames: 1500 },
+  { component: InsurerCh3Divider,   frames: 450  },
+  { component: InsurerAnalytics,    frames: 1500 },
+  { component: ReportsExport,       frames: 1500 },
+  { component: InsurerCh4Divider,   frames: 450  },
+  { component: InsurerUsers,        frames: 1500 },
+  { component: AuditNotifications,  frames: 1500 },
+  { component: InsurerSecurity,     frames: 1500 },
+];
+
+// 900 + 450×4 + 1500×11 = 19200f ≈ 10.7 min
+const AGENT_FULL_SLIDES: SlideDef[] = [
+  { component: AgentFullIntro,        frames: 900  },
+  { component: AgentCh1Divider,       frames: 450  },
+  { component: ApplyProcess,          frames: 1500 },
+  { component: AccountSetup,          frames: 1500 },
+  { component: AgentCh2Divider,       frames: 450  },
+  { component: ReferralLinks,         frames: 1500 },
+  { component: ReferralRegister,      frames: 1500 },
+  { component: ReferralTracking,      frames: 1500 },
+  { component: AgentCh3Divider,       frames: 450  },
+  { component: CommissionDetail,      frames: 1500 },
+  { component: ReportsRankings,       frames: 1500 },
+  { component: Campaigns,             frames: 1500 },
+  { component: AgentCh4Divider,       frames: 450  },
+  { component: Training,              frames: 1500 },
+  { component: MaterialsShared,       frames: 1500 },
+  { component: SupportNotifications,  frames: 1500 },
 ];
 
 // ─────────────────────────────────────────────────────────────────────
@@ -210,6 +290,24 @@ export const RemotionRoot = () => (
       durationInFrames={totalFrames(ADMIN_FULL_SLIDES)}
       fps={FPS} width={W} height={H}
       defaultProps={{ slides: ADMIN_FULL_SLIDES }}
+    />
+
+    {/* Insurer 完全ガイド (長尺 約12分) */}
+    <Composition
+      id="InsurerFullGuide"
+      component={Slideshow}
+      durationInFrames={totalFrames(INSURER_FULL_SLIDES)}
+      fps={FPS} width={W} height={H}
+      defaultProps={{ slides: INSURER_FULL_SLIDES }}
+    />
+
+    {/* Agent 完全ガイド (長尺 約11分) */}
+    <Composition
+      id="AgentFullGuide"
+      component={Slideshow}
+      durationInFrames={totalFrames(AGENT_FULL_SLIDES)}
+      fps={FPS} width={W} height={H}
+      defaultProps={{ slides: AGENT_FULL_SLIDES }}
     />
   </>
 );

@@ -21,6 +21,8 @@ on:
           - CertificateDeepDive
           - WorkflowDeepDive
           - AdminFullGuide
+          - InsurerFullGuide
+          - AgentFullGuide
           - ALL
 
 jobs:
@@ -58,7 +60,7 @@ jobs:
         if: ${{ inputs.composition == 'ALL' }}
         run: |
           mkdir -p out
-          for COMP in LedraIntro AdminOnboarding InsurerOnboarding AgentOnboarding CertificateDeepDive WorkflowDeepDive AdminFullGuide; do
+          for COMP in LedraIntro AdminOnboarding InsurerOnboarding AgentOnboarding CertificateDeepDive WorkflowDeepDive AdminFullGuide InsurerFullGuide AgentFullGuide; do
             echo "▶ Rendering $COMP ..."
             npx remotion render remotion/index.tsx "$COMP" "out/${COMP}.mp4" \
               --codec=h264 \
