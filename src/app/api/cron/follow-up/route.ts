@@ -13,6 +13,7 @@ import {
   processFirstReminderFollowUps,
   processWarrantyEndFollowUps,
   processSeasonalProposals,
+  processMaintenanceReminders,
 } from "@/lib/cron/followUp";
 
 export const dynamic = "force-dynamic";
@@ -35,18 +36,25 @@ export async function GET(req: NextRequest) {
     let remindersSent = 0;
     let followUpsSent = 0;
     let seasonalSent = 0;
+    let maintenanceSent = 0;
 
     try {
       const { data: rawSettings } = await supabase
         .from("follow_up_settings")
         .select(
-          "tenant_id, reminder_days_before, follow_up_days_after, enabled, send_on_issue, first_reminder_days, warranty_end_days, inspection_pre_days, seasonal_enabled",
+          "tenant_id, reminder_days_before, follow_up_days_after, enabled, send_on_issue, first_reminder_days, warranty_end_days, inspection_pre_days, seasonal_enabled, maintenance_reminder_months",
         )
         .eq("enabled", true);
       const settings = (rawSettings ?? []) as unknown as FollowUpSetting[];
 
       if (!settings.length) {
-        return apiJson({ ok: true, reminders_sent: 0, follow_ups_sent: 0, date: todayStr });
+        return apiJson({
+          ok: true,
+          reminders_sent: 0,
+          follow_ups_sent: 0,
+          maintenance_sent: 0,
+          date: todayStr,
+        });
       }
 
       const allTenantIds = [...new Set(settings.map((s) => s.tenant_id))];
@@ -70,6 +78,7 @@ export async function GET(req: NextRequest) {
         followUpsSent += await processFirstReminderFollowUps(supabase, setting, tenant, shopName, planTier, today);
         followUpsSent += await processWarrantyEndFollowUps(supabase, setting, tenant, shopName, planTier);
         seasonalSent += await processSeasonalProposals(supabase, setting, shopName, today);
+        maintenanceSent += await processMaintenanceReminders(supabase, setting, shopName, today);
       }
     } catch (e) {
       console.error("[cron/follow-up] failed:", e);
@@ -80,6 +89,7 @@ export async function GET(req: NextRequest) {
       reminders_sent: remindersSent,
       follow_ups_sent: followUpsSent,
       seasonal_sent: seasonalSent,
+      maintenance_sent: maintenanceSent,
       date: todayStr,
     });
   } catch (e) {

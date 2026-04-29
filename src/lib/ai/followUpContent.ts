@@ -23,6 +23,7 @@ export type FollowUpTriggerType =
   | "recoat_proposal" // 180日後（既存）
   | "warranty_end" // 保証終了前
   | "inspection_pre" // 車検前
+  | "maintenance_reminder" // メンテナンスリマインダー（6/12 ヶ月点検）
   | "seasonal_winter" // 冬前コーティング提案
   | "seasonal_rainy"; // 梅雨前ガラス撥水提案
 
@@ -58,6 +59,7 @@ const TRIGGER_LABELS: Record<FollowUpTriggerType, string> = {
   recoat_proposal: "次回施工のご提案",
   warranty_end: "保証期間終了のご案内",
   inspection_pre: "車検前のご案内",
+  maintenance_reminder: "定期メンテナンスのご案内",
   seasonal_winter: "冬前コーティングのご提案",
   seasonal_rainy: "梅雨前ガラス撥水のご提案",
 };

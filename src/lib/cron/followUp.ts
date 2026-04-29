@@ -1,5 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { sendExpiryReminder, sendFollowUpEmail } from "@/lib/follow-up/email";
+import { sendExpiryReminder, sendFollowUpEmail, sendMaintenanceReminder } from "@/lib/follow-up/email";
 import { normalizePlanTier } from "@/lib/billing/planFeatures";
 import {
   generateFollowUpContent,
@@ -19,6 +19,8 @@ export type FollowUpSetting = {
   warranty_end_days: number | null;
   inspection_pre_days: number | null;
   seasonal_enabled: boolean | null;
+  /** Anniversary months (1-based) for maintenance reminders. Default [6, 12]. */
+  maintenance_reminder_months: number[] | null;
 };
 
 export type TenantInfo = {
@@ -562,6 +564,103 @@ export async function processSeasonalProposals(
       status: ok ? "sent" : "failed",
     });
     if (ok) sent++;
+  }
+
+  return sent;
+}
+
+// ─── 7. メンテナンスリマインダー（6/12 ヶ月点検） ──────────────────
+//
+// 月単位の節目で発火する点検リマインダー。recoat_proposal は「再施工
+// 提案」のトーンで再度の売上を狙うのに対し、maintenance_reminder は
+// 「点検にいらしてください」のトーンで信頼関係維持を狙う。
+//
+// 月計算は同日付で一致させる（例: 4/29 発行 → 10/29, 翌年 4/29 に発火）。
+// うるう日 (2/29) のように翌月に同日が無い場合は月末日を使う。
+
+/**
+ * 今日から N ヶ月前の日付 (yyyy-mm-dd) を返す。
+ *
+ * 月末オーバーフロー時 (例: 3/31 から 1 ヶ月戻る → 2/28 or 2/29) は
+ * 直前月の月末日に丸める。テスト容易性のため切り出している。
+ */
+export function monthsBackDateStr(today: Date, months: number): string {
+  const target = new Date(today);
+  const day = target.getDate();
+  target.setMonth(target.getMonth() - months);
+  if (target.getDate() !== day) {
+    // overflow → previous month's last day
+    target.setDate(0);
+  }
+  return target.toISOString().slice(0, 10);
+}
+
+export async function processMaintenanceReminders(
+  supabase: SupabaseClient,
+  setting: FollowUpSetting,
+  shopName: string,
+  today: Date,
+): Promise<number> {
+  const months = (setting.maintenance_reminder_months ?? [6, 12]).filter((m) => m > 0 && m <= 120);
+  if (!months.length) return 0;
+
+  let sent = 0;
+
+  for (const m of months) {
+    const dateStr = monthsBackDateStr(today, m);
+
+    const { data: certs } = await supabase
+      .from("certificates")
+      .select("id, customer_id, customer_name, service_name, created_at")
+      .eq("tenant_id", setting.tenant_id)
+      .neq("status", "void")
+      .gte("created_at", `${dateStr}T00:00:00`)
+      .lte("created_at", `${dateStr}T23:59:59`);
+
+    const certList = certs ?? [];
+    if (!certList.length) continue;
+
+    const certIds = certList.map((c) => c.id);
+    const notifType = `maintenance_reminder_${m}m`;
+    const { data: existingLogs } = await supabase
+      .from("notification_logs")
+      .select("target_id")
+      .in("target_id", certIds)
+      .eq("type", notifType);
+    const alreadyNotifiedIds = new Set((existingLogs ?? []).map((l) => l.target_id));
+
+    const customerIds = [...new Set(certList.map((c) => c.customer_id).filter(Boolean))] as string[];
+    const customerMap = new Map<string, { name: string | null; email: string | null }>();
+    if (customerIds.length) {
+      const { data: customers } = await supabase.from("customers").select("id, name, email").in("id", customerIds);
+      for (const c of customers ?? []) {
+        customerMap.set(c.id, { name: c.name, email: c.email });
+      }
+    }
+
+    for (const cert of certList) {
+      if (!cert.customer_id) continue;
+      if (alreadyNotifiedIds.has(cert.id)) continue;
+      const customer = customerMap.get(cert.customer_id);
+      if (!customer?.email) continue;
+
+      const ok = await sendMaintenanceReminder({
+        shopName,
+        customerEmail: customer.email,
+        customerName: customer.name ?? cert.customer_name ?? "お客様",
+        certificateLabel: cert.service_name ?? "施工証明書",
+        monthsSince: m,
+      });
+      await supabase.from("notification_logs").insert({
+        tenant_id: setting.tenant_id,
+        type: notifType,
+        target_type: "certificate",
+        target_id: cert.id,
+        recipient_email: customer.email,
+        status: ok ? "sent" : "failed",
+      });
+      if (ok) sent++;
+    }
   }
 
   return sent;

@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { makePublicId } from "@/lib/publicId";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { enforceBilling } from "@/lib/billing/guard";
 import {
+  apiError,
   apiJson,
   apiUnauthorized,
   apiValidationError,
@@ -13,6 +14,7 @@ import {
   apiInternalError,
 } from "@/lib/api/response";
 import { orderAcceptSchema, orderCreateSchema, orderUpdateSchema } from "@/lib/validations/order";
+import { parsePagination } from "@/lib/api/pagination";
 import { sendOrderInvoiceEmail } from "@/lib/orders/orderInvoice";
 
 // ─── ステータス遷移ルール ───
@@ -92,6 +94,8 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const browseQuery = searchParams.get("q"); // search query for browse mode
 
+    const p = parsePagination(req, { defaultPerPage: 100, maxPerPage: 200 });
+
     // ─── 公開案件ブラウズモード ───
     if (type === "browse") {
       const { admin } = createTenantScopedAdmin(caller.tenantId);
@@ -99,6 +103,7 @@ export async function GET(req: NextRequest) {
         .from("job_orders")
         .select(
           "id, public_id, from_tenant_id, to_tenant_id, title, description, category, budget, deadline, vehicle_id, status, created_at, updated_at",
+          { count: "exact" },
         )
         .is("to_tenant_id", null)
         .in("status", ["pending"])
@@ -116,10 +121,13 @@ export async function GET(req: NextRequest) {
         query = query.eq("status", status);
       }
 
-      const { data: orders, error } = await query.limit(100);
+      if (p.page > 0) query = query.range(p.from, p.to);
+      else query = query.limit(p.perPage);
+
+      const { data: orders, error, count } = await query;
       if (error) {
         console.error("[orders] browse_failed:", error.message);
-        return apiJson({ orders: [] });
+        return apiJson({ orders: [], page: p.page, per_page: p.perPage, total: 0 });
       }
 
       // 発注元テナント名を付与
@@ -137,13 +145,19 @@ export async function GET(req: NextRequest) {
         from_company: tenantNameMap[o.from_tenant_id] ?? "",
       }));
 
-      return apiJson({ orders: enriched });
+      return apiJson({
+        orders: enriched,
+        page: p.page,
+        per_page: p.perPage,
+        total: count ?? null,
+      });
     }
 
     let query = supabase
       .from("job_orders")
       .select(
         "id, public_id, from_tenant_id, to_tenant_id, title, description, category, budget, deadline, vehicle_id, status, cancelled_by, cancel_reason, vendor_completed_at, client_approved_at, created_at, updated_at",
+        { count: "exact" },
       )
       .order("created_at", { ascending: false });
 
@@ -160,14 +174,22 @@ export async function GET(req: NextRequest) {
       query = query.eq("status", status);
     }
 
-    const { data: orders, error } = await query.limit(100);
+    if (p.page > 0) query = query.range(p.from, p.to);
+    else query = query.limit(p.perPage);
+
+    const { data: orders, error, count } = await query;
 
     if (error) {
       console.error("[orders] list_failed:", error.message, error.details);
-      return apiJson({ orders: [], source: "empty" });
+      return apiJson({ orders: [], source: "empty", page: p.page, per_page: p.perPage, total: 0 });
     }
 
-    return apiJson({ orders: orders ?? [] });
+    return apiJson({
+      orders: orders ?? [],
+      page: p.page,
+      per_page: p.perPage,
+      total: count ?? null,
+    });
   } catch (e: unknown) {
     return apiInternalError(e, "orders GET");
   }
@@ -192,7 +214,17 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return apiValidationError(parsed.error.issues[0]?.message ?? "invalid payload");
     }
-    const { to_tenant_id, title, description, category, budget, deadline, vehicle_id, requester_email, requester_company } = parsed.data;
+    const {
+      to_tenant_id,
+      title,
+      description,
+      category,
+      budget,
+      deadline,
+      vehicle_id,
+      requester_email,
+      requester_company,
+    } = parsed.data;
 
     // Use admin client to bypass RLS (API already validated auth above)
     const { admin } = createTenantScopedAdmin(caller.tenantId);
@@ -355,9 +387,7 @@ export async function PUT(req: NextRequest) {
 
     // 検収承認 → payment_pending 遷移時に請求書を自動送付（fire-and-forget）
     if (status === "payment_pending") {
-      sendOrderInvoiceEmail(id).catch((e: unknown) =>
-        console.error("[orders] invoice email failed:", e),
-      );
+      sendOrderInvoiceEmail(id).catch((e: unknown) => console.error("[orders] invoice email failed:", e));
     }
 
     return apiJson({ ok: true, order: data });
@@ -440,7 +470,11 @@ export async function PATCH(req: NextRequest) {
       return apiInternalError(error, "orders accept");
     }
     if (!data) {
-      return NextResponse.json({ error: "この案件は既に受注済みか、受注できません" }, { status: 409 });
+      return apiError({
+        code: "conflict",
+        status: 409,
+        message: "この案件は既に受注済みか、受注できません。",
+      });
     }
 
     // 監査ログ

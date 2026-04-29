@@ -1,12 +1,15 @@
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { parsePagination } from "@/lib/api/pagination";
+import { agentTrainingCreateSchema } from "@/lib/validations/agent-content";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
     const caller = await resolveCallerWithRole(supabase);
@@ -14,13 +17,26 @@ export async function GET() {
     if (!requireMinRole(caller, "admin")) return apiForbidden();
 
     const { admin } = createTenantScopedAdmin(caller.tenantId);
-    const { data } = await admin
+    const p = parsePagination(request, { defaultPerPage: 50, maxPerPage: 200 });
+
+    let query = admin
       .from("agent_training_courses")
       .select(
         "id, title, description, category, content_type, content_url, thumbnail_url, duration_min, is_required, is_published, sort_order, created_at, updated_at",
+        { count: "exact" },
       )
       .order("sort_order", { ascending: true });
-    return apiJson({ courses: data ?? [] });
+
+    if (p.page > 0) query = query.range(p.from, p.to);
+    else query = query.limit(p.perPage);
+
+    const { data, count } = await query;
+    return apiJson({
+      courses: data ?? [],
+      page: p.page,
+      per_page: p.perPage,
+      total: count ?? null,
+    });
   } catch (e) {
     return apiInternalError(e, "agent-training GET");
   }
@@ -33,19 +49,21 @@ export async function POST(request: NextRequest) {
     if (!caller) return apiUnauthorized();
     if (!requireMinRole(caller, "admin")) return apiForbidden();
 
-    const body = await request.json();
+    const parsed = await parseJsonBody(request, agentTrainingCreateSchema);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
     const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     const { data, error } = await admin
       .from("agent_training_courses")
       .insert({
         title: body.title,
-        description: body.description || null,
+        description: body.description ?? null,
         category: body.category ?? "basic",
         content_type: body.content_type ?? "video",
-        content_url: body.content_url || null,
-        thumbnail_url: body.thumbnail_url || null,
-        duration_min: body.duration_min || null,
+        content_url: body.content_url ?? null,
+        thumbnail_url: body.thumbnail_url ?? null,
+        duration_min: body.duration_min ?? null,
         is_required: body.is_required ?? false,
         is_published: body.is_published ?? true,
         sort_order: body.sort_order ?? 0,

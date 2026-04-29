@@ -5,6 +5,7 @@ import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { anchorToPolygon, verifyAnchor, findAnchorTx } from "@/lib/anchoring/providers";
 import { computeAuthenticityGrade, type AuthenticityGrade, type C2paKind } from "@/lib/anchoring/authenticityGrade";
+import { upsertVehiclePassport } from "@/lib/passport/upsertVehiclePassport";
 import { Client } from "@upstash/qstash";
 
 const polygonBackfillSchema = z.object({
@@ -49,7 +50,7 @@ async function handler(req: NextRequest) {
     const { data: candidates, error: fetchErr } = await admin
       .from("certificate_images")
       .select(
-        "id, sha256, authenticity_grade, c2pa_verified, device_attestation_verified, deepfake_verdict, exif_gps_stripped, certificates!inner(tenant_id)",
+        "id, certificate_id, sha256, authenticity_grade, c2pa_verified, device_attestation_verified, deepfake_verdict, exif_gps_stripped, certificates!inner(tenant_id)",
       )
       .eq("certificates.tenant_id", tenant_id)
       .not("sha256", "is", null)
@@ -60,6 +61,7 @@ async function handler(req: NextRequest) {
     if (fetchErr) throw fetchErr;
 
     let processedCount = 0;
+    const anchoredCertIds = new Set<string>();
 
     for (const img of candidates ?? []) {
       const sha = String(img.sha256 ?? "");
@@ -116,6 +118,8 @@ async function handler(req: NextRequest) {
             updatePayload.authenticity_grade = gradeAfter;
           }
           await admin.from("certificate_images").update(updatePayload).eq("id", img.id);
+          const certId = (img as { certificate_id?: string | null }).certificate_id;
+          if (certId) anchoredCertIds.add(certId);
         }
       } catch (err) {
         // 生の err は RPC レスポンス・スタック等を含み得るので message のみ。
@@ -124,6 +128,22 @@ async function handler(req: NextRequest) {
       }
 
       processedCount++;
+    }
+
+    // After the batch finishes, upsert vehicle_passports for every cert
+    // that had at least one image newly anchored. Run in parallel with a
+    // bounded concurrency so a long passport recompute doesn't block the
+    // self-requeue. Errors are logged but never fail the job — the passport
+    // is a denormalized projection that the next anchor will reconverge.
+    if (anchoredCertIds.size > 0) {
+      await Promise.all(
+        Array.from(anchoredCertIds).map((certId) =>
+          upsertVehiclePassport(certId).catch((err: unknown) => {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error("[polygon-backfill] passport upsert failed", { certId, msg });
+          }),
+        ),
+      );
     }
 
     // 累積進捗を取得して更新

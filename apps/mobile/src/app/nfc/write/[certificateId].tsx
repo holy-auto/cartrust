@@ -27,6 +27,11 @@ interface CertificateInfo {
   vehicle_maker: string | null;
   vehicle_model: string | null;
   plate_display: string | null;
+  /** Resolved at fetch time. Non-null when the cert's vehicle has a VIN
+   * with a published vehicle_passports row — write `/v/{vin}` instead of
+   * `/c/{public_id}` so the same physical tag carries the cross-tenant
+   * lifetime view. */
+  passport_vin: string | null;
 }
 
 export default function NfcWriteScreen() {
@@ -42,13 +47,37 @@ export default function NfcWriteScreen() {
       const { data, error } = await supabase
         .from("certificates")
         .select(
-          "id, certificate_no, public_id, customer_name, vehicle_maker, vehicle_model, plate_display"
+          "id, certificate_no, public_id, customer_name, vehicle_maker, vehicle_model, plate_display, vehicle_id"
         )
         .eq("id", certificateId)
         .eq("tenant_id", user!.tenantId)
         .single();
       if (error) throw error;
-      return data as CertificateInfo;
+
+      // Look up the vehicle's normalized VIN and confirm a vehicle_passports
+      // row exists. Only when both succeed do we redirect the NFC URL to
+      // `/v/{vin}`; otherwise we fall back to the per-cert `/c/{public_id}`
+      // page so the tag still resolves.
+      let passport_vin: string | null = null;
+      const vehicleId = (data as { vehicle_id?: string | null }).vehicle_id ?? null;
+      if (vehicleId) {
+        const { data: veh } = await supabase
+          .from("vehicles")
+          .select("vin_code_normalized, passport_opt_out")
+          .eq("id", vehicleId)
+          .single();
+        const vin = veh?.vin_code_normalized ?? null;
+        if (vin && !veh?.passport_opt_out) {
+          const { data: passport } = await supabase
+            .from("vehicle_passports")
+            .select("vin_code_normalized")
+            .eq("vin_code_normalized", vin)
+            .maybeSingle();
+          if (passport?.vin_code_normalized) passport_vin = passport.vin_code_normalized;
+        }
+      }
+
+      return { ...(data as Omit<CertificateInfo, "passport_vin">), passport_vin } as CertificateInfo;
     },
     enabled: !!certificateId && !!user?.tenantId,
   });
@@ -63,7 +92,11 @@ export default function NfcWriteScreen() {
     setWriteState("writing");
     setErrorMessage("");
 
-    const certUrl = `${CERT_PUBLIC_BASE_URL}/cert/${cert.public_id}`;
+    // Prefer the vehicle passport URL when one exists — single tag carries
+    // the cross-tenant lifetime view. Fall back to the per-cert page otherwise.
+    const certUrl = cert.passport_vin
+      ? `${CERT_PUBLIC_BASE_URL}/v/${encodeURIComponent(cert.passport_vin)}`
+      : `${CERT_PUBLIC_BASE_URL}/c/${cert.public_id}`;
 
     try {
       const isSupported = await NfcManager.isSupported();

@@ -1,12 +1,15 @@
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { parsePagination } from "@/lib/api/pagination";
+import { agentCampaignCreateSchema } from "@/lib/validations/agent-content";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
     const caller = await resolveCallerWithRole(supabase);
@@ -14,14 +17,27 @@ export async function GET() {
     if (!requireMinRole(caller, "admin")) return apiForbidden();
 
     const { admin } = createTenantScopedAdmin(caller.tenantId);
-    const { data } = await admin
+    const p = parsePagination(request, { defaultPerPage: 50, maxPerPage: 200 });
+
+    let query = admin
       .from("agent_campaigns")
       .select(
         "id, title, description, campaign_type, bonus_rate, bonus_fixed, start_date, end_date, is_active, banner_text, target_agents, created_at, updated_at",
+        { count: "exact" },
       )
       .order("created_at", { ascending: false });
 
-    return apiJson({ campaigns: data ?? [] });
+    if (p.page > 0) query = query.range(p.from, p.to);
+    else query = query.limit(p.perPage);
+
+    const { data, count } = await query;
+
+    return apiJson({
+      campaigns: data ?? [],
+      page: p.page,
+      per_page: p.perPage,
+      total: count ?? null,
+    });
   } catch (e) {
     return apiInternalError(e, "agent-campaigns");
   }
@@ -34,20 +50,22 @@ export async function POST(request: NextRequest) {
     if (!caller) return apiUnauthorized();
     if (!requireMinRole(caller, "admin")) return apiForbidden();
 
-    const body = await request.json();
+    const parsed = await parseJsonBody(request, agentCampaignCreateSchema);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
     const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     const { data, error } = await admin
       .from("agent_campaigns")
       .insert({
         title: body.title,
-        description: body.description || null,
+        description: body.description ?? null,
         campaign_type: body.campaign_type ?? "commission_boost",
-        bonus_rate: body.bonus_rate || null,
-        bonus_fixed: body.bonus_fixed || null,
+        bonus_rate: body.bonus_rate ?? null,
+        bonus_fixed: body.bonus_fixed ?? null,
         start_date: body.start_date,
         end_date: body.end_date,
-        banner_text: body.banner_text || null,
+        banner_text: body.banner_text ?? null,
         target_agents: body.target_agents ?? "all",
       })
       .select(
