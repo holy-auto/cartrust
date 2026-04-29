@@ -1,5 +1,5 @@
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, spring, interpolate } from "remotion";
-import { ACCENT, BLUE, TEXT, TEXT_MUTED } from "../components/shared";
+import { ACCENT, BLUE, FONT, TEXT, TEXT_MUTED } from "../components/shared";
 
 export const TitleSlide: React.FC = () => {
   const frame = useCurrentFrame();
@@ -22,6 +22,7 @@ export const TitleSlide: React.FC = () => {
         textAlign: "center",
         gap: 24,
         background: "#060a12",
+        fontFamily: FONT,
       }}
     >
       {/* Grid */}

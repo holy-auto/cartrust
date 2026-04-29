@@ -1,5 +1,5 @@
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, spring, interpolate } from "remotion";
-import { ACCENT, BLUE, TEXT, TEXT_MUTED } from "../components/shared";
+import { ACCENT, BLUE, FONT, TEXT, TEXT_MUTED } from "../components/shared";
 
 export const CTASlide: React.FC = () => {
   const frame = useCurrentFrame();
@@ -23,6 +23,7 @@ export const CTASlide: React.FC = () => {
         textAlign: "center",
         gap: 28,
         background: "#060a12",
+        fontFamily: FONT,
       }}
     >
       {/* Grid */}
