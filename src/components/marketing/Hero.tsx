@@ -45,7 +45,7 @@ export function Hero() {
             </div>
 
             <h1 className="mt-8">
-              <span className="block text-[2rem] md:text-[2.5rem] lg:text-[2.75rem] xl:text-[3.25rem] font-bold leading-[1.15] tracking-tight text-white">
+              <span className="block text-[2.25rem] md:text-[3rem] lg:text-[3.5rem] xl:text-[4rem] font-bold leading-[1.1] tracking-tight text-white">
                 {TITLE_LINE_1.map((phrase, i) => (
                   <span
                     key={`l1-${i}`}
@@ -58,7 +58,7 @@ export function Hero() {
                   </span>
                 ))}
               </span>
-              <span className="block mt-1 text-[2rem] md:text-[2.5rem] lg:text-[2.75rem] xl:text-[3.25rem] font-bold leading-[1.15] tracking-tight">
+              <span className="block mt-1 text-[2.25rem] md:text-[3rem] lg:text-[3.5rem] xl:text-[4rem] font-bold leading-[1.1] tracking-tight">
                 {TITLE_LINE_2.map((phrase, i) => (
                   <span
                     key={`l2-${i}`}
@@ -73,7 +73,7 @@ export function Hero() {
               </span>
             </h1>
 
-            <p className="mt-6 text-base md:text-lg leading-relaxed text-white/80 max-w-xl animate-[hero-fade-up_0.8s_ease-out_0.95s_both]">
+            <p className="mt-7 text-base md:text-lg leading-relaxed text-white/80 max-w-xl animate-[hero-fade-up_0.8s_ease-out_0.95s_both]">
               Ledraは、施工証明・履歴管理・加盟店連携・技術育成を通じて、現場の技術を可視化し、業界全体に信頼と価値を届けるプラットフォームです。
             </p>
 
@@ -126,8 +126,6 @@ export function Hero() {
                 src="/marketing/screenshots/01-admin-dashboard.png"
                 alt="Ledra 管理ダッシュボード"
                 url="admin.ledra.app/dashboard"
-                aspect="aspect-[16/9]"
-                objectPosition="right center"
                 priority
                 sizes="(min-width: 1024px) 65vw, 100vw"
                 className="relative"

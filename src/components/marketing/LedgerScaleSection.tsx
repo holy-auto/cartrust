@@ -76,13 +76,7 @@ function SplitRow({
   return (
     <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-14 items-center">
       <ScrollReveal variant={imageOnLeft ? "fade-right" : "fade-left"} className={`md:col-span-7 ${imageOrder}`}>
-        <ScreenshotFrame
-          src={image.src}
-          alt={image.alt}
-          url={image.url}
-          aspect="aspect-[16/9]"
-          sizes="(min-width: 768px) 56vw, 100vw"
-        />
+        <ScreenshotFrame src={image.src} alt={image.alt} url={image.url} sizes="(min-width: 768px) 56vw, 100vw" />
       </ScrollReveal>
 
       <ScrollReveal

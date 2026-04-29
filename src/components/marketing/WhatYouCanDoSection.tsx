@@ -31,7 +31,6 @@ export function WhatYouCanDoSection() {
             src="/marketing/screenshots/07-certificate-new.png"
             alt="証明書の発行画面"
             url="admin.ledra.app/certs/new"
-            objectPosition="right center"
           >
             <CertNewMockBody />
           </ScreenshotFrame>
@@ -48,7 +47,6 @@ export function WhatYouCanDoSection() {
             src="/marketing/screenshots/02-certificates-list.png"
             alt="証明書一覧画面"
             url="admin.ledra.app/certs"
-            objectPosition="right center"
           >
             <ListMockBody
               label="証明書一覧"
@@ -72,7 +70,6 @@ export function WhatYouCanDoSection() {
             src="/marketing/screenshots/04-vehicle-timeline.png"
             alt="車両ごとの施工履歴タイムライン"
             url="admin.ledra.app/vehicles/.../timeline"
-            objectPosition="right center"
           >
             <ListMockBody
               label="車両タイムライン"
@@ -96,7 +93,6 @@ export function WhatYouCanDoSection() {
             src="/marketing/screenshots/05-customer-360.png"
             alt="顧客 360 画面"
             url="admin.ledra.app/customers/..."
-            objectPosition="right center"
           >
             <ListMockBody
               label="顧客詳細"
@@ -116,7 +112,7 @@ export function WhatYouCanDoSection() {
             src="/marketing/screenshots/08-public-cert-desktop.png"
             alt="公開された施工証明書"
             url="ledra.app/c/LEDRA-DEMO-0002"
-            objectPosition="center top"
+            aspect="aspect-[971/985]"
           >
             <CertShareMockBody />
           </ScreenshotFrame>
@@ -133,7 +129,6 @@ export function WhatYouCanDoSection() {
             src="/marketing/screenshots/01-admin-dashboard.png"
             alt="管理ダッシュボード"
             url="admin.ledra.app/dashboard"
-            objectPosition="right center"
           >
             <DashboardMockBody />
           </ScreenshotFrame>
