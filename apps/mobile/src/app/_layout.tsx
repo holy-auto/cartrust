@@ -8,6 +8,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { theme } from "@/constants/theme";
 import { queryClient } from "@/lib/queryClient";
 import { useAuthInit } from "@/hooks/useAuthInit";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { initSentry, setSentryUser } from "@/lib/sentry";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -36,6 +37,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <PaperProvider theme={theme}>
         <StatusBar style="dark" />
+        <OfflineBanner />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />
