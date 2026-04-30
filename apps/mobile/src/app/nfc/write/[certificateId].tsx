@@ -6,6 +6,8 @@ import {
   Card,
   ActivityIndicator,
   Icon,
+  Dialog,
+  Portal,
 } from "react-native-paper";
 import { useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -15,7 +17,13 @@ import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { mobileApi } from "@/lib/api";
 
-type WriteState = "idle" | "writing" | "verifying" | "success" | "error";
+type WriteState =
+  | "idle"
+  | "writing"
+  | "verifying"
+  | "locking"
+  | "success"
+  | "error";
 
 const CERT_PUBLIC_BASE_URL = process.env.EXPO_PUBLIC_CERT_URL ?? "https://cert.ledra.co.jp";
 
@@ -40,6 +48,7 @@ export default function NfcWriteScreen() {
 
   const [writeState, setWriteState] = useState<WriteState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [confirmVisible, setConfirmVisible] = useState(false);
 
   const { data: cert, isLoading } = useQuery({
     queryKey: ["certificate-for-write", certificateId],
@@ -152,6 +161,18 @@ export default function NfcWriteScreen() {
         throw new Error("書込みデータの検証に失敗しました");
       }
 
+      // Permanently lock the tag (NDEF read-only).
+      // 車両基準のVIN/public_id URLは不変で書き換える必要がないため
+      // 改ざん防止のため常時ロックする。makeReadOnly() は不可逆。
+      setWriteState("locking");
+      try {
+        await NfcManager.ndefHandler.makeReadOnly();
+      } catch (lockErr) {
+        const lockMsg =
+          lockErr instanceof Error ? lockErr.message : String(lockErr);
+        throw new Error(`ロックに失敗しました: ${lockMsg}`);
+      }
+
       const tagUid = tag.id;
 
       // Record the write on the server
@@ -236,11 +257,14 @@ export default function NfcWriteScreen() {
             <Text variant="bodyLarge" style={styles.instruction}>
               NFCタグをデバイスに近づけてください
             </Text>
+            <Text variant="bodySmall" style={styles.lockNotice}>
+              書込み後、タグは永続的にロックされます
+            </Text>
             <Button
               mode="contained"
-              onPress={startWrite}
+              onPress={() => setConfirmVisible(true)}
               buttonColor="#1a1a2e"
-              icon="nfc"
+              icon="lock"
               style={styles.writeButton}
               contentStyle={styles.writeButtonContent}
             >
@@ -270,14 +294,26 @@ export default function NfcWriteScreen() {
           </>
         )}
 
-        {writeState === "success" && (
+        {writeState === "locking" && (
           <>
-            <Icon source="check-circle" size={64} color="#166534" />
-            <Text variant="titleMedium" style={styles.successText}>
-              書込み完了
+            <ActivityIndicator size="large" color="#1a1a2e" />
+            <Text variant="titleMedium" style={styles.statusText}>
+              ロック中...
             </Text>
             <Text variant="bodyMedium" style={styles.instruction}>
-              NFCタグへの書込みが正常に完了しました
+              タグを離さないでください
+            </Text>
+          </>
+        )}
+
+        {writeState === "success" && (
+          <>
+            <Icon source="lock-check" size={64} color="#166534" />
+            <Text variant="titleMedium" style={styles.successText}>
+              書込み・ロック完了
+            </Text>
+            <Text variant="bodyMedium" style={styles.instruction}>
+              NFCタグへの書込みとロックが正常に完了しました
             </Text>
             <Button
               mode="contained"
@@ -307,6 +343,37 @@ export default function NfcWriteScreen() {
           </>
         )}
       </View>
+
+      <Portal>
+        <Dialog
+          visible={confirmVisible}
+          onDismiss={() => setConfirmVisible(false)}
+        >
+          <Dialog.Icon icon="lock-alert" color="#991b1b" />
+          <Dialog.Title style={styles.dialogTitle}>
+            タグを永続ロックします
+          </Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">
+              このNFCタグに証明書URLを書込み、書換え不可の状態にロックします。
+              この操作は取り消せません。
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setConfirmVisible(false)}>キャンセル</Button>
+            <Button
+              mode="contained"
+              buttonColor="#1a1a2e"
+              onPress={() => {
+                setConfirmVisible(false);
+                startWrite();
+              }}
+            >
+              書込み実行
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 }
@@ -327,6 +394,16 @@ const styles = StyleSheet.create({
     color: "#71717a",
     textAlign: "center",
     marginTop: 16,
+  },
+  lockNotice: {
+    color: "#991b1b",
+    textAlign: "center",
+    marginTop: 8,
+    fontWeight: "600",
+  },
+  dialogTitle: {
+    textAlign: "center",
+    fontWeight: "700",
   },
   writeButton: {
     marginTop: 24,
