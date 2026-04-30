@@ -8,10 +8,19 @@ import {
 } from "../followUp";
 
 // email 送信は mock — sendMaintenanceReminder を実際の Resend に飛ばさない
+const emailMock = vi.fn<(..._args: any[]) => Promise<boolean>>(async () => true);
 vi.mock("@/lib/follow-up/email", () => ({
   sendExpiryReminder: vi.fn(async () => true),
   sendFollowUpEmail: vi.fn(async () => true),
-  sendMaintenanceReminder: vi.fn(async () => true),
+  sendMaintenanceReminder: (...args: any[]) => emailMock(...args),
+}));
+
+// LINE 送信は mock — 既定では成功扱い。テストごとに mockResolvedValueOnce で上書き
+const lineMock = vi.fn<(..._args: any[]) => Promise<boolean>>(async () => true);
+vi.mock("@/lib/line/client", () => ({
+  sendMaintenanceLineMessage: (...args: any[]) => lineMock(...args),
+  // 他の export はテスト外なので noop で十分
+  getLineConfig: vi.fn(async () => null),
 }));
 
 // AI 呼び出しは mock — テスト中に Anthropic に行かないようにする
@@ -244,6 +253,8 @@ const TODAY = new Date("2026-04-29T00:00:00Z"); // 6 ヶ月前 → 2025-10-29
 describe("processMaintenanceReminders", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    emailMock.mockResolvedValue(true);
+    lineMock.mockResolvedValue(true);
   });
 
   it("sends reminders for matching certificates", async () => {
@@ -351,5 +362,145 @@ describe("processMaintenanceReminders", () => {
       TODAY,
     );
     expect(sent).toBe(0);
+  });
+
+  it("prefers LINE when the customer has a line_user_id and LINE send succeeds", async () => {
+    const world: FixtureWorld = {
+      certificates: [cert({ id: "c1" })],
+      customers: [
+        { id: "u1", name: "山田", email: "u1@example.com", line_user_id: "U-line-123", followup_opt_out: false },
+      ],
+      notificationLogs: [],
+      insertCalls: [],
+    };
+    lineMock.mockResolvedValueOnce(true);
+    const sent = await processMaintenanceReminders(
+      makeSupabaseMock(world),
+      baseSetting(),
+      tenant,
+      "Shop A",
+      "starter",
+      TODAY,
+    );
+    expect(sent).toBe(1);
+    expect(lineMock).toHaveBeenCalledTimes(1);
+    expect(emailMock).not.toHaveBeenCalled();
+    const log = world.insertCalls.find((c) => c.table === "notification_logs");
+    expect(log?.channel).toBe("line");
+    expect(log?.recipient_line_user_id).toBe("U-line-123");
+    expect(log?.recipient_email).toBeNull();
+    expect(log?.status).toBe("sent");
+  });
+
+  it("falls back to email when LINE send fails", async () => {
+    const world: FixtureWorld = {
+      certificates: [cert({ id: "c1" })],
+      customers: [
+        { id: "u1", name: "山田", email: "u1@example.com", line_user_id: "U-line-123", followup_opt_out: false },
+      ],
+      notificationLogs: [],
+      insertCalls: [],
+    };
+    lineMock.mockResolvedValueOnce(false); // LINE が失敗 (config 未設定 / API エラー想定)
+    const sent = await processMaintenanceReminders(
+      makeSupabaseMock(world),
+      baseSetting(),
+      tenant,
+      "Shop A",
+      "starter",
+      TODAY,
+    );
+    expect(sent).toBe(1);
+    expect(lineMock).toHaveBeenCalledTimes(1);
+    expect(emailMock).toHaveBeenCalledTimes(1);
+    const log = world.insertCalls.find((c) => c.table === "notification_logs");
+    expect(log?.channel).toBe("email");
+    expect(log?.recipient_email).toBe("u1@example.com");
+    expect(log?.recipient_line_user_id).toBeNull();
+    expect(log?.status).toBe("sent");
+  });
+
+  it("logs failed status when both LINE and email fail", async () => {
+    const world: FixtureWorld = {
+      certificates: [cert({ id: "c1" })],
+      customers: [
+        { id: "u1", name: "山田", email: "u1@example.com", line_user_id: "U-line-123", followup_opt_out: false },
+      ],
+      notificationLogs: [],
+      insertCalls: [],
+    };
+    lineMock.mockResolvedValueOnce(false);
+    emailMock.mockResolvedValueOnce(false);
+    const sent = await processMaintenanceReminders(
+      makeSupabaseMock(world),
+      baseSetting(),
+      tenant,
+      "Shop A",
+      "starter",
+      TODAY,
+    );
+    expect(sent).toBe(0);
+    const log = world.insertCalls.find((c) => c.table === "notification_logs");
+    expect(log?.status).toBe("failed");
+    expect(log?.channel).toBe("email"); // 最後に試したチャネルが残る
+  });
+
+  it("uses email path when customer has no line_user_id", async () => {
+    const world: FixtureWorld = {
+      certificates: [cert({ id: "c1" })],
+      customers: [{ id: "u1", name: "山田", email: "u1@example.com", line_user_id: null, followup_opt_out: false }],
+      notificationLogs: [],
+      insertCalls: [],
+    };
+    const sent = await processMaintenanceReminders(
+      makeSupabaseMock(world),
+      baseSetting(),
+      tenant,
+      "Shop A",
+      "starter",
+      TODAY,
+    );
+    expect(sent).toBe(1);
+    expect(lineMock).not.toHaveBeenCalled();
+    expect(emailMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("can deliver via LINE alone when customer has no email", async () => {
+    const world: FixtureWorld = {
+      certificates: [cert({ id: "c1" })],
+      customers: [{ id: "u1", name: "山田", email: null, line_user_id: "U-line-456", followup_opt_out: false }],
+      notificationLogs: [],
+      insertCalls: [],
+    };
+    const sent = await processMaintenanceReminders(
+      makeSupabaseMock(world),
+      baseSetting(),
+      tenant,
+      "Shop A",
+      "starter",
+      TODAY,
+    );
+    expect(sent).toBe(1);
+    expect(lineMock).toHaveBeenCalledTimes(1);
+    expect(emailMock).not.toHaveBeenCalled();
+  });
+
+  it("skips a customer with neither email nor LINE", async () => {
+    const world: FixtureWorld = {
+      certificates: [cert({ id: "c1" })],
+      customers: [{ id: "u1", name: "山田", email: null, line_user_id: null, followup_opt_out: false }],
+      notificationLogs: [],
+      insertCalls: [],
+    };
+    const sent = await processMaintenanceReminders(
+      makeSupabaseMock(world),
+      baseSetting(),
+      tenant,
+      "Shop A",
+      "starter",
+      TODAY,
+    );
+    expect(sent).toBe(0);
+    expect(world.insertCalls.find((c) => c.table === "notification_logs")).toBeUndefined();
   });
 });

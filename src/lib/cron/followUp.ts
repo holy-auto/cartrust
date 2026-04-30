@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { sendExpiryReminder, sendFollowUpEmail, sendMaintenanceReminder } from "@/lib/follow-up/email";
+import { sendMaintenanceLineMessage } from "@/lib/line/client";
 import { normalizePlanTier } from "@/lib/billing/planFeatures";
 import {
   generateFollowUpContent,
@@ -717,17 +718,19 @@ export async function processMaintenanceReminders(
       const customer = customerMap.get(cert.customer_id);
       if (!customer) continue;
       if (customer.followup_opt_out) continue;
-      if (!customer.email) continue; // LINE Push は別途対応 (現状 email 送信のみ)
+      // LINE / email のいずれかが届けられないと送れない
+      if (!customer.line_user_id && !customer.email) continue;
 
       const customerName = customer.name ?? cert.customer_name ?? "お客様";
       const certLabel = cert.service_name ?? "施工証明書";
 
-      // Standard / Pro プランでは AI でメッセージのトーンをパーソナライズし、
-      // それ以外はテンプレートで送る。AI 失敗時はテンプレートにフォールバック。
+      // Standard / Pro プランでは AI で文面をパーソナライズ。生成された
+      // `lineMessage` は LINE 配信に使う。AI 失敗時はテンプレートにフォールバック。
+      let aiLineMessage: string | null = null;
       if (useAI) {
         try {
           const vehicle = cert.vehicle_id ? vehicleMap.get(cert.vehicle_id) : undefined;
-          await generateFollowUpContent({
+          const content = await generateFollowUpContent({
             trigger: "maintenance_reminder",
             customer: { name: customerName },
             certificate: {
@@ -743,27 +746,55 @@ export async function processMaintenanceReminders(
             shop: { name: shopName, phone: tenant.phone ?? undefined },
             daysElapsed: m * 30,
           });
-          // 生成内容自体はログ用に既存のテンプレートメールへ流用 (件名/本文は
-          // 第二段で email body へ差し込めるよう拡張予定)。MVP では AI 生成
-          // は呼ばれていることを保証し、配信は既存テンプレートで行う。
+          aiLineMessage = content.lineMessage ?? null;
         } catch (err) {
           console.error("[follow-up] maintenance AI personalization failed:", err);
         }
       }
 
-      const ok = await sendMaintenanceReminder({
-        shopName,
-        customerEmail: customer.email,
-        customerName,
-        certificateLabel: certLabel,
-        monthsSince: m,
-      });
+      // ── 配信: LINE 優先、失敗時は email にフォールバック ──
+      // line_user_id があり、かつテナントの LINE 設定が有効なら LINE で送る。
+      // どちらかが欠けていたら email で送る。両方落ちたら failed としてログ。
+      let ok = false;
+      let channel: "line" | "email" = "email";
+      let recipientEmail: string | null = null;
+      let recipientLineUserId: string | null = null;
+
+      if (customer.line_user_id) {
+        const lineMessage =
+          aiLineMessage ?? buildMaintenanceLineFallback({ shopName, customerName, certLabel, monthsSince: m });
+        const lineOk = await sendMaintenanceLineMessage({
+          tenantId: setting.tenant_id,
+          lineUserId: customer.line_user_id,
+          lineMessage,
+        });
+        if (lineOk) {
+          ok = true;
+          channel = "line";
+          recipientLineUserId = customer.line_user_id;
+        }
+      }
+
+      if (!ok && customer.email) {
+        ok = await sendMaintenanceReminder({
+          shopName,
+          customerEmail: customer.email,
+          customerName,
+          certificateLabel: certLabel,
+          monthsSince: m,
+        });
+        channel = "email";
+        recipientEmail = customer.email;
+      }
+
       await supabase.from("notification_logs").insert({
         tenant_id: setting.tenant_id,
         type: notifType,
         target_type: "certificate",
         target_id: cert.id,
-        recipient_email: customer.email,
+        recipient_email: recipientEmail,
+        recipient_line_user_id: recipientLineUserId,
+        channel,
         status: ok ? "sent" : "failed",
       });
       if (ok) sent++;
@@ -771,4 +802,26 @@ export async function processMaintenanceReminders(
   }
 
   return sent;
+}
+
+/**
+ * AI 文面の生成に失敗した / プランが対象外のときの LINE フォールバック文面。
+ * LINE は 200 文字程度を超えると一部端末で省略表示になるので簡潔に。
+ */
+function buildMaintenanceLineFallback(params: {
+  shopName: string;
+  customerName: string;
+  certLabel: string;
+  monthsSince: number;
+}): string {
+  const milestone =
+    params.monthsSince === 6 ? "半年" : params.monthsSince === 12 ? "1 年" : `${params.monthsSince} ヶ月`;
+  return [
+    `【${params.shopName}】${params.customerName} 様`,
+    ``,
+    `「${params.certLabel}」の施工から ${milestone} が経過しました。`,
+    `${milestone}点検にお越しいただくことをおすすめしております。`,
+    ``,
+    `ご予約・お問い合わせはお気軽にどうぞ。`,
+  ].join("\n");
 }
