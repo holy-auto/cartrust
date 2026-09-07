@@ -42,15 +42,19 @@ const PRODUCTION_LEDGER_FILE = path.join(__dirname, "..", "supabase", "migration
 /**
  * 本番 schema_migrations の要約を読む。
  *
- * 形式は2つだけ: `max: <version>` の行が1本と、それ以外の裸のバージョン行（免除欄）。
+ * 形式は2つだけ: `max: <version>` の行が1本と、`<version>  <sha256>` の免除行。
  * ファイルが無ければ `{ max: null, applied: 空 }` を返し、呼び出し側は base との比較に落ちる。
  *
  * **壊れた行は黙って捨てず落とす。** ここを読み違えると検査のしきい値がずれるが、
  * 検査自体は緑のままになる ——「判断の道具そのものを検証する」（CLAUDE.md）。
+ *
+ * sha256 を要求する理由: 免除を版番号だけの鍵にすると、免除された版のファイルの
+ * 中身を後から書き換えられる。本番は適用済みなので db push は再実行せず、
+ * 空 DB への再生だけが書き換えた方を流すため、本番と repo が静かに食い違う。
  */
 function readProductionLedger() {
-  if (!fs.existsSync(PRODUCTION_LEDGER_FILE)) return { max: null, applied: new Set() };
-  const applied = new Set();
+  if (!fs.existsSync(PRODUCTION_LEDGER_FILE)) return { max: null, applied: new Map() };
+  const applied = new Map();
   let max = null;
   const lines = fs.readFileSync(PRODUCTION_LEDGER_FILE, "utf8").split("\n");
   lines.forEach((raw, i) => {
@@ -64,14 +68,22 @@ function readProductionLedger() {
       max = m[1];
       return;
     }
-    if (!/^\d{14}$/.test(line)) {
+    const e = /^(\d{14})\s+([0-9a-f]{64})$/.exec(line);
+    if (!e) {
       throw new Error(
-        `migrations.production-ledger: ${i + 1} 行目「${line}」を解釈できません（14桁のバージョンか \`max: <version>\` のみ）`,
+        `migrations.production-ledger: ${i + 1} 行目「${line}」を解釈できません（\`max: <version>\` か \`<14桁の版> <sha256>\` のみ）`,
       );
     }
-    applied.add(line);
+    applied.set(e[1], e[2]);
   });
   return { max, applied };
+}
+
+/** 免除された版のファイルが、台帳に固定した中身のままかを見る。 */
+function ledgerHashMatches(file, expectedSha) {
+  const p = path.join(MIGRATIONS_DIR, file);
+  if (!fs.existsSync(p)) return false;
+  return require("crypto").createHash("sha256").update(fs.readFileSync(p)).digest("hex") === expectedSha;
 }
 
 
@@ -467,7 +479,27 @@ for (const [version, group] of byVersion) {
       if (versionOf(file) > headMax) continue;
       // 本番が既に適用済みの版は out-of-order を起こしようがない（db push が再実行しない）。
       // 不変条件1（本番に在る版のファイルが repo に在ること）を直すには、この免除が要る。
-      if (prodApplied.has(versionOf(file))) continue;
+      // **ただし中身が台帳に固定したものと一致するときだけ。** 版番号だけを鍵にすると、
+      // 免除された版のファイルを後から書き換えて本番と静かに食い違わせられる。
+      if (prodApplied.has(versionOf(file))) {
+        const expected = prodApplied.get(versionOf(file));
+        if (ledgerHashMatches(file, expected)) continue;
+        hasErrors = true;
+        console.error(`\n❌ ${file}`);
+        console.error(
+          `   [migration-version-before-base-head] 版 ${versionOf(file)} は migrations.production-ledger で免除されていますが、**ファイルの中身が台帳に固定した sha256 と一致しません**。`,
+        );
+        console.error(
+          `     → 本番は適用済みなので db push は再実行しません。中身だけ変えると、空 DB への再生だけが新しい方を流し、本番と repo が静かに食い違います。`,
+        );
+        console.error(
+          `     → 期待 ${expected} / 実際 ${fs.existsSync(path.join(MIGRATIONS_DIR, file)) ? require("crypto").createHash("sha256").update(fs.readFileSync(path.join(MIGRATIONS_DIR, file))).digest("hex") : "（ファイルなし）"}`,
+        );
+        console.error(
+          `     → 中身を変えてよい理由があるなら、sha256 を取り直したうえで**その理由を台帳へ書いて**ください。`,
+        );
+        continue;
+      }
       hasErrors = true;
       console.error(`\n❌ ${file}`);
       console.error(
