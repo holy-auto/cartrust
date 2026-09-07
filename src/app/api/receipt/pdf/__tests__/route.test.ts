@@ -33,14 +33,47 @@ const TENANT = "tenant-1";
 
 /** doc_type 違いの3行。public_id はすべて付いている（バックフィル後の本番と同じ形） */
 const DOCUMENTS = [
-  { id: "d-receipt", tenant_id: TENANT, doc_type: "receipt", doc_number: "RCP-202609-001", public_id: "tok-receipt", customer_id: null },
-  { id: "d-invoice", tenant_id: TENANT, doc_type: "invoice", doc_number: "INV-202609-001", public_id: "tok-invoice", customer_id: null },
-  { id: "d-estimate", tenant_id: TENANT, doc_type: "estimate", doc_number: "EST-202609-001", public_id: "tok-estimate", customer_id: null },
+  {
+    id: "d-receipt",
+    tenant_id: TENANT,
+    doc_type: "receipt",
+    doc_number: "RCP-202609-001",
+    public_id: "tok-receipt",
+    customer_id: null,
+  },
+  {
+    id: "d-invoice",
+    tenant_id: TENANT,
+    doc_type: "invoice",
+    doc_number: "INV-202609-001",
+    public_id: "tok-invoice",
+    customer_id: null,
+  },
+  {
+    id: "d-estimate",
+    tenant_id: TENANT,
+    doc_type: "estimate",
+    doc_number: "EST-202609-001",
+    public_id: "tok-estimate",
+    customer_id: null,
+  },
 ];
 
 const TABLES: Record<string, any[]> = {
   documents: DOCUMENTS,
-  tenants: [{ id: TENANT, name: "テスト整備", address: null, contact_email: null, contact_phone: null, registration_number: null, logo_asset_path: null, company_seal_path: null, bank_info: null }],
+  tenants: [
+    {
+      id: TENANT,
+      name: "テスト整備",
+      address: null,
+      contact_email: null,
+      contact_phone: null,
+      registration_number: null,
+      logo_asset_path: null,
+      company_seal_path: null,
+      bank_info: null,
+    },
+  ],
   customers: [],
 };
 
@@ -59,9 +92,7 @@ function query(rows: any[]) {
     maybeSingle: () => Promise.resolve({ data: chain.rows[0] ?? null, error: null }),
     single: () =>
       Promise.resolve(
-        chain.rows.length === 1
-          ? { data: chain.rows[0], error: null }
-          : { data: null, error: { message: "no rows" } },
+        chain.rows.length === 1 ? { data: chain.rows[0], error: null } : { data: null, error: { message: "no rows" } },
       ),
   };
   return chain;

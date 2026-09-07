@@ -64,10 +64,11 @@ function fakeAdmin(opts: {
     if (table === "documents") {
       // 再送時の読み直し（公開トークン）と、初回の書き込み
       return {
-        select: () => chain(async () => ({
-          data: { public_id: opts.existingPublicId ?? null },
-          error: null,
-        })),
+        select: () =>
+          chain(async () => ({
+            data: { public_id: opts.existingPublicId ?? null },
+            error: null,
+          })),
         update: (patch: Record<string, unknown>) => {
           docUpdates.push(patch);
           const node: Record<string, unknown> = {

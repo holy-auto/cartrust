@@ -52,18 +52,12 @@ type Receipt = {
 
 const yen = (n: number | null | undefined) => `¥${Number(n ?? 0).toLocaleString("ja-JP")}`;
 
-export default async function PublicReceiptPage({
-  params,
-}: {
-  params: Promise<{ public_id: string }>;
-}) {
+export default async function PublicReceiptPage({ params }: { params: Promise<{ public_id: string }> }) {
   const { public_id } = await params;
   const publicId = (public_id ?? "").trim();
   if (!publicId) notFound();
 
-  const admin = createServiceRoleAdmin(
-    "public receipt page — lookup by public_id, anonymous caller",
-  );
+  const admin = createServiceRoleAdmin("public receipt page — lookup by public_id, anonymous caller");
 
   // doc_type='receipt' のガードは findPublicReceipt() の中。**ここには書かない。**
   // 存在しない public_id と「領収書ではない」を区別しない。どちらも 404。
