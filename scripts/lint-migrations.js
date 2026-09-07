@@ -412,6 +412,16 @@ for (const [version, group] of byVersion) {
     const added = files.filter((f) => !baseSet.has(f));
     for (const file of added) {
       if (versionOf(file) > baseMax) continue;
+      // 既に本番へ直接適用された版は、このルールの前提が成り立たない。
+      // ルールは「base の最新ファイル」としか比べておらず、**本番の台帳を見ていない**
+      // （DECISION_LOG 2026-09-06 の 5-4 で天井として記録されている盲点）。
+      // 本番に適用済みなら db push はその版を飛ばすので out-of-order は起きず、
+      // むしろファイルを消す・改名するほうが「適用済みなのにファイルが無い」
+      // （不変条件1）を作って本番を止める。allowlist に理由付きで載っている分は外す。
+      if (allowlist.has(file)) {
+        skipped++;
+        continue;
+      }
       hasErrors = true;
       console.error(`\n❌ ${file}`);
       console.error(
