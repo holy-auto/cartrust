@@ -135,6 +135,1991 @@ Ledra の画面内で完結させるなら Connect 埋め込みコンポーネ�
 まだ無い。受けなければフォールバックが働き、これまで通りカードのみで動く。
 ## 2026-08-26 VIN トリガーのマイグレーションを `20260826000007` へ改名（本番適用の停止を解除）
 
+## 2026-09-06 ソースを読む検査14本を棚卸しし、素通りしていた3本を締めた
+
+- M-033（構造テストが緑のまま機能が壊れていた）を受けて、**ソースを走査する検査
+  14本すべて**を「これが緑のまま壊せる形は何か」で見直した。**3本**に同じ形があった。
+
+  | 検査 | 素通りしていた形 | 実害 |
+  |---|---|---|
+  | `aiRouteRateLimit` | `checkRateLimit()` を呼んで**結果を捨てる**（Response を return しなければ何も止まらない） | 0件（279呼び出しすべて正しく弾いていた） |
+  | `activationGates` | **コメントの言及**・**import 行**だけで合格。発行ゲートの判定を読まなくても合格 | 0件 |
+  | `serverActionGuards` | `const ok = requirePermission(...)` と**結果を捨てる**形 | 0件（3ファイルとも否定形） |
+
+- **旧検出器では変異が緑のまま通ることを実測してから**締めた。AI ルートのレート制限を
+  丸ごと外す／発行ゲートの判定を無視する／認可の結果を捨てる —— いずれも main では合格していた。
+- 締めた形は既存の `apiRoutePermissions.test.ts`（否定形まで要求する `enforces()`）に揃えた。
+  同じ穴を先に塞いでいた検査が repo 内にあったので、新しい規約は作っていない。
+- 各検査に「**検出器そのものの性質**」テスト（述語を値で動かす）を追加。M-033 で欠けていたのがこれ。
+- `stripComments()` が2ファイルに複製されていたので `sourceScan.ts` へ集約し、構造テストは全部これを通す。
+- 残り11本は同じ形ではない（列名を許可リストと `toEqual` する／値・実行結果で検査している）。
+  理由は MISTAKE_LEDGER M-033 の棚卸し節に1本ずつ記録した。
+- **締めた述語自体にも穴があった。** マージ直前の数え直しで1件、**自動レビューでさらに7件**。
+  すべて「呼んでいるか」を「効いているか」に直したつもりで**一段浅いところで止めていた**形。
+  コメント未除去／弾く向き未確認／判定を読むだけ／結果を捨てる呼び出し／
+  否定が制御フローに繋がっていない／export を1本ずつ見ていない／消費側ピンが呼び出しだけ。
+  直す最中にも2つ踏んだ（返り値型の `{` を本文と読む、型の中の `;` で打ち切って
+  **export を黙って検査対象から外す**）。詳細は MISTAKE_LEDGER M-033。
+- **分からないものは落とす（fail closed）**を全体の方針にした。本文が切れない・
+  書き方が未知・数が合わない、いずれも「合格」ではなく「報告」に倒す。
+- **最終的に検出器を正規表現から TypeScript の構文木へ移した**（`src/lib/__tests__/astScan.ts`）。
+  自動レビューの指摘が2巡続けて「同じ穴が形を変えて残っている」と言っており、収束しなかった。
+  並べると7件とも**「その文がその分岐の中にあるか」**を問うており、これは入れ子構造の話なので
+  正規表現では原理的に書けない。木の上なら「then 分岐が必ず抜けるか」「分岐が発行を包むか」
+  「同じスコープの後ろの文か」が各一行。**コメントは構文木に無いので M-022 の罠も消える。**
+- `stripComments()` も自前の正規表現から TypeScript のパーサに置き換えた（行末コメントが
+  残っていた）。UTF-16 とコードポイントの取り違え、`.ts` を TSX 文法で解いていた点も修正。
+- **順序も見るようにした。** 木に移して「分岐の中にあるか」は見られるようになったが、
+  「**その前にあるか**」を見ていなかった。レート制限は AI 呼び出しより前、認可は書き込みより前。
+  位置を比べれば一行で、道具を替えた後に同じ「一段浅い」をやっていた。
+- **14通りの変異すべてが赤**になることを確認済み。ただし 3巡目で自動レビューの利用上限に達したため、
+  以降は自分の変異テストだけが頼りになる（思いつかなかった形は残りうる）。
+- **`.husky/pre-push` にも同じ形があった。** `@{push}` は新規ブランチの初回 push では
+  解決できず、その失敗を握りつぶして「変更なし」と読むため、**初回 push は何を変えていても
+  テストが丸ごとスキップ**されていた（この棚卸しの push 自身がそうなって気づいた）。
+  解決できないときは既定ブランチと比べ、それも無ければ全部走らせる形に直した。
+
+## 2026-09-06 事例公開を2段階にし、anon から読める表を全件洗った（PR #1037 / `33c5f928`）
+
+- **公開の目視確認**: `preview`（AI 要約を生成して行に保存・公開しない）→ 画面が
+  「全加盟店に公開される内容」をそのまま表示 → チェックを入れて `publish`（AI を
+  呼び直さず反転のみ）。以前は**公開の瞬間に生成**していたので、押す人は何が共有されるか
+  見られなかった。詳細は DECISION_LOG 2026-09-06。
+- **確認の印**は「中身4項目 + `updated_at`」の sha256。`preview` が返し `publish` が
+  突き合わせる。中身を混ぜるので別の人が再生成すれば切れ、`updated_at` を混ぜるので
+  公開・非公開のたびに切れる（公開→非公開→再公開の抜けを塞ぐ）。
+  **印は preview / publish とも DB が返した行から作る。** 手元の値を混ぜると、表記が
+  1つ違うだけで印が永久に一致しない。実際 `updated_at` で起きた（JS は `...Z`、
+  PostgREST は `+00:00`）。この状態では公開が1件も通らない（Codex の指摘、M-033）。
+- 実際の露出経路は写真ではなく **AI 要約**だった。入力に証明書の `content_free_text`
+  （店の自由記述）が入る。#1034 で「写真を持つ表」と書いたのは誤り（M-032、同 PR で訂正）。
+- **anon から読める表を全件測った**（ポリシーの式を読むのではなく、`set role anon` で
+  実際に何行見えるかを数えた）。RLS 有効なテーブルのうち **13 件**が anon に見える。
+
+  | 分類 | 件数 | 判断 |
+  |---|---:|---|
+  | マスタ類（車両サイズ・装備・コーティング材・ブランド・メーカー） | 6 | 意図どおり |
+  | 公開サイトの記事（`site_content_posts`） | 1 | 意図どおり |
+  | 運営所有のテンプレート（`templates` 5件は全て運営、`workflow_templates` は運営4件のみ） | 3 | 正しい（加盟店所有の1件は見えない） |
+  | `platform_config` | 1 | キーは `platform_tenant_id` の1件のみ。秘密情報なし |
+  | `announcements`（公開済み1件） | 1 | 意図どおり |
+  | `certificates`（`active` 23件のみ。`draft`/`void` は0件） | 1 | 公開検証の設計どおり |
+
+- **秘密情報・認証情報の露出は無し。加盟店所有データの露出も無し。**
+- 残った2点（どちらも現時点で実害0、`OPEN_QUESTIONS` に起票）:
+  - `certificates` の公開ポリシーは**行ごと**許可する。今 `service_price` /
+    `customer_phone_last4` / `craftsman_name` は 23件すべて空だが、**埋まった瞬間に
+    公開される**。列を絞ったビューにすれば境界を型で持てる。
+  - 公開ポリシーは `status='active'` しか見ず、**`is_hidden` を無視する**。
+    現在 `active` かつ `is_hidden` の証明書は0件だが、作れば公開されてしまう。
+
+## 2026-09-05 Academy の RLS を本番へ適用し、anon から読めないことを実測した（PR #1034 / `9c885330`）
+
+- **本番適用済み**（版 `20260905142740`）。適用の前後を同じ手順で測った。
+
+  | | 適用前 | 適用後 |
+  |---|---|---|
+  | `academy_cases_read_published` の対象ロール | PUBLIC（全ロール） | `authenticated` |
+  | anon から公開事例が見えた件数 | **1** | **0** |
+  | authenticated から見えた件数 | 1 | 1 |
+
+  一時行を1件入れて数え、いずれも削除済み。`academy_cases` の実データは 0 件のまま。
+- **ファイル名を記録された版に改名した。** `apply_migration` は自前でタイムスタンプを振るため、
+  当初 `20260905040000` で作ったファイルが本番では `20260905142740` として記録された。
+  改名しないとこの版が未適用として残り、out-of-order で `db-migrate` が止まる
+  （MISTAKE_LEDGER M-021。過去3回発生）。今回は**適用直後に台帳を引いて確認した**。
+
+## 2026-09-04 OPEN_QUESTIONS を9件解消。AI コストキャップを有効化し、日時入力を JST 固定に統一
+
+- 内容: 未解決事項を上から順に9件解消した（新規起票は2件）。挙動が変わるのは次の3つ。
+  - **AI 月次コストキャップが実際に効くようになった。** 既定が 0（無効）で、
+    env もテナント個別設定も本番では未設定だったため、**安全ブレーキが1つも効いていなかった**。
+    コード側の既定を「テナント1件あたり月1万円」にし、`0` は「上限なし」ではなく
+    「未設定」として扱う（`.env.example` が長らく `0` を配っていたため）。
+  - **日時入力を JST 固定に統一。** `datetime-local` を `new Date()` でブラウザ TZ として
+    解釈していた4画面（お知らせ / LINE 一斉配信 / 連絡スケジュール / API キー失効）を
+    `@/lib/datetime` に寄せた。保存値はサーバが実行時刻として使うため、
+    UTC 環境の端末から操作すると**配信・通知・失効が9時間ずれていた**。表示側も揃えた。
+  - **未使用の帳票明細スキーマを削除。** 実データ形状と非互換な `documentItemSchema` と
+    `items_json` フィールド。参照は0件。
+- 開発側の変更:
+  - `scripts/check-context-dates.mjs` — 事業ログの**未来日**を CI と pre-commit で禁じる
+    （MISTAKE_LEDGER M-011 の形）。抽出器は別実装の判定と突き合わせ、取りこぼしを失敗にする。
+  - `scripts/ci-parallel-checks.sh` — CI の並列チェックを切り出し、
+    **失敗したチェックの出力だけをログ末尾に再掲**する（GitHub API は末尾しか返さない）。
+  - `aiRouteRateLimit.test.ts` — 課金対象の外部推論の入口が `getAnthropicClient()` の
+    1本だけであることをテストで固定。
+- 本番の実測: マイグレーション記録 441件 = リポジトリ 441ファイル（ドリフト0）。
+- 未解決として残したもの: 本番 Vercel の `AI_MONTHLY_COST_CAP_JPY` 明示設定、
+  代車の返却期限（`type="date"` で JST の日の境界が未定義）、
+  連絡スケジュールの「今日 / 今週」グルーピングの基準。
+## 2026-09-05 Academy 公開事例を「加盟店間の共有」に絞り、非公開に戻すボタンを足した
+
+- 内容: 公開事例の読み取り RLS を `TO authenticated` に絞り、一覧に「非公開にする」を追加。
+  応答から `tenant_id` を落とし、代わりにサーバ計算の `is_own` を返す。
+- **実害の可能性**: `academy_cases_read_published` にロール指定が無く PUBLIC 扱いだったため、
+  **anon ロールから公開事例を読めた**（本番で実測。一時行を入れて確認し削除）。
+  anon キーはブラウザのバンドルに載る。加盟店間の共有のつもりが世間への公開になっていた。
+  **【2026-09-06 訂正】**当初「`photos`（施工写真）と `vehicle_info` を持つ表」と書いたが、
+  **列はあるが、書き込み経路が1つも設定しない。** 両列は `NOT NULL DEFAULT`（`'[]'` / `'{}'`）
+  なので **NULL にはならず空の既定値のまま**。露出範囲は AI 生成のテキストとメタデータで、
+  写真ではない（MISTAKE_LEDGER M-032）。
+  本番の `academy_cases` は **0件**なので、実際に露出したデータは無い。
+- 「任意で非公開」は**新規開発ではなかった**。API の `action: "unpublish"` も
+  所有テナントの検査も既にあり、**画面にボタンが無かっただけ**。
+- 副次: `/admin/academy` の `tenant_id` の取り方が `.limit(1).single()`（並び順も
+  アクティブテナントの cookie も見ない）だったので `resolveCallerWithRole` に置き換えた。
+  `updateTenantSettingsAction`・`site-content` と同じ欠陥で、これが3例目。
+- 公開事例数のカウントだけは**意図的に `tenant_id` で絞らない**。全加盟店共有だから。
+  `createTenantScopedAdmin` の規約への例外なので、消されないようコメントを置いた。
+- 検出: `src/lib/academy/__tests__/casePresentation.test.ts`。匿名化の境界（`tenant_id` を
+  落とす）と所有判定を純関数に切り出して固定した。**壊すと落ちることを2形で確認**
+  （`tenant_id` を落とすのをやめる / マスクを1項目外す）。
+
+## 2026-09-04 C2PA 署名マニフェストを 2.x 準拠にし、施工写真をカメラ撮影に限定（Conformance 申請一式）
+
+- 内容: C2PA Conformance Program（Generator Product / 実装クラス Backend / Max Assurance Level 1）の申請一式を
+  追加し、本番の署名マニフェストを C2PA 2.x 準拠に修正した（PR #914、squash マージ）。
+- マニフェスト: 行為アクションを `c2pa.opened`（claim v2 で ingredient 必須＝`ingredientMismatch` で非準拠）から
+  `c2pa.created` ＋ `digitalSourceType` に変更。`claim_generator_info.specVersion=2.4`・`allActionsIncluded` を付与。
+  行為台帳は **実際に効果のあった変換だけ** を載せる（再エンコード / 向き補正 / EXIF・GPS 除去の有無を per-action で
+  判定し no-op を主張しない）。既知の正常証明書で `validation_state: Valid` を確認済み。
+- 入力制限: 施工写真の入力を **カメラ撮影に限定**（作成 `PhotoUploadSection`・作成後 `CertImageUpload`、モバイルは
+  元よりカメラのみ）。任意ファイルアップロードを廃し、`digitalCapture`（実写のデジタル撮影）の主張を正当化。
+- 提出物: GPSA 本体（`docs/c2pa-gpsa.md`、generation のみ）＋運用管理策文書＋TOE アーキ図＋本番切替前プリフライト
+  `scripts/verify-c2pa-cert.mjs`。いずれも実装の実態に整合（Codacy は手動のみ・端末アテステーション既定 OFF・
+  service-role＋アプリ層分離・署名鍵はプロセス常駐・CodeQL は main 限定・Polygon は pre-sign ハッシュ）。
+- テスト: `c2paSignValidate` / `imageExif` / `c2paManifest`（新規/更新）。
+- 本番 Claim Signing Certificate は適合認定後に CA から発行されるため申請時点では未保有（署名ロジック自体は
+  健全と検証済み）。残る代表アクション: Administrator への validate 取り下げ訂正メール、Conformulator 自己テスト後の
+  提出、電話番号・公開日の確定。
+
+## 2026-09-04 サイトコンテンツのアプリ側ガードが DB とずれていたのを直した
+
+- 内容: Server Action 7箇所を全部読み、**`site-content` の4アクションだけ**が
+  アプリ側 `staff` 以上・DB 側 `is_super_admin_user()` でずれていた。
+  `site_content:view` / `site_content:manage` を **super_admin 限定**にし、
+  `authorize()` を権限表と同じ動詞で見るようにした。
+- 実害: staff/admin/owner はアプリのガードを通過してから RLS に弾かれる。
+  **UPDATE と DELETE は 0 行・エラー無しなので `{ok:true}` が返っていた。**
+  本番24人が「削除しました」と表示されながら何も変わらない状態。
+  `site_content:view` は viewer を含む全ロールが持っていたので**メニューも全員に出ていた**。
+- 判断は新しくない。`20260424010000_site_content_posts_super_admin_only.sql` のヘッダに
+  「加盟店（owner/admin/staff/viewer）はDB直接操作でも変更不可」と書いてあり、
+  **アプリだけが追随していなかった**。
+- 副次: `authorize()` のローカル membership 引き（並び順もアクティブテナントの cookie も
+  見ない）を `caller.tenantId` に置き換えた。`updateTenantSettingsAction` と同じ欠陥。
+  delete と status 変更に `.select("id")` を付け、0行を `forbidden` として返すようにした。
+- 検出: `src/lib/auth/__tests__/serverActionGuards.test.ts`。**ガードを消して落ちることを
+  2つの形で確認した**（Server Action のガード削除 / 権限表を緩める）。
+  1回目は落ちず、**自分が書いた説明コメント内の `hasMinRole(...)` に反応していた**ため
+  コメントを落としてから照合するようにした（MISTAKE_LEDGER M-022）。
+- **セルフレビューで見つけた追加分（同日）**: 画面3枚（一覧・新規・編集）が
+  「ログイン済みか」しか見ておらず、**ナビから消えても URL 直打ちで開けた**。
+  開くと押せば必ず `forbidden` になるボタンとフォームが並ぶ（M-019 と同じ形を、
+  M-019 を引用した PR でやった → MISTAKE_LEDGER M-023）。
+  `requireSiteContentAdmin()` を 3 枚に通し、**1 枚から外すと落ちる検査**を追加した。
+  併せて `deleteSiteContentAction` の 0 行を、存在しない id は `not_found`、
+  RLS 拒否は `forbidden` に分けた。
+- ~~判明した前提: `ROUTE_PERMISSIONS`（48画面分）を強制している場所は無い~~
+  **【2026-09-05 訂正】これは誤り。** 関数名は `getRequiredPermission` ではなく
+  `requiredPermissionForPath` で、`AdminRouteGuard`（全 admin 画面を包む
+  クライアントコンポーネント）が呼んでいる。存在しない名前で grep して 0 件を
+  「誰も読んでいない」と読んだ（MISTAKE_LEDGER M-031）。
+  正しくは「**クライアント側では全画面に効いている。サーバ側の強制が無い**」。
+  数えた結果は OPEN_QUESTIONS を参照。
+
+## 2026-09-04 判断待ち4件を main へマージし、本番へマイグレーションを適用した（PR #1026 / `87b71201`）
+
+- **本番適用済み**（Supabase migration `tenant_settings_owner_only_and_shared_templates`）。
+  適用前後を実測で確認した。
+
+  | 確認項目 | 適用前 | 適用後 |
+  |---|---|---|
+  | `tenants` UPDATE ポリシー | `tenants_update_owner_admin`, `tenants_update_v2` | **`tenants_update_v2` のみ**（owner 限定） |
+  | `templates` INSERT ポリシー | `templates_insert_v2`, `templates_write_owner_admin` | **`templates_insert_v2` のみ** |
+  | `templates` の CHECK 制約 | なし | **`templates_shared_is_platform_owned` / validated=true** |
+  | `templates` 行数 / shared / tenant_id NULL | 5 / 0 / 5 | **5 / 0 / 5（無傷）** |
+
+- **「適用できた」で終わらせず、本番の実テーブルで弾くことを確認した。**
+  例外を捕まえる DO ブロックで試し、行は残していない（`probe` の残骸0件、名前一覧も元のまま）。
+
+  | ケース | 結果 |
+  |---|---|
+  | テナント所有の `shared` を INSERT | **弾かれた** |
+  | 既存行を `shared` に書き換え | **弾かれた**（UPDATE 経路） |
+  | 運営が `tenant_id NULL` で `shared` を作る | 通った（期待どおり） |
+
+- 注意: この制約は **service_role にも効く**（RLS は迂回できるが CHECK 制約は迂回できない）。
+  運営が共有雛形を作るときは `tenant_id` を NULL にする必要がある。既存5件はその形。
+- **適用後にファイル名を記録バージョンへ合わせた**（`20260904000000` → `20260904123252`）。
+  `docs/operations/migrations.md` の規約。放置すると、既に適用済みの `20260904060245` より
+  前のファイルが未適用として残り、**out-of-order で `db-migrate` が止まる**
+  （このリポジトリは同じ形で過去3回止まっている）。
+- 同じ手順書には「`VALIDATE` を別ファイルにする」ともあり、**こちらは満たしていない**。
+  適用済みなので分割せず、逸脱の理由をファイルのヘッダに書いた（MISTAKE_LEDGER M-021）。
+
+## 2026-09-04 判断待ちだった4件を確定し、調査中に見つけた穴2つも塞いだ
+
+- 内容: 代表判断4件を実装した。
+  - **通知は店舗宛（現状維持）** — コードは変えず、分類コメントを実態に合わせた。
+  - **テナント設定は owner のみ** — DB の `tenants_update_owner_admin` を落とし、
+    アプリ側（`updateTenantSettingsAction` / `admin/settings/defaults` PUT）も owner 要求に。
+  - **共有テンプレートはプラットフォーム運営のみ** — `CHECK (scope <> 'shared' OR tenant_id IS NULL)`。
+  - **顧客・マーケット車両の削除は admin 以上** — `customers:delete` / `market:delete` を
+    語彙に追加（ロール下限ではなく動詞にする。`vehicles:delete` が先例）。作成・編集は staff のまま。
+  - **ロゴ・社印・請求タイミングも owner に揃えた** — どちらも service-role 書き込みで
+    RLS が効かないため、アプリのガードが唯一の境界。
+- **調査中に見つけた穴（記録に無かったもの）:**
+  - `updateTenantSettingsAction`（設定画面の保存）に**ロール判定が1つも無かった**。
+    RLS 任せで、弾かれても `.update()` は 0 行・エラー無しを返すため、staff の保存が
+    **何も変わらないのに成功扱い**だった。owner 判定を足し、あわせて2経路とも
+    `.select("id")` で**0行更新をエラーとして返す**ようにした。
+  - 共有テンプレートの穴は INSERT だけでなく **UPDATE にもあった**。
+    `templates_update_v2` は WITH CHECK が無く USING も `scope` を見ないので、
+    既存行を `scope='shared'` に書き換えられた。制約1本で両方塞いだ。
+- **`/code-review` で自分の誤りが6件出て、すべて直した**（MISTAKE_LEDGER M-016〜M-018）。
+  CI の lint で落ちるマイグレーションの書き方 / 画面の出し分け4箇所の直し忘れ /
+  `getTenantId()` が別テナントを返しうる件 / 通知の分類コメントが実態と違う件 /
+  画像を車両行より先に消していた件 / 一覧ページの削除が 404 を叩いていた件。
+- 検証: 一時テーブルで制約の挙動を5ケース確認（テナントの shared 作成＝弾く／
+  既存行の shared 書き換え＝弾く／運営の shared 作成＝通す／既存5件と同じ形＝通す）。
+  `npm run lint:migrations` OK / `npm run check:migrations` 再生OK（既知9件のみ、増減なし）。
+- 実測で分かったこと: 本番の `templates` 5件は `scope='tenant'` だが `tenant_id` は NULL で、
+  **共有雛形は既に `tenant_id IS NULL` で実現されていた**（`scope` 列が実態を表していない）。
+  `purchase_orders` は0件で、発注機能は本番未使用。
+
+## 2026-09-04 認可テーブルの二重化を解消（複数形 insurer_tenant_accesses と全組み合わせ自動付与トリガを削除）
+
+- 背景: 保険会社のテナント閲覧許可に、名前がほぼ同じ2つの表が並存していた。
+  正は `insurer_tenant_access`（単数形）で、認可の実体 `insurer_accessible_tenant_ids()`・
+  検索3 RPC・API 4本がすべてこれを読む。一方 `insurer_tenant_accesses`（複数形）は
+  **アプリコードからの参照ゼロ**、`supabase/migrations/` にも定義が無い本番のみのドリフトだった。
+- 危険だった点: トリガ `trg_seed_all_tenant_accesses_for_new_insurer` /
+  `trg_seed_all_insurer_accesses_for_new_tenant` が、保険会社かテナントが1件増えるたびに
+  **全保険会社 × 全テナント**の行を `is_active=true` で複数形へ投入していた。削除時点で
+  **2保険会社 × 24テナント = 48行、全件有効**。読むコードが無いため実害は出ていなかったが、
+  **複数形を1行でも参照した瞬間に、両保険会社が実店舗24社の証明書を見られる**状態だった。
+- 内容: `20260904060245_drop_insurer_tenant_accesses_and_autograt_triggers.sql` を追加し、
+  トリガ2本 → 関数2本 → 複数形テーブルの順に削除して本番へ適用。あわせて生成物
+  （`src/types/db.generated.ts`・`scripts/schema.snapshot.json`）から該当定義を除去した。
+- 検証: 削除後に複数形の不在・トリガ0件・関数0件を確認し、**単数形は2行のまま無傷**、
+  `insurer_accessible_tenant_ids()` がデモ保険会社に対して `Ledra Motors（デモ）` を返し、
+  東京海上日動に対しては0件（前日の無効化が維持されている）ことを実際に呼んで確認した。
+  `npx tsc --noEmit` 出力なし、`npm run check:schema` OK、`npx vitest run` 522 files / 5,310 件通過。
+
+## 2026-09-03 保険会社ポータルの検索を本番で復旧し、配布 PDF のキャプチャ3枚が揃った（14ページ）
+
+- 背景: `insurer_accessible_tenant_ids(uuid)` は SECURITY DEFINER で `search_path=''` が
+  設定されている（`20260404000000_fix_security_definer_search_path.sql`）のに、関数本体は
+  `FROM insurer_tenant_access` とスキーマ修飾なしのままだった。`search_path` が空だと
+  非修飾の識別子は解決できないため、**この関数は呼ばれるたびに必ず落ちていた**。
+- 影響: この関数を呼ぶ保険会社ポータルの検索3経路（`insurer_search_certificates` /
+  `insurer_search_stores` / `insurer_search_vehicles`）が **2026-04-04 以降 HTTP 500** を
+  返していた。実際にユーザーが影響を受けたかは【要確認】。
+- 内容: `20260903123728_fix_insurer_accessible_tenant_ids_search_path.sql` を追加し、
+  本体の参照を `public.insurer_tenant_access` に修飾して本番へ適用。シグネチャ・返り値・
+  volatility・SECURITY DEFINER・`search_path=''` はすべて現状維持で、**挙動は変えず
+  壊れた参照だけを直した**。EXECUTE 権限は `postgres` / `service_role` のみで
+  `anon` / `authenticated` には無く、呼び出し元3本はいずれも `auth.uid()` から自分の
+  insurer_id を導出するため、**この修正で可視範囲は広がらない**（適用前に確認済み）。
+- これにより `public/screenshots/insurer/search.png` が撮影でき、**PDF が参照する3枚が揃った**。
+  サービス概要 PDF を実レンダリングして **13 → 14 ページ**になることを確認した。
+- **デモ保険会社にデモ施工店の閲覧許可を付与した。** それまでデモ保険会社は
+  `insurer_tenant_access` に行を1件も持たず、ログインできても検索は常に0件だった
+  （`scripts/setup-demo-insurer.ts` が閲覧許可を付与していなかった）。行を1件追加し、
+  同じ upsert をシードスクリプトにも入れて再現可能にした。これでデモ保険会社に見えるのは
+  デモ施工店だけ（証明書18件、すべて架空データ）。保険会社スライドは **RESULTS 18 の
+  検索結果が並んだ状態**で撮影している。実テナントのデータは写らない。
+- 検証: `npx tsc --noEmit` 通過、`npx vitest run` 全 **522 ファイル / 5,310 件**通過。
+
+## 2026-09-04 CONCURRENTLY を「1ファイル1文」に矯正（Supabase のパイプライン制約）
+
+順序逆転（前項）を直したことで、実物のプレビュー DB が初めて先まで進み、次が出た。
+
+```
+ERROR: CREATE INDEX CONCURRENTLY cannot be executed within a pipeline (SQLSTATE 25001)
+At statement: 1
+```
+
+**Supabase のブランチ機能は1ファイルの複数文をパイプラインで送る。**
+`CREATE INDEX CONCURRENTLY` はその中では実行できず、2文目以降が落ちる。
+
+- 適用済みの**13ファイル**から CONCURRENTLY を外した（本番では再適用されず、
+  空 DB では対象テーブルが空なのでロックの問題は起きない）。
+  最大は `20260603010000_fk_covering_indexes.sql` の135文。
+- そのぶん `create-index-without-concurrently` の対象外にするため
+  `supabase/migrations.allowlist` に13件を追記（理由コメント付き）。
+- **lint に新ルール `concurrently-in-multi-statement-file` を追加。**
+  CONCURRENTLY を含むファイルが2文以上なら落ちる。
+  **手元の `check:migrations` では再現しない**（`psql -f` はパイプラインを使わない）
+  ので、静的検査で止めるしかない。わざと壊して落ちることを確認済み。
+
+検証: 1パス再生 447/447、lint:migrations OK、check:schema OK、tsc エラー0。
+
+### 続き: `pg_trgm` はどのマイグレーションでも作られていなかった
+
+CONCURRENTLY を直したら、実物のプレビュー DB は次で落ちた。
+
+```
+ERROR: extension "pg_trgm" does not exist (SQLSTATE 42704)
+At statement: 2 / alter extension pg_trgm set schema extensions
+```
+
+**`pg_trgm` を作るマイグレーションは1本も無い。** 本番には手で入っているだけで、
+Supabase の既定にも入らない。手元で再現しなかったのは
+`scripts/replay/bootstrap.sql` が先に作っていたから ——
+「本番にあるのにマイグレーションに書かれていない」ドリフトそのものを、
+再生検査自身が隠していた。
+
+- `20260616000005` を「無ければ作る / 別スキーマにあれば移す / 既に extensions なら何もしない」に変更。
+- **bootstrap から既定でない拡張4件（pg_trgm / btree_gin / btree_gist / unaccent）を削除。**
+  bootstrap は Supabase の既定だけを書く場所にする。
+- 検証: bootstrap から pg_trgm を抜いた状態でも 1パス再生 447/447（＝プレビュー DB と同じ条件）。
+
+### 続き2: 手元は PostgreSQL 16、Supabase は 15
+
+`pg_trgm` を直したら次はこれ。
+
+```
+ERROR: relation "public.line_link_tokens" does not exist (SQLSTATE 42P01)
+drop policy if exists service_role_all_line_link_tokens on public.line_link_tokens
+```
+
+`line_link_tokens` / `line_pending_links` も**本番にしか無い**テーブル
+（`fk_covering_indexes` のコメントに「ドリフト」として列挙済み）。
+
+**`DROP POLICY IF EXISTS ... ON <欠けたテーブル>` は PG16 では NOTICE で skip されるが、
+PG15 では落ちる。** 手元の再生は 16、Supabase は 15。実際に PG16 で試して確認した。
+
+- 該当2文を `to_regclass` ガードに変更。
+- lint に新ルール `drop-if-exists-on-uncreated-relation` を追加。
+  **全マイグレーションを走査して「作られるリレーション」の集合を作り**、
+  そこに無いものへの `DROP POLICY / TRIGGER IF EXISTS` を落とす。
+  わざと壊して落ちることを確認済み。
+
+## 2026-09-03 マイグレーションの順序逆転 203 本を解消（1パス再生 443/443）
+
+`Supabase Preview` が1本目のマイグレーションで落ち続けていた問題。
+ファイル名順に1パスで流すと **438 本中 203 本**が落ちる状態だった。
+
+- **ファイル名は1つも変えていない。** 版番号を変えると本番で再適用され、当時の
+  役割を見ない RLS ポリシーや search_path 未固定の関数定義が復活するため。
+- 既適用ファイルの**中身だけ**を「前提が無ければ飛ばす」に変更（`to_regclass` /
+  `to_regprocedure` 判定）。版番号を変えていないので本番では再適用されない。
+- 飛ばした分を依存が揃った位置で補う新規ファイル5本。いずれも「既にあれば何もしない」
+  形で本番では no-op:
+  `20260313030000_replay_early_schema.sql` /
+  `20260313030001_replay_early_schema_index.sql` /
+  `20260314000006_replay_market_inquiries.sql` /
+  `20260321000003_replay_customer_login_codes_index.sql` /
+  `20260601000009_replay_supply_columns.sql`
+- 飛ばした分を、依存が揃った位置の**既適用ファイルの末尾**で補う。いずれも
+  「既にあれば何もしない」形で本番では no-op。**新規ファイルは1本も作っていない**
+  （作ると本番の `db push` が out-of-order で止まるため。下記参照）:
+  `20260313020000_core_tables.sql`（customers / invoices / 列・索引）/
+  `20260314000003_market_vehicles.sql`（market_inquiries 系）/
+  `20260321000001_customer_portal_tables.sql`（索引）/
+  `20260601000006_supply_partners.sql`（列）/
+  `20260826000005_repair_unreplayable_objects.sql`（email 系関数の revoke）
+- 一度も存在しなかった名前を本番の実体に合わせて修正:
+  `tenant_members` → `tenant_memberships`（2本）、`tenant_memberships.is_active`
+  述語の除去（2本）、戻り値の型違いの同名関数を先に DROP（2本）、
+  本番にしか無い関数・ビューへの revoke/grant/ALTER VIEW を存在チェック付きに（3本）。
+- **`npm run check:migrations` を多重パス → 1パスに変更。** Supabase のブランチ機能と
+  同じ条件になり、順序逆転が CI で落ちるようになった。`KNOWN_UNREPLAYABLE`（既知の
+  9本を許す仕組み）は不要になったので削除。
+
+あわせて `/code-review` の指摘5件を修正（`5beff94`）。うち1件は**この変更が作った穴**で、
+まだ作られていない関数への `revoke execute` をガードで飛ばした結果、
+`auth_uid_by_email` / `get_auth_email` / `get_auth_email_scoped` が空 DB では
+`anon` / `authenticated` に開いたまま残っていた（`auth.users` の email を引く
+SECURITY DEFINER）。関数が実在する位置に `20260826000007` を足して締め直し、
+再生 DB の `pg_proc.proacl` で5関数すべて service_role のみになることを確認した。
+
+検証: 1パス再生 **444/444**、RLS ポリシー打ち消し検査 なし、`lint:migrations` OK、
+`check:schema` OK、`vitest run` 522ファイル 5301件 通過。
+番人はわざと壊して確認済み（存在しないテーブルを ALTER するファイルを先頭日付で
+置くと exit 1 でファイル名まで出る）。
+
+## 2026-09-03 外注職人のテナント連携（元請けがコード発行 → 外注が入力）
+
+- 背景: 外注職人が施工した記録は元請けのテナントに元請け名義で残るが、**本人がそれを
+  見る手段が無かった**。証明書には `craftsman_staff_id` が刻まれている（`20260617000004`）
+  ので材料はあり、欠けていたのは本人へ繋ぐ導線だけ。
+- 方針（代表判断）:
+  - **外注側にも Ledra を導入させ、利用は必須**。アカウントを持たない職人は設計対象に
+    しない（同日に一度作ったトークン URL 方式 `/w/[token]` は、まさにその層のための
+    仕組みだったので**撤去した**。二重に持つと必ず腐る）。
+  - 個人が外注として登録する場合は**屋号での登録を必須**（サインアップの `shop_name` は
+    既に必須。個人名を晒さないための運用要件で、コード側の変更は不要だった）。
+  - 連携は**元請けが発行したコードを外注が自分の Ledra で入力**して成立させる。今の
+    `customers.linked_tenant_id` は元請けの一方的な指定で同意が無いが、こちらは同意前提。
+  - **顧客名は Ledra では表示しない。**
+- 内容:
+  - `staff_members.linked_tenant_id` を追加（`20260906100002`、索引は CONCURRENTLY のため
+    `20260906100003`。同じ理由で `20260903000000` / `20260903000002` から改名）。`customers.linked_tenant_id` と同じ形。証明書に刻まれるのは
+    `craftsman_staff_id` なので、作業の帰属をテナントへ繋ぐにはこの列が要る。
+  - `staff_link_invites`: 発行したコード。raw は保存せず sha256（pepper 付き）のみ。
+    有効期限14日、職人1人につき1本、再発行は差し替え。コードの英数字は 0/O・1/I/L を
+    外した31文字（電話・口頭で伝える前提）。
+  - 元請け側: `/admin/staff` に「連携コードを発行 / 連携を解除」。権限は `members:manage`。
+  - 外注側: `/admin/linked-work`（ナビに追加）にコード入力と、元請けごとの実績一覧。
+- 開示範囲: 取得列は `public_id` / `service_type` / `created_at` の3列のみ。元請けの
+  テナント全体は見えず、`craftsman_staff_id` が自分に連携された職人行のものだけ。
+  休止中の職人は連携していても表示しない（在籍管理に相乗りさせた失効）。
+- 他社に稼働先が見えないこと（前日の制約を維持）: 元請けは自テナントの `staff_members`
+  しか読めないので、A から「この外注は B でも働いている」は引けない。**「この職人と
+  連携しているテナント一覧」を返す関数を作った瞬間に壊れる**ため、`linked_tenant_id` の
+  逆引きが `subcontractorTenantId`（＝引く側自身）1箇所だけであることをテストで固定した。
+- 番人（`tenantLink.test.ts` 10件、いずれもわざと壊して落ちることを確認）:
+  許可リストとの完全一致 / 顧客名を含まない / craftsman とテナントの絞り込み /
+  is_hidden・void の除外 / 休止中の除外 / 引き換えの期限・使用済み・自テナント判定 /
+  **逆引きの1箇所固定** / raw code を保存しない。
+
+SECURITY DEFINER）。関数が実在する位置（`20260826000005` の末尾）で締め直し、
+再生 DB の `pg_proc.proacl` で5関数すべて service_role のみになること、
+本番の `proacl` と一致することを確認した。
+
+**Codex レビューの P1 指摘で作り直した。** 当初は補いを新規ファイル6本として置いて
+いたが、6本とも本番の適用済み最新 `20260904123252` より**古い**バージョンだった。
+本番の `supabase db push` は最新より古い未適用があると out-of-order で停止するため、
+マージすれば**以降のマイグレーションが本番へ一切届かなくなる**ところだった
+（2026-08-02〜08-15 に同じ形で13日間停止し、証明書発行が全件止まった実績がある）。
+6本を消して中身を既適用ファイルの末尾へ移し、新規バージョンを0本にした。
+`MISTAKE_LEDGER` M-027。
+
+再発防止として `lint:migrations` に `migration-version-before-base-head` を追加。
+**このブランチが追加したファイルは、base に在るどのファイルよりも後のバージョンで
+なければ落ちる。** わざと古い日付で置いて落ちることを確認済み。
+
+**その検査自体が CI で動いていなかった**のを `/code-review` が見つけた（M-028）。
+`actions/checkout` は既定 depth 1 で base ref を持たないため、検査は毎回
+「引けないので見送る」経路に入り注記を1行出して緑を返していた。ci.yml で base ref を
+depth 1 で取り（`MIGRATIONS_BASE_REF` で名指し）、**引けなければ CI では落とす**ように
+した。同レビューで、`CREATED_RELATIONS` がコメントを読んでいた（説明文中の
+`CREATE TABLE xxx` が「作られている」と誤認され PG15 検査が素通りする）、
+CONCURRENTLY の文数カウントが文字列リテラル中の `;` を数えていた、
+CONCURRENTLY を外した13ファイルの説明文が実装と矛盾していた、
+allowlist のコメントが「ルール単位の免除」と読める、の4件も直した。
+検出器の2件はどちらも probe で誤検出/見逃しの再現→修正後の解消を確認している。
+
+さらにその「CI では落とす」が既存の `scripts/__tests__/lint-migrations.test.ts` を
+CI で8件落とした（テストは一時ディレクトリでスクリプトを走らせるので base ref が無い）。
+落とす対象を「git リポジトリなのに base ref が無い＝CI の設定ミス」だけに絞り、
+同テストに3件追加した（backdated で落ちる / 後ろの日付なら通る / git 管理外では
+CI でも落ちない）。ルールを無効化すると落ちることも確認済み。
+
+検証: 1パス再生 **441/441**、RLS ポリシー打ち消し検査 なし、`lint:migrations` OK、
+`check:schema` OK、`vitest run` 525ファイル 5324件 通過。
+番人はわざと壊して確認済み（存在しないテーブルを ALTER するファイルを先頭日付で
+置くと exit 1 でファイル名まで出る）。
+
+## 2026-09-03 AI を呼ぶ8ハンドラのレート制限漏れを塞いだ
+
+- 内容: AI を呼ぶハンドラ46単位のうち、レート制限が無かった8つに既存の
+  `checkRateLimit(req, "ai", ...)` を入れた。新しい preset・ヘルパーは追加していない。
+
+  | ハンドラ | 呼んでいる AI | 置いた場所 |
+  |---|---|---|
+  | `admin/academy/cases [POST]` | `generateAcademyCaseSummary` | `action === "publish"` の中（unpublish は課金しない） |
+  | `admin/academy/feedback [POST]` | `generateCertificateFeedback` | プラン判定の後 |
+  | `admin/academy/qa [POST]` | `generateQAAnswer` | プラン判定の後 |
+  | `admin/certificates/ai-draft [POST]` | `generateCertificateDraft` | プラン判定の後 |
+  | `admin/certificates/ai-explain [POST]` | `generateExplanation` | プラン判定の後 |
+  | `admin/purchase-orders/ai-message [POST]` | `generatePurchaseOrderMessage` | プラン判定の後 |
+  | `parts/installations/[id]/reconcile [POST]` | `extractDeliveryNote`（Vision） | 画像が渡されたときだけ |
+  | `vehicles/parse-shakken [POST]` | `parseShakenshoAuto`（Vision） | 画像を buffer 化する前 |
+
+- 背景: #1021 でアカデミーの AI 3経路に staff 以上の認可を入れたが、**認可は
+  「誰が呼べるか」であって「何回呼べるか」ではない。**
+- **検出器を3回作り直した。** 推移到達（47本）は純粋関数まで拾って使えず、
+  ルート自身の `@/lib/ai/client` import（29本）は狭すぎて **OCR 2本を見落とした**
+  （`/code-review` の指摘で発覚）。採用したのは「モデルを叩くモジュールから import した
+  binding を**ハンドラ単位**で追う」形。詳細は MISTAKE_LEDGER M-012〜M-014。
+- 検出: `src/lib/api/__tests__/aiRouteRateLimit.test.ts`。**ガードを消すと落ちることを
+  3つの形で確認済み**（下位モジュール経由の穴を消す / ガードを間違ったハンドラに付ける /
+  元に戻す）。免除は cron 日次ジョブと QStash ワーカーの2つで、理由をコードに書いてある。
+- 副次: `handlerChunks()` / `moduleChunk()` を `sourceScan.ts` へ移し、
+  `apiRoutePermissions.test.ts` と共有した（M-001 の再発防止をコピーせずに使えるように）。
+- 検証: tsc エラーなし / lint / vitest 全通過 / check:schema OK。
+
+## 2026-09-03 npm audit の high 2件・moderate 1件を解消（PR #1022 / `daeab8ed`）
+
+- 背景: 新しく公開されたアドバイザリが推移的依存に当たり、**main の CI が
+  `Security audit (production dependencies)` で止まっていた**。このステップは
+  `.github/workflows/ci.yml` で**テストより前**にあるため、止まるとテストが1件も走らず、
+  リポジトリ全体が赤くなる。
+- 内訳: `browserslist`（high・OOM / prototype 書き込み）、`fast-uri`（high・IDN 正規化
+  スキップによる host 混同、IPv6 正規化とパーセントデコード経由の SSRF）、
+  `qs`（moderate・array-limit バイパス / `isBuffer` 経由の DoS）。
+- 対応: `npm audit fix`（`--force` 不要＝メジャーバンプなし）。`package.json` は変更なしで
+  `package-lock.json` のみ。すべてパッチ／マイナー。
+- **認可の変更（#1021）とは別 PR にした。** 同じ PR にすると、CI が落ちたときに依存バンプが
+  原因か認可の変更が原因かを切り分けられなくなる。`fast-uri` は URL 解析の挙動が変わりうる
+  ので単独で確認したかった。
+- 検証: `npm audit --audit-level=high --omit=dev` が **found 0 vulnerabilities**（exit 0）。
+  tsc エラーなし / lint エラー0・警告1251（更新前と同数）/ vitest 521ファイル 5298件通過。
+
+## 2026-09-03 決済・帳票送付・アカデミーAI の8箇所に認可を追加、検出器の誤報を訂正（PR #1021 / `afeba20b`）
+
+- 内容: 代表判断に基づき7箇所にガードを入れた。
+  - `stripe/connect` POST・DELETE → **owner のみ**（会社の入金口座。解除されると入金が止まる）
+  - `stripe/connect/payment-link` POST → `payments:create`（staff。現場が請求を出す通常業務）
+  - `admin/shop/checkout` POST・`admin/shop/orders` POST → **admin 以上**（会社のお金を使う）
+  - `admin/documents/share` POST → staff 以上（帳票の顧客送付）
+  - `admin/academy/feedback` / `qa` / `cases` POST → staff 以上（中身が AI 呼び出しのため
+    2026-09-01 の「AI は staff 以上」が適用される）
+- **「未強制24本」は数え間違いだった。** 正しくは **既に守られていた10本**（著者判定・
+  permission チェック・`super_admin` のインライン判定）、**自己完結で現状維持が正しい6本**
+  （受講5・テナント切替1）、**本当に無防備だった8本**。構造テストの検出器が決め打ちの
+  関数名しか認可と認識しないため、**「認識できない」を「認可が無い」と読み替えていた**のが
+  原因。**Stripe の credit を動かす報酬適用も、無防備だと思っていたが実際は `super_admin`
+  のみで守られていた。**
+- 逆向きの誤りもあった。`admin/academy/cases` を「所有者判定で守られている」と分類したが、
+  実際は**テナント判定しかしておらず閲覧専用ロールでも事例を公開できた**（AI 要約を呼び、
+  `knowledge_chunks` に全加盟店共有の行を書く）。staff 以上に変更した。
+- 検出器の直し: インラインのロール判定と `canModifyLesson` を認識するようにし、既知リストの
+  意味を「認可が無い」から**「この検出器が認可を認識できない」**に改めて、**29件すべてに
+  分類コメント**を付けた。46→29。**説明のつかないハンドラはゼロになった。**
+
+  | 分類 | 件数 |
+  |---|---|
+  | 自己完結（自分のデータだけを操作する） | 15 |
+  | 通知の既読（**自己完結ではない**。判断待ち） | 2 |
+  | 認証前の経路 | 2 |
+  | 読み取りのみ（POST だが書き込まない） | 1 |
+  | 認可を共有関数に集約 | 1 |
+  | 受講（自分の行にしか書けない） | 5 |
+  | 著者判定（ルート内ローカルヘルパー） | 1 |
+  | `createLesson.ts` の permission チェック | 2 |
+  | **合計** | **29** |
+- 副次: `admin/documents/share` のテストが `@/lib/auth/checkRole` をモジュールごと
+  モックしており、ガード追加で 403 が 500 になっていたので `importOriginal` で直した
+  （この形は4回目）。
+- 検証: tsc エラーなし / lint エラー0・警告1252（変化なし）/ vitest 521ファイル
+  5298件通過 / check:schema OK。ガードを1本消すと構造テストと未登録検出の両方が
+  落ちることを確認済み。
+
+## 2026-09-01 外注施工の記録を発注に紐付け、受発注の双方から辿れるようにした
+
+- 背景: テナント間の外注（`job_orders`: 元請けA → 受注B）で施工した記録が、
+  受発注のどちらの画面にも出てこなかった。`/admin/orders/[id]` は状態遷移・検収サイン・
+  請求・チャット・評価だけを扱い、成果物（施工証明）への参照が1件も無かった。結果として
+  元請けは発注した作業の証明書を受注画面から辿れず、外注先は自分が施工した記録を
+  Ledra 上のどこでも確認できなかった。
+- 内容:
+  - `certificates.job_order_id` を追加（`20260906100000`、索引は CONCURRENTLY のため
+    `20260906100001` に分離。**`20260901000001` / `20260901000002` から計4回改名**
+    —— 本番の適用済み最新より古いままだと `supabase db push` が out-of-order で停止する
+    ため。最終的な本番の最新は `20260906094735`（#966 が apply_migration で直接当てた版）で、
+    改名のたびに本番の台帳に元バージョンが無いことを名指しで確認している）。`documents` / `chat_messages` / `order_reviews` /
+    `reservation_holds` と同じ `job_order_id` 規約に揃えた。
+  - テナント整合トリガー `certificates_check_job_order_tenant` を追加。指定された発注の
+    当事者（発注元 or 受注先）でないテナントの証明書には紐付けられない
+    （`craftsman_staff_id` の既存トリガーと同作法）。
+  - 証明書の作成 (`src/lib/certificates/create.ts`) が `job_order_id` を受け取り、
+    呼び出し元テナントが当事者である発注のみ紐付ける。オフライン同期の
+    FormData ↔ JSON round-trip (`createCertificateApi.ts`) にも含めた。
+  - `/admin/orders/[id]` に「施工証明」セクションを追加。受発注の双方に同じ一覧が出て、
+    元請け側には `?job_order_id=` 付きの発行導線を置いた。
+- PII の扱い（この変更の急所）: 一覧は**相手方テナントにも返る**ため、
+  `certificates` の RLS は意図的に変更していない。API が返すのは
+  `public_id, status, service_type, craftsman_name, created_at` の5列だけで、詳細は
+  既に PII を落としてある公開ページ `/c/[public_id]` へ送る
+  （`getPublicCertificateData` が `customer_name` と `content_free_text` を undefined 化）。
+  列の定義と禁止列は `src/lib/orders/orderCertificates.ts` に集約し、
+  `src/lib/orders/__tests__/orderCertificates.test.ts` が番人になっている
+  （禁止列の混入と、ルート側 literal との不一致の両方で落ちる）。
+- 副次: `getServiceTypeLabel` を `src/lib/certificates/serviceTypeLabel.ts` へ切り出した。
+  元は `getPassportData.ts`（read replica を掴むサーバ専用）に同居していてクライアント
+  コンポーネントから import できなかったため。既存の import 経路は再 export で維持。
+- 検証: `vitest run` 522ファイル5302件すべて通過、`tsc --noEmit` エラー0、
+  `lint:migrations` OK、`check:schema` OK（`scripts/schema.snapshot.json` に
+  `certificates.job_order_id` を追記）。マイグレーションは未適用のため
+  `src/types/db.generated.ts` は次回 `npm run db:typegen` で更新が必要。
+
+## 2026-09-01 main の CI 赤を解消（PR #1019 / `a38ca937`）
+
+- 背景: `70ff6761` / `42f67936` が追加した
+  `src/lib/ui-preferences/__tests__/mobileHomePresentation.test.ts` が
+  `apps/mobile/src/lib/homePresentation` を**直接 import**していた。ルートの
+  `package.json` に `workspaces` が無く web の CI は root の `npm ci` しか実行しない
+  ため、`apps/mobile/tsconfig.json` が継承する `expo/tsconfig.base` が解決できない。
+  **手元では通るのに CI だけが落ちる**形で、main が約9時間赤いままだった。
+- 内容: 検査対象はモバイルの純粋関数なので、モバイル側の既存規約
+  （`*.check.ts` を `node` で直接実行し `package.json` の `test` に並べる）に合わせて
+  `apps/mobile/src/lib/homePresentation.check.ts` へ移した。検査内容は変えていない。
+- 移設で**検査が2つ弱くなっていた**ので補強した:
+  - `node:assert` の `deepEqual` は `==` 比較で `3` と `"3"`、`false` と `0` を通す。
+    vitest の `toEqual` より弱いので `node:assert/strict` に変更。既存12本も同じ
+    弱さだったため**14本すべて**を strict にし、全部通ることを確認した。
+  - 消した web のテストは root の `tsc --noEmit` に含まれていたが、
+    `apps/mobile/tsconfig.json` は `**/*.check.ts` を `exclude` していた。exclude を
+    外し `allowImportingTsExtensions` を付けて、**既存13本を含めて**型検査の対象にした。
+- 再発防止: `eslint.config.mjs` に `src/**` と `scripts/**` から `**/apps/mobile/**` の
+  import を禁じる `no-restricted-imports` を追加。その過程で
+  **`src/lib/**/__tests__/**` がこのルールを丸ごと `off` にしていた**ことが判明した
+  （本来は admin クライアントの例外が目的）。**main を壊した import はまさにこの免除の
+  内側にあった。**免除を admin の `paths` だけに絞り、パターンは残す形に直した。
+- 登録漏れ防止: `package.json` の `test` は手書きの `&&` の連なりで、新しい check を
+  足したときに登録を忘れると**そのチェックは一度も走らないまま緑になる**。
+  `checkRegistry.check.ts` で未登録・実体無しの両方を検出する。
+  シェルの `for` ループで拾う案は、npm script が Windows では cmd で走るため不採用。
+- 検証: 移設前は CI と同条件（`apps/mobile/node_modules` を外した状態）で
+  1 failed | 521 passed、移設後は 521 passed / 5298件通過。
+  すべての追加検査について「実際に落ちること」を確認済み。
+  **マージ後の CI は10チェック中9成功・1スキップで完全に緑。**
+
+## 2026-09-01 PR #1017 をマージ（`841d953f`）— 本番へのポリシー削除も適用済み
+
+- 内容: 下記2件（RLS のポリシー15本削除 / 変更系61箇所への認可強制）を1本の PR にまとめ、
+  main へ squash マージした。
+- **本番適用を確認済み**: `DB migrate (apply to production)` ワークフローが成功し、
+  対象15ポリシーが本番から**すべて消えている**ことを `pg_policies` で確認
+  （`cert_insert_member` ほか11本 / `insurer_users_{insert,update,delete}_admin` /
+  `insurer_access_logs_insert_v2`）。
+- **読み書きが失われていないことも確認済み**: 対象8テーブル
+  （certificates / templates / vehicles / vehicle_histories / nfc_tags / job_orders /
+  insurer_users / insurer_access_logs）は SELECT・INSERT・UPDATE・DELETE のすべてに
+  ポリシーが残っている（`insurer_access_logs` はもとより INSERT と SELECT のみ）。
+- マージ時の CI: 9チェック中7件成功。赤かった2件は**どちらもこの PR の変更が原因ではない**
+  ことを検証済み。
+  - `Lint, Type Check & Unit Tests`: main の `70ff6761`/`42f67936` が追加した
+    `src/lib/ui-preferences/__tests__/mobileHomePresentation.test.ts` が `apps/mobile` の
+    ソースを直接 import しており、CI は root の `npm ci` しかしないため
+    `expo/tsconfig.base` が解決できない。**マージコミットを作って CI と同条件
+    （`apps/mobile/node_modules` を外した状態）でフルスイートを流し、落ちるのは
+    この1ファイルのみ・本 PR の 5298件は全通過（521/522ファイル通過）**を確認した。
+    直し方（モバイルのソースをテキストとして読む）は PR にパッチ案を出してある。
+  - `Supabase Preview`: `20260312000000_tenants_contact_fields.sql`（2026-03-12、
+    本 PR の変更ではない）で落ちる。Supabase のプレビューはマイグレーションを
+    ファイル名順に1回だけ適用するのに対し、`check:migrations` は多重パスで再試行するため。
+- マージ後の main で検証: 権限まわりのテスト17ファイル179件通過、
+  未強制ハンドラは 46（マージ前と一致）。
+
+## 2026-09-01 業務データCRUD 48ルートにサーバ側の認可を強制（未強制 157→46 ハンドラ）
+
+- 計測単位の訂正: これまで「未強制125本/86本」と数えていたのは**ファイル単位**で、
+  同じファイルの別ハンドラにガードがあると未強制ハンドラが隠れていた。実際
+  `admin/invoices` は DELETE だけが admin 以上で、POST/PUT は素通りだったのに
+  「強制済み」に数えられていた。**ハンドラ単位で数え直すと、着手前は 412 ハンドラ中
+  157 が未強制**（従来の数え方の 125 ではない）。検出器の粒度の問題で、
+  同じ誤りを構造テスト側では先に直していた。
+- 背景: 閲覧専用ロール（viewer）でも証明書・車両・顧客・予約・受注・マーケット・
+  在庫・部品・請求書を作成/更新/削除できた。分類ごとの方針は 2026-09-01 の代表判断。
+- 内容: **48ルート・61箇所**にガードを入れた（+ Server Action 1箇所）。
+  - マトリクスに動詞がある資源はその動詞:
+    `certificates:create/edit`(8) / `vehicles:edit/create`(6) / `customers:create/edit`(6) /
+    `reservations:edit`(4) / `market:create/edit`(10) / `orders:create`(2) /
+    `invoices:create/edit`(2) / `payments:manage`(1) / `menu_items:manage`(4)
+  - 動詞が無い資源はロール下限 `{ minRole: "staff" }`:
+    発注(3) / 部品(6) / 工程テンプレート(3) / ショップ受注(1) / 受注の更新系(5)
+  - `admin/certificates` の POST は Server Action `createCertAction` の中に
+    `certificates:create` を置いた。Web の発行画面と API の共通の入口がそこで、
+    ルート側に置くと発行画面が素通りするため。ルートは `forbidden` を 403 に翻訳する。
+  - `market/inquiries` の POST は買い手向けの公開フォーム（未認証・IPレート制限）
+    だったので対象外。
+- 残り46ハンドラの内訳: 自己完結16（現状維持が正しい）/ アカデミー18・決済4・設定2
+  （方針未決 = 24）/ `admin/members` 2（インラインのロール判定で既に守られている）/
+  OTP 2（認証前）/ `certificates/pdf-one` 1（読み取りのみ）/
+  `admin/certificates` 1（Server Action 側で強制）。
+- 影響: **本番で書き込みを失うユーザーはいない。** 本番のロール構成は
+  owner 23 / staff 1 / super_admin 1 で viewer・admin は 0 名。staff が通らなくなるのは
+  請求書の作成・編集（`invoices:create/edit` は owner/admin のみ）、在庫（画面が
+  既に `menu_items:manage` を要求している）、受注の入金確定（`payments:manage`）だが、
+  本番の該当データは請求書の staff 起票実績なし・在庫0件・受注1件。
+- 副次の修正:
+  - 認可の結果を冪等キャッシュに載せない（`src/lib/api/idempotency.ts`）。キーは IP
+    スコープなので、権限を付与された後の再送や同じ NAT の別ユーザーにまで 24 時間
+    その 403 が返り続けていた。
+  - `certificates/pdf-one` に入れた `certificates:view` のガードを取り消した。
+    全ロールがこの権限を持つため誰も弾かない死んだコードで、強制済みの本数を
+    水増ししていた。
+  - 構造テストの検出器を2点強化: 呼び出しの存在ではなく**否定して弾いているか**を見る
+    （`const ok = requirePermission(...)` を強制と見なさない）。メソッド別指定を
+    `minRole` より優先して解く（両方書くと片方が黙って消えていた）。
+- 検証: tsc エラーなし / lint エラー0 / vitest 全通過 / check:schema OK。
+  ガードを1本消すと構造テストが実際に落ちることを、Permission 版・ロール下限版・
+  Server Action 版の3種類で確認した。
+
+## 2026-09-01 RLS の役割別制約が一度も効いていなかったのを修正（DB側の固め）
+
+- 背景: 2026-03-23 に「SELECT=全ロール / INSERT・UPDATE=owner,admin,staff / DELETE=owner,admin」
+  という役割別 RLS を `_v2` ポリシーとして追加したが、**それ以前からある役割を見ない
+  ポリシーを削除していなかった**。PostgreSQL は同一コマンドの PERMISSIVE ポリシーを
+  **OR** で評価するため緩い方が常に勝ち、役割別制約は一度も効いていなかった。
+  本番で 6テーブル・14組がこの状態にあり、viewer が証明書・車両・整備履歴・NFCタグ・
+  テンプレートを作成/更新/削除できた。
+- 内容: `supabase/migrations/20260901000000_rls_drop_role_blind_policies.sql` で計15本を削除。
+  - 役割を見ないポリシー11本: `cert_insert_member` / `cert_update_member` /
+    `tpl_insert` / `tpl_update` / `tpl_delete` / `vehicles_tenant_access`(FOR ALL) /
+    `vehicle_histories_tenant_access`(FOR ALL) / `vh_update` /
+    `nfc_tags_tenant_access`(FOR ALL) / `insert_jobs` / `update_jobs`
+  - 越境判定3本: `insurer_users_{insert,update,delete}_admin`。`is_insurer_admin()` は
+    対象行の `insurer_id` で絞っておらず、**保険会社Aの管理者が保険会社Bのユーザーを
+    操作できた**。自社スコープの `iu_*` を残す。
+  - 監査ログ偽装1本: `insurer_access_logs_insert_v2`。書き込む行の所有者を検証せず、
+    他人・他社名義のアクセスログを作成できた。`logs_insert_self_only` を残す。
+- 安全性: 対象テーブルは全コマンドに `_v2` ポリシーが既にあり `FOR ALL` を落としても
+  読みは失われない。service_role は RLS を迂回するので service-role 経由の書き込みは無影響。
+  本番のロール構成は owner 23 / staff 1 / super_admin 1（viewer・admin は 0）で、
+  `my_tenant_role()` は super_admin を owner に写像するため、**書き込みを失う既存ユーザーは
+  いない**。
+- 検証:
+  - 本番に対して `BEGIN … ROLLBACK` で実際に削除を適用し「打ち消しの組が残らない」ことを
+    確認して戻した（本番は無変更）。
+  - `npm run check:migrations`（空DBへの再生）: 既知の9件のみ、増減なし。
+  - `scripts/replay-migrations.mjs` に検査を追加（CI の Migrations Replay で実行済み）。
+    **マイグレーションを外すと4組を検出して落ち、戻すと通ることを確認**（空振りでない）。
+  - `npm run lint:migrations` OK / `npm run check:schema` OK / `npx vitest run` 5290件通過。
+- 検査の限界（意図的）: 再生 DB は再生できない9件の分だけポリシーが欠けるため、本番の
+  14組に対して4組しか見えない。**過小報告はするが誤検出はしない**設計。静的解析は
+  不可能（`_v2` は plpgsql の `EXECUTE format()` で動的生成されるため本文から抽出できない）。
+- 判断待ち: `tenants` の UPDATE（DB は owner のみ / アプリは admin 以上を要求）と、
+  `templates` の scope='shared' 作成可否。いずれも矛盾する2つの正があるため
+  OPEN_QUESTIONS.md に起票した。
+
+## 2026-08-31 配布 PDF 用の画面キャプチャを撮影（3枚中2枚。サービス概要 11→13ページ）
+
+- 背景: `.gitignore` の除外解除（PR #982）で3枚だけコミット可能にしたが、実物のキャプチャが
+  リポジトリに無いため、サービス概要 PDF は該当スライドがページごと消えた 11 ページのままだった。
+- 内容: デモテナント `Ledra Motors（デモ）` に対して撮影し、`public/screenshots/admin/certs-new.png`
+  と `public/screenshots/admin/customers-detail.png` の2枚をコミット。サービス概要 PDF を実際に
+  レンダリングして 11 → **13 ページ**になることを確認した（残り1ページ分は下記の未撮影1枚）。
+- 撮影は本番ビルド（`next build` + `next start`）に対して実施した。`next dev` では画面右下に
+  Next.js の開発オーバーレイ（「1 Issue」バッジ）が写り込み、配布物として不適切だったため。
+- 撮影スクリプトの不具合を1件修正: `admin/certs-new.png` と `admin/vehicles-new.png` は
+  「`新規` を含むリンクの先頭」をクリックして撮っていたため、シェルにある **`新規登録`
+  （施工店アカウント登録）リンク**に一致し、両方とも新規登録ページを撮っていた。
+  つまり PDF は「証明書の新規発行」というキャプション付きで**サインアップ画面**を載せる状態だった。
+  `/admin/certificates/new` `/admin/vehicles/new` へ直接遷移する形に変更（`scripts/capture-screenshots.ts`）。
+- **未撮影1枚**: `public/screenshots/insurer/search.png` は撮影できていない。保険会社ポータルの
+  証明書検索が本番 DB のバグで HTTP 500 になるため（`OPEN_QUESTIONS.md` 参照）。
+- 検証: `npx tsc --noEmit` 通過、`npx vitest run` 全 511 ファイル / 5251 件通過。
+
+## 2026-08-31 通知アイコンが実データの型名と一致しておらず全件が既定アイコンだった件を修正（IMP-029）
+
+- 背景: モバイル通知一覧のアイコン表 `TYPE_ICON` のキーは `certificate` / `work` / `sync` /
+  `error` / `system` だったが、DB に書かれる `notification_type` は `ai_action` /
+  `chat_message` / `platform_notification` で**1つも一致していなかった**。本番の通知60件
+  （`chat_message` 56 / `ai_action` 4、2026-07-05〜08-27。Supabase MCP で実測）が全件、
+  既定のベルアイコンで表示されていた。
+- 内容:
+  - `apps/mobile/src/app/notifications.tsx` のアイコン表を、Web のカタログ
+    （`src/lib/notifications/types.ts`、18タイプ）に揃えた。アイコンは category 単位、
+    色は severity 単位（urgent=danger / action_required=warning / informational=控えめ）。
+  - `src/lib/notifications/deepLink.ts`: 証明書のディープリンクは管理画面ルートが
+    `/admin/certificates/[public_id]` で `public_id` 引きのため、行の `id`（uuid）を渡すと
+    必ず404になる。型と実装に注記を追加（他9エンティティは `id` のままで正しい）。
+- 検証:
+  - `src/lib/notifications/__tests__/mobileIcons.test.ts`（新規5件）: カタログの全タイプに
+    アイコンがある / アイコン表に未知のタイプが無い / 本番コードが書き込む
+    `notification_type` がすべてカタログに載っている。モバイルは Web の `src/lib` を
+    import できないため、モバイルのソースをテキストとして読んで照合する
+    （Web/モバイル横断の検査は `scripts/check-schema.mjs` に前例がある）。
+  - `src/lib/notifications/__tests__/deepLinkRoutes.test.ts`（新規5件）: `deepLink.ts` が
+    生成する全パスが実在する Next.js ルートに解決すること。docstring の
+    「実際のルート構造に合わせてある」という主張は呼び出し元ゼロのため一度も確かめられて
+    いなかった。全10エンティティは実在を確認（存在しないパスが false になる自己チェック付き）。
+  - **旧アイコン表に戻すとテストが実際に落ちることを確認済み**（空振りテストでない）。
+  - Web/モバイル両方の `tsc` エラーなし / `lint` エラー0 / `vitest` 520ファイル 5288件通過 /
+    `check:schema` OK。
+- 残作業: IMP-029 の本丸（残り15タイプの発火条件・宛先・チャネル、統合dispatch）は
+  **経営判断が要るため実装しない**。OPEN_QUESTIONS.md に起票した。
+
+## 2026-08-31 証明書無効化5経路の認可漏れを修正し、権限強制を構造テストで固定（IMP-013）
+
+- 背景: 証明書の無効化（不可逆・法的意味を持つ操作）に**5つの経路**があり、認可の強さが割れていた。
+  `/api/certificates/void` は**テナント所属だけで通り**、`/api/admin/certificates/status` は
+  遷移表が `active→void` を `minRole: "staff"` としており、`/admin/vehicles/[id]` の Server Action
+  は認可判定を持たず RLS 任せだった。`ROUTE_PERMISSIONS` + `AdminRouteGuard` はブラウザで動く
+  表示制御でセキュリティ境界ではなく、RLS も `certificates` の UPDATE が PERMISSIVE ポリシー2本の
+  OR で評価される（`cert_update_member` = メンバー全員）ため境界にならない。**viewer でも
+  証明書を恒久的に無効化できた。**
+- 内容:
+  - 無効化5経路すべてに `certificates:void`（admin+）を要求。`admin/certificates/status` は
+    遷移表の `active→void` を `minRole: "admin"` に上げた上で Permission 判定も併置。
+    Server Action は権限判定を追加し、権限が無いユーザーには削除ボタンを出さないようにした。
+  - `/api/admin/billing-settings` PUT・`/api/admin/settings/defaults` PUT に `settings:edit` を追加。
+    前者は upsert の戻り値を捨てており、書き込み失敗時も `{ok:true}` を返していたので合わせて修正。
+  - `src/lib/auth/permissions.ts` に `API_ROUTE_PERMISSIONS`（APIルート → **変更系メソッドすべて**が
+    要求する Permission、16件）を追加。`ROUTE_PERMISSIONS` の説明にクライアント専用である旨を明記。
+  - 触れたファイルの死んだ import（`NextResponse` 2件）と、前提が変わった古いコメントを整理。
+- 検証:
+  - `src/lib/auth/__tests__/apiRoutePermissions.test.ts`（新規4件）: 登録ルートは**変更系ハンドラ
+    1つ1つ**が Permission を要求すること、無効化経路（API + Server Action）がすべて
+    `certificates:void` を要求すること。検出は監査イベント `certificate_voided` という意味的な
+    合図を使い、走査は `src/app` 全体（Server Action を含む）。
+  - `src/app/api/certificates/void/__tests__/route.test.ts`（新規6件、このルート初のテスト）:
+    viewer/staff は 403 かつ書き込みが起きない、admin/owner/super_admin は成功、未認証は 401。
+  - **各テストとも、修正を一時的に戻すと実際に落ちることを確認済み**（空振りテストでない）。
+    特に新検出器は、旧検出器が見逃した `admin/certificates/status` と Server Action の2本を
+    実際に検出することを確認した。
+- 経緯: 初版（3経路のみ修正）を PR #1014 として出した後、`/code-review` が残り2経路を検出した。
+  旧検出器が `status: "void"` のリテラル一致だったため、`status: newStatus` と変数で書く経路と
+  Server Action が見えていなかった。詳細と教訓は DECISION_LOG 2026-08-31 を参照。
+- 残作業: 認可チェックを持たない変更系ルートが他に多数ある（判定条件により125〜164本）。
+  無効化処理5経路の共有ヘルパーへの統合、`certificates` の RLS ポリシー重複の棚卸しも未着手。
+  いずれも OPEN_QUESTIONS.md に起票した。
+
+## 2026-08-31 板金進捗ページからの懸念送信が外部キー違反で保存できていなかったバグを修正（IMP-026）
+
+- 背景: `src/app/api/customer/concerns/route.ts` の `resolveSourceContext()` は板金進捗
+  ページ (`/track/[token]`, source_type=`body_repair_tracking`) からの懸念送信で
+  `customer_concerns.job_id`（`reservations(id)` への外部キー）に `body_repair_jobs.id`
+  （無関係な別テーブルの主キー）を渡しており、`reservation_id` が偶然一致しない限り
+  外部キー違反で `INSERT` 自体が失敗する状態だった。
+  **実影響はゼロ**（2026-08-31 に本番DBで実測。`body_repair_jobs` 0行・`track_token` 保有 0行・
+  `customer_concerns` 0行。進捗ページ自体が一度も存在していないため、失敗した送信も存在しない）。
+- 内容: `resolveSourceContext()` の該当ケースを `body_repair_jobs.reservation_id`
+  （実際の外部キー列）を返すよう修正。`reservation_id` が無いジョブは `jobId` なしで保存
+  （外部キー違反にはならない）。
+- 検証: `src/app/api/customer/concerns/__tests__/route.test.ts`（新規、この関数の初のテスト）。
+  `body_repair_tracking`（正常系・reservation_id無し・トークン不明の3件）+
+  `parts_confirmation`（既存の正しい経路の回帰確認1件）。
+
+## 2026-08-31 モバイルアプリのサインアップ確認 OTP を実配線（IMP-012）
+
+- 背景: モバイルアプリのサインアップ後メール確認画面 (`/(auth)/verify-otp.tsx`) は
+  タイムアウトのみで「検証済み」にするプレースホルダで、6桁ならどんな値でも通っていた。
+  調査の結果、サインアップ自体がパスワード方式（サーバーで `email_confirm: true` を設定して
+  そのままサインイン）で Supabase から OTP メールが一切送信されない設計だったため、
+  コメントアウトされていた `supabase.auth.verifyOtp()` をそのまま有効化しても「常に失敗する」
+  に変わるだけだった。
+- 内容: `email_otp_codes` テーブルを新設（`customer_login_codes` と同じ service-role 限定 RLS）。
+  IMP-012 で追加済みだが呼び出し側ゼロだった汎用 OTP エンジン (`src/lib/auth/otp.ts` — 生成・
+  HMAC-SHA256 ハッシュ・タイミングセーフ検証) を初めて実配線し、IO 層 `src/lib/auth/emailOtp.ts`
+  を新設。`POST /api/mobile/auth/otp/request`（発行 + `sendEmail()` 経由で6桁コードをメール送信）・
+  `POST /api/mobile/auth/otp/verify`（照合）を新設し、`verify-otp.tsx` はマウント時に自動で初回
+  送信、既存の「再送信」ボタンも実際に呼び出すよう配線した。認証は既存の `resolveMobileCaller`
+  （Bearer）を使い、email はクライアントの自己申告ではなく `admin.auth.admin.getUserById()` で
+  解決した本人の `auth.users.email` を使う。ハッシュの pepper は新しい環境変数を増やさず既存の
+  `CUSTOMER_AUTH_PEPPER` を再利用。
+- 検証: `src/lib/auth/__tests__/emailOtp.test.ts`（発行・照合の正常系/mismatch/expired/max_attempts）、
+  `src/app/api/mobile/auth/otp/{request,verify}/__tests__/route.test.ts`。新規テスト計18件、
+  既存含め全件通過。
+- 意図的にやらなかったこと: v2.0 が求める正準フロー（Invite→OTP→生体→Home がパスワードログイン
+  自体を置き換える設計）への移行や、passwordless サインアップへの作り替えは行っていない
+  （今回はサインアップ直後のメール所有確認のみ）。「メール確認済み」を他機能から参照できる
+  永続状態として追跡する仕組みも作っていない。
+- 詳細は DECISION_LOG 2026-08-31 を参照。
+
+## 2026-08-31 Certificate Gate (IMP-028) を証明書発行の本番4経路すべてに配線
+
+- 背景: v2.0 §19.4 / ADR-0005 が求める「正式証明の発行可否はバックエンド単一評価器
+  (`gateEvaluator.ts`) が判定する」設計は、評価器自体はテスト付きで実装済みだったが、
+  証明書を `active` にする実際の経路はどれもこの評価器を呼んでおらず、写真必須チェックのみを
+  経路ごとに手書きしていた（懸念・部品整合性は実装済みだが未接続）。
+- 内容: `src/lib/certificates/activationGate.ts` を新設し、`evaluateCertificateActivationGate()`
+  で写真(required_evidence_present)・懸念(no_unresolved_alerts、IMP-026)・部品整合性
+  (parts_integrity、IMP-040)の3条件を実データから組み立てて `evaluateCertificateGate()` に渡す
+  処理を1箇所に集約。証明書を active化する本番4経路すべて
+  — `PUT /api/admin/certificates/status`・`POST /api/mobile/certificates/[id]/activate`・
+  `POST /api/certificates/activate-by-key`・AI自動発行(`certificateRecordAuto.ts`) —
+  をこのヘルパー経由に統一した。AI自動発行経路は「insertと同時にactive行を作る」設計から
+  「作成はdraft→gateを通してからactiveへupdate」に分離（他3経路と同じ形。現状は自動発行の
+  適格条件自体が常にfalseのため本番挙動は変わらない）。
+- 検証: `src/lib/certificates/__tests__/activationGates.test.ts`（証明書を active にする経路を
+  ソースから機械的に数え、全経路が `evaluateCertificateActivationGate(` を呼ぶことを検証する
+  構造テストを追加）、`src/lib/parts/__tests__/partsIntegrity.test.ts`（新設した
+  `getPartsIntegrityFindings()` のテスト5件追加）、
+  `src/app/api/admin/certificates/__tests__/status-photo-gate.test.ts`（懸念・部品整合性の
+  ブロックを検証するテスト2件追加）、`src/lib/ai/automation/__tests__/certificateRecordAuto.test.ts`
+  （新規、AI自動発行のgate配線を検証するテスト3件）。新規テスト計11件、既存含め全件通過。
+- 意図的に配線しなかった条件: customer_confirmation_current（署名依頼は証明書active化後にのみ
+  可能というsignoffフロー設計と循環依存するため）、workflow_completed（現場の完了報告運用実態が
+  未確認のため）、payment_policy_met（合算払いのpaymentState導出が未決のため）、
+  no_pending_corrections（対応するDBテーブルが存在しないため）。理由は
+  `docs/context/OPEN_QUESTIONS.md`「Certificate Gate (IMP-028) 本番配線後も残る3条件の未接続」を参照。
+- 詳細は DECISION_LOG / OPEN_QUESTIONS 2026-08-31 を参照。
+
+## 2026-08-31 LINE属人性の低減④: 受信箱に「会話を要約（引き継ぎ用）」を追加（branch claude/line-chatbot-ledra-dy2fiq）
+
+- 背景: LINE の会話が特定担当の頭の中にあり、担当外のスタッフが途中から対応しづらい（属人性）。
+  会話の用件・経緯・未対応・次の一手を AI が要約し、誰でも即座に引き継げるようにする。
+- 内容: 受信箱（`/admin/messages`）のスレッドに **「🧾 会話を要約」ボタン**を追加。押すと直近の
+  やり取りを AI が「①お客様の用件 ②これまでの経緯・決まったこと ③未対応・確認待ち」に要約し、
+  「次の一手」1行と合わせて**読み取り専用パネル**に表示する（社内メモ。**送信はしない**）。
+  スレッドを切り替えると（key 不一致で）前の要約は表示されない。
+- 実装: `src/lib/ai/threadSummary.ts`（`generateThreadSummary`。replyDraft と同流儀・推測補完しない・
+  会話は `wrapUntrusted` で包囲）＋ `src/app/api/admin/messages/[key]/ai-summary/route.ts`（ai-reply と
+  同じ認証/プラン/レート制限。Standard+）＋ `MessagesInboxClient.tsx`（ボタン＋パネル）。要約は社内
+  向けなので氏名・車両・金額を含めてよい。**マイグレーション不要**。
+- 検証: `threadSummary`（会話が空なら空結果）テスト追加。
+- コードレビュー由来の追加修正（同 PR、`/code-review`）:
+  - 会話が長すぎる場合の切り詰めを**末尾のみ→冒頭＋末尾（中間省略）**に（要約は冒頭の「用件・経緯」も
+    必要なため。replyDraft の末尾優先を安易に流用しない）。
+  - スレッド解決＋直近やり取り＋登録車両の取得を共通ローダ `messages/aiThreadContext.ts` に切り出し、
+    `ai-reply`／`ai-summary` の重複を解消（今後の修正が2箇所に分散しないように）。
+  - 要約 null 時の文言を「会話が必要です」→「時間をおいて再度お試しください」に（会話無しはボタン
+    無効で起きず、実際は AI 一時不調が主因）。usage の outcome を error→ok（空要約は失敗ではない）。
+- 全体 5211 件パス、tsc エラー0、eslint エラー0（既存の effect 警告のみ）。
+- 「LINE属人性の低減」の4件目（最後）。これで属人性低減の4項目（ナレッジ自動蓄積／返信ドラフトの
+  ナレッジ根拠づけ／未返信アラート／会話要約）が揃った。
+
+## 2026-08-31 PR #1009 へ Codex レビュー指摘（capacity>1 で boothDetails が過大評価のまま）を追加修正
+
+- 内容: `computeFleetUtilization()` の `boothDetails` を、`avgUtilizationPct`/`peakUtilizationPct` と同じ `decomposeTimeBands()` ベースの定員正規化計算から構築するよう変更。従来は capacity>1 のブースで `boothDetails[i].utilizationPct` だけが union ベース（過大評価）のまま残っており、例えば capacity=3・終日1件予約で `avgUtilizationPct: 33` と `boothDetails[0].utilizationPct: 100` が同一レスポンス内で矛盾していた（Codexが指摘、再現テストで確認）。
+  - `occupiedMinutes` を「定員1枠換算の実効占有分」に正規化し、`occupiedMinutes/totalMinutes` の比率が `utilizationPct` と一致するようにした。
+  - `avgUtilizationPct`/`peakUtilizationPct` もこの `boothDetails` から導出するよう変更（別々に計算していたことによる再発防止）。`peakConcurrent` は元の値のまま。
+- 対象: `src/lib/analytics/capacityAnalytics.ts`（本番未呼び出し）。
+- 検証: tsc --noEmit clean / vitest run 508ファイル・5225件全通過 / lint・check:schema・lint:migrations 実施。
+
+## 2026-08-31 PR #1009（IMP-046修正PR）の `/code-review` 指摘を修正
+
+- 内容: `src/lib/analytics/capacityAnalytics.ts` の `computeFleetUtilization()` が新設した定員正規化計算で、`boothDetails`（`computeBoothUtilization()`）と矛盾する値（completed 予約のあるブースで一方は稼働率0%、もう一方は100%）を返すバグを修正。
+  - `decomposeTimeBands()` に第5引数 `excludeStatuses`（デフォルト既存の `NON_OCCUPYING` のまま、既存動作は不変）を追加。
+  - `src/lib/booths/occupancy.ts` に `UTILIZATION_EXCLUDED`（cancelled/no_show のみ除外、completed は稼働実績に含める）を新規 export。
+  - `computeFleetUtilization()` はこちらを渡して `boothDetails` と一致する値になるよう修正。
+  - あわせて `totalCapacityMinutes` の冗長な band 毎積算を1回計算に簡略化、`StaffLoadSummary.loadPct` の古い JSDoc（`totalEffective` フォールバックを反映していなかった）を修正。
+- 対象: `src/lib/analytics/capacityAnalytics.ts`、`src/lib/booths/occupancy.ts`（いずれも本番のどのAPIルートからも未呼び出し、型基盤のみ）。
+- 検証: tsc --noEmit clean / vitest run 5211件全通過（504ファイル、回帰テスト1件追加） / lint・check:schema・lint:migrations 実施。
+- 見送り: `computeBoothUtilization`/`detectCapacityConflicts`/`decomposeTimeBands` の3パス独立実行の効率化提案は、前者2つが `boothSignals.ts` からも共有される関数であるため本PRのスコープ外として見送り。
+
+## 2026-08-30 PR #956（IMP-046）マージ後の遅延Codexレビュー6件を修正（残り2件はOPEN_QUESTIONSへ）
+
+- 内容: `src/lib/analytics/{capacityAnalytics,operationalKpi}.ts` の6件のバグを修正。
+  - `computeFleetUtilization()`: capacity>1 ブースの稼働率過大評価を `decomposeTimeBands()` ベースの定員正規化計算で解消
+  - `computeStaffCapacity()`: `allStaffIds` 省略可能パラメータ追加（ジョブ0件のスタッフも遊休として集計可能に）、過負荷/遊休判定を丸め前の比率で実施（境界値誤分類を解消）、`actualMinutes: null` のジョブは見積時間を負荷の代理値に使用
+  - `computeAvgReviewWaitHours()`/`computeAvgCycleTimeHours()`: 不正タイムスタンプによる `NaN` 汚染を防止
+  - `computeDailyThroughput()`: 丸め精度を小数第1位→第2位に引き上げ
+- 対象: `src/lib/analytics/`（本番のどのAPIルートからも未呼び出し、型基盤のみ）
+- 検証: tsc --noEmit clean / vitest run 5210件全通過（504ファイル、回帰テスト7件追加） / lint 0エラー・1256警告=基準線 / check:schema OK / lint:migrations OK。
+- 残課題: `computeVerifiedRate()` のREVOKED扱い、`computeSlaComplianceRate()` のat_risk扱いは指標定義自体の製品判断が必要なため `OPEN_QUESTIONS.md` に記録し見送り。
+
+## 2026-08-30 LINE属人性の低減③: LINE未返信の対応漏れ通知（SLAアラート）cron（branch claude/line-chatbot-ledra-dy2fiq）
+
+- 背景: お客様の LINE メッセージが放置されても、特定の担当者が受信箱を見ていないと止まる（属人性）。
+  一定時間返信が無いスレッドをスタッフに通知して対応漏れ・返信遅れを防ぐ。
+- 内容: LINE スレッドの**最新メッセージがお客様発（inbound）で既定8時間以上返信が無い**ものを検出し、
+  管理画面の通知（既存 `notifyStaffOfAiAction` → `/admin/messages`）でスタッフに知らせる cron を追加
+  （opt-in・既定 OFF）。
+  - 自動返信・スタッフ返信済み（最新が店舗発=outbound）のスレッドは自然に対象外（返信すると最新が
+    outbound になるため）。
+  - 1メッセージにつき1回だけ（`notification_logs` type=unanswered_alert で重複防止。お客様が新しく
+    送れば新メッセージIDで改めて通知）。1実行の通知数は上限20件（フラッド防止）。走査は直近72hまで。
+- 実装: `src/lib/cron/unansweredAlerts.ts`（`processUnansweredThreadAlerts`。スレッドごとの最新を見て
+  未返信判定→dedup→通知）＋ `src/app/api/cron/unanswered-alerts/route.ts`（reservation-reminders と
+  同骨格）＋ `vercel.json` に `*/30 * * * *`。opt-in キー `inbound_message.auto_unanswered_alert`、ゲート
+  `shouldAlertUnansweredThreads`。**マイグレーション不要**（notification_logs の type は自由文字列）。
+- 検証: `unansweredAlerts`（最新inboundで通知＋ログ／最新outboundは対象外／猶予内は対象外／dedup／
+  未登録は「未登録のお客様」表記）テスト追加。
+- コードレビュー由来の追加修正（同 PR、`/code-review`）:
+  - メッセージ走査を `.limit(1000)` から **created_at キーセットのページング**に変更（メッセージ量の
+    多いテナントでスレッド最新が 1000 件外にこぼれ未返信を取りこぼす問題を解消。上限は
+    `MAX_SCAN_PAGES` で頭打ち＋ponytail コメント明記）。
+  - スレッドキーを **line_user_id 優先**に（顧客リンク前後で不変。customer_id バックフィルの遅延/失敗で
+    同一会話が2スレッドに割れ誤アラートするのを防ぐ）。
+  - `notifyStaffOfAiAction` を `Promise<boolean>` に変更し、**通知に失敗したら dedup ログを残さず次回
+    再試行**（アラート取りこぼし防止）。dedup ログ insert 失敗も warn で可視化。
+- 全体 5060 件パス、tsc/eslint エラー0（既存の `_key`/`policy` 警告のみ）。
+- 「LINE属人性の低減」の3件目（アラート部分）。担当割り当て（assignee 付与・担当別フィルタ）は
+  スキーマ/UI を伴うため後続。次は④会話の要約・引き継ぎ。
+
+## 2026-08-30 IMP-054（#961）へ Codex レビュー4件を反映。requirement-trace.md の P0充足サマリを「7/10実装済み」から「3/10実装済み」へ再是正
+
+- 内容: PR #961 の P0 充足サマリが、本書に既存する §13/§15/§16/§17 の詳細監査行（いずれも既に「部分」と明記済み）と矛盾していた4項目（Invite/OTP/Biometric・Payment state+Certificate+VERIFIED・Role/Permission・Basic Notifications）を Codex 指摘に基づき ⚠️ 部分へ修正。特にモバイルの OTP 検証（`verify-otp.tsx`）が実際のAPIを呼ばないプレースホルダのままであること、Certificate Gate（`gateEvaluator.ts`）が本番ルートから一度も呼ばれずフェイルオープンのままであることを新たに確認。P0 充足サマリは 10 項目中 3 項目のみ実装済み（Workflow+Photo Evidence+Voice・Vehicle・Customer Confirmation）と是正。
+- 対象: ドキュメントのみ（コード変更なし）。
+- 検証: tsc --noEmit clean / vitest run 5203件全通過（504ファイル、コード変更なし） / lint 0エラー・1256警告=基準線 / check:schema OK / lint:migrations OK。
+
+## 2026-08-30 IMP-053（#960）を main へ取り込み。構造化エラー契約
+
+- 内容: v2.0 §14.4 の構造化エラー契約型基盤（`src/lib/observability/errorContract.ts`）を main へマージ。squash merge、コミット `45b138b0`。
+- 検証: tsc --noEmit clean / vitest run 5203件全通過（504ファイル、observability 24件含む） / lint 0エラー・1256警告=基準線 / check:schema OK / lint:migrations OK。CI（Lint/TypeCheck/Tests・CodeQL・Migrations Replay・Client Bundle Size・E2E Tests(skip経路)）全通過。
+
+## 2026-08-30 IMP-052（#959）を main へ取り込み。v2.0 §23 必須 E2E テストスイート
+
+- 内容: v2.0 §23 の必須 E2E テスト（`e2e/{workflow-flow,exception-flows,customer-confirmation,accessibility}.spec.ts` 計29件）と CI E2E ジョブ復元（secrets ゲート付き）を main へマージ。squash merge、コミット `13323cb9`。
+- 検証: tsc --noEmit clean / eslint e2e/ clean / vitest run 5179件全通過（503ファイル、vitestテスト追加なし） / lint 0エラー・1256警告=基準線 / check:schema OK / lint:migrations OK。CI（Lint/TypeCheck/Tests・CodeQL・Migrations Replay・Client Bundle Size・E2E Tests(skip経路)）全通過。
+
+## 2026-08-30 IMP-051（#958）を main へ取り込み。アクセシビリティ監査フレームワーク＆翻訳QA基盤
+
+- 内容: v2.0 §3.5 のアクセシビリティ・多言語品質保証型基盤（`src/lib/a11y/{contrastCheck,auditTypes}.ts`、`src/lib/i18n/qa.ts`）を main へマージ。squash merge、コミット `6b59a72b`。
+- 検証: tsc --noEmit clean / vitest run 5179件全通過（503ファイル） / lint 0エラー・1256警告=基準線 / check:schema OK / lint:migrations OK。CI（Lint/TypeCheck/Tests・CodeQL・Migrations Replay・Client Bundle Size）全通過。
+
+## 2026-08-30 IMP-051（#958）の code-review 指摘を修正。コントラスト判定の丸め誤差・プレースホルダ検出の空文字スキップ・qa.ts の型/関数重複を解消
+
+- 内容: `checkColorPair()` の AA 判定を丸め前の生の比率で行うよう修正（境界値での誤合格を防止）。`findPlaceholderMismatches()` の欠落判定を falsy チェックから `undefined` チェックに変更（空文字翻訳のプレースホルダ欠落を検出可能に）。`qa.ts` の `MessageTree`/`lookup()` 重複を `messages.ts` からの import に統一。`computeTranslationCoverage()` の `flattenKeys()` 二重計算を解消。回帰テスト2件追加（44→46件）。`findGlossaryGaps()` の空文字チェックは意図的挙動と判断し不採用。
+- 検証: tsc --noEmit clean / vitest run 5179件全通過（503ファイル、a11y/i18n 46件含む） / lint 0エラー・1256警告=基準線 / check:schema OK / lint:migrations OK。
+
+## 2026-08-30 IMP-050（#957）Codex 利用上限到達後、`/code-review`（Claude 自身）で2件を追加修正
+
+- 内容: `applyMask()` の hash 戦略の16進数チェックが、電話番号・クレジットカード番号等の短い純粋数字の生値も「ハッシュ済み」と誤判定していたのを、桁数下限を32文字（MD5相当）に引き上げて修正。`LEDRA_CURRENT.md`（76件）/`requirement-trace.md`（67件）のテスト件数を実数（79件）に統一。回帰テスト1件追加。
+- 検証: tsc --noEmit clean / vitest run 5133件全通過（500ファイル、privacy 79件含む） / lint 0エラー・1256警告=基準線 / check:schema OK / lint:migrations OK。
+
+## 2026-08-30 IMP-050（#957）へ5回目（最終）に届いた Codex レビュー3件を修正。以降 Codex は利用上限に到達
+
+- 内容: `docs/context/LEDRA_CURRENT.md` の IMP-050 ステータスを「部分（統合未着手）」に統一（テスト件数76件へ更新）。`isMoreRestrictive()` が owner_only を含む比較でも古い線形階層の意味論のままだったのを、owner_only が絡む比較は常に false を返すよう修正（`canAccess()` の再設計に追随）。`applyMask()` の hash 戦略が生の値（メール等）を "sha256:" ラベル付きで一部露出しうる不具合を、16進数文字列であることを検証しそうでなければ完全 redact にフォールバックするよう修正。回帰テスト3件追加。この直後、Codex がコードレビューの利用上限に到達した旨のコメントが届いた。
+- 検証: tsc --noEmit clean / vitest run 5132件全通過（500ファイル、privacy 78件含む） / lint 0エラー・1256警告=基準線 / check:schema OK / lint:migrations OK。
+
+## 2026-08-30 IMP-050（#957）へ4回目に届いた Codex レビュー3件を修正。暗号化カラム登録漏れ・truncate短小値露出・maxClassificationのフェイルオープン
+
+- 内容: `FIELD_CLASSIFICATIONS` の restricted 登録を全体横断検索（`grep -rn "_ciphertext" supabase/migrations/`）で洗い出し、supply_partner_credentials/accounting_integrations/tenant_integrations/tenant_private_secrets/tenants の計15カラムを追加登録（前回は LINE/Square の4例のみ）。`applyMask()` の truncate 戦略で `keepChars` が値の長さ以上でも常に半分以下しか残らないよう修正（PIN 等の短い値が全文字露出する不具合）。`maxClassification()` の個々のフィールド取得を `getFieldClassification()` の安全な既定値（confidential）に統一し、`defaultClassification`（既定 "public"）が未登録の新規センシティブカラムに誤って適用されるフェイルオープンを解消。回帰テスト4件追加・2件更新。
+- 検証: tsc --noEmit clean / vitest run 5130件全通過（500ファイル、privacy 76件含む） / lint 0エラー・1256警告=基準線 / check:schema OK / lint:migrations OK。
+
+## 2026-08-30 IMP-050（#957）へ3回目に届いた Codex レビュー4件のうち2件を修正、owner_only の設計トレードオフは OPEN_QUESTIONS へ
+
+- 内容: `createRendition()` が独自の `VISIBILITY_ORDER` 比較を持っており、`visibility.ts` 側の `canAccess()` 修正に追随できず owner_only 閲覧者へのマスキングが機能しなくなっていたバグを修正（`canAccess()` 呼び出しに統一）。`CERTIFICATE_PUBLIC_RULES`/`FIELD_CLASSIFICATIONS` に `certificates.vehicle_info_json`（maker/model/plate を含む、既存コードが PII と明示）を追加。owner_only の設計トレードオフ（restricted 漏洩防止 vs 本人が自分の pii を見られない問題）は単純な階層モデルでは両立しないと判明したため、この PR では解決せず `DEFAULT_REQUIRED_VISIBILITY` の JSDoc に既知の限界として明記し、OPEN_QUESTIONS.md に設計判断待ちとして記録。回帰テスト2件更新。
+- 検証: tsc --noEmit clean / vitest run 5128件全通過（500ファイル、privacy 74件含む） / lint 0エラー・1256警告=基準線 / check:schema OK / lint:migrations OK。
+
+## 2026-08-30 IMP-050（#957）へ2回目に届いた Codex レビュー7件を修正、うち2件は既存の意図的設計と確認し不採用
+
+- 内容: `FIELD_CLASSIFICATIONS`（classification.ts）に customers の実在 PII カラム6件（name_kana/postal_code/address/birth_date/note/line_user_id）を追加。`maxClassification()` の非空配列集計に `defaultClassification` が混入するバグを修正。`CERTIFICATE_PUBLIC_RULES`/`VEHICLE_PUBLIC_RULES`/`PASSPORT_PUBLIC_RULES` を `Object.freeze()` で実行時に凍結（`readonly` は型上の防御のみで、プロパティ代入は防げなかった）。`applyMask()` の truncate 戦略で `keepChars` に負値を渡すと末尾からのオフセットとして解釈され露出する不具合を `Math.max(0, ...)` でクランプして修正。「`PASSPORT_TABLE_PII_COLUMNS` に to_owner_email/to_owner_name/message が抜けている」という指摘は、`piiFields.ts` の `PublicTransferView` 検証コメントに明記済みの意図的設計（受領者本人には自分宛てのデータを見せる）と一致しないため不採用と確認・返信。回帰テスト4件追加。
+- 検証: tsc --noEmit clean / vitest run 5128件全通過（500ファイル、privacy 74件含む） / lint 0エラー・1256警告=基準線 / check:schema OK / lint:migrations OK。
+
+## 2026-08-30 IMP-050（#957）へ PR オープン中に届いた Codex レビュー7件を修正
+
+- 内容: `FIELD_CLASSIFICATIONS`（classification.ts）の vehicles PII エントリを `VEHICLE_TABLE_PII_COLUMNS` から生成するよう修正（rendition.ts と同じ乖離バグが残っていた）。実在しない `tenant_secrets.encrypted_value`/`hearings.content`/`invoices.total_amount`/`insurer_cases.claim_amount` を実スキーマの列名（`tenants.line_channel_secret_ciphertext` 等の ciphertext 4列、hearings の実PII5列、`invoices.total`、`insurer_cases.meta`）に修正。`createRendition()` の戻り値型を `Redacted<T>`（マスク後の null/string を反映）に変更。`canAccess()`（visibility.ts）を再設計し、owner_only（データ主体本人）を tenant_internal/partner_shared/public のネスト階層から独立させた——本人であることが tenant_internal 以上や restricted なフィールドへの特権に自動昇格してしまう構造的バグ（P1、未配線のため実害は未発生）を解消。`createExportAuditEntry()` が呼び出し側の配列/オブジェクトを参照のまま保持していたのをコピー保持に変更。requirement-trace.md の §18/IMP-050 ステータスを「実装済み」から「部分（型基盤のみ、統合未着手）」に訂正——4エクスポートルートいずれも新モジュールを未呼び出しであることを確認。回帰テスト7件追加。
+- 検証: tsc --noEmit clean / vitest run 5124件全通過（500ファイル、privacy 70件含む） / lint 0エラー・1256警告=基準線 / check:schema OK / lint:migrations OK。
+
+## 2026-08-30 IMP-050（#957）の code-review 指摘を修正。VEHICLE/PASSPORT_PUBLIC_RULES の PII 列挙漏れ・hash 戦略のドキュメント矛盾・pii の可視性要件誤り・ドキュメント件数誤記を解消
+
+- 内容: `VEHICLE_PUBLIC_RULES`/`PASSPORT_PUBLIC_RULES`（rendition.ts）を、手書きの固定リストから `VEHICLE_TABLE_PII_COLUMNS`/`PASSPORT_TABLE_PII_COLUMNS`（customerRelation.ts の単一定義源）の `.map()` 生成に変更。既に削除済みの customer_name/customer_email/customer_phone_masked を列挙しつつ実在する plate_display が抜けていたバグ、前所有者 PII（from_owner_name/from_owner_email）が抜けていたバグを解消。`applyMask()` の hash 戦略を JSDoc 通り `sha256:<値の先頭8文字>` を返すよう修正（従来は `value` を無視して固定文字列 `[MASKED]` を返していた）。`DEFAULT_REQUIRED_VISIBILITY.pii`/`.confidential` を `owner_only`→`tenant_internal` に修正（テナントスタッフが通常業務で pii にアクセスできない設定になっていた、未配線のため実害は未発生）。RELEASE_LOG.md/LEDRA_CURRENT.md/requirement-trace.md/DECISION_LOG.md の「FIELD_CLASSIFICATIONS 19エントリ」「テスト64件」を実数（20エントリ、67件）に訂正。回帰テスト4件追加。
+- 検証: tsc --noEmit clean / vitest run 5107件全通過（498ファイル、privacy 67件含む） / lint 0エラー・1256警告=基準線 / check:schema OK / lint:migrations OK。
+
+## 2026-08-30 IMP-050（#957）を main へ取り込み。プライバシー・データ分類・可視性・マスキング基盤
+
+- 内容: PR #957 のベースを main へ retarget し、origin/main をマージ。競合85件（phantom 81件 + genuine 4件〔事業ログ4ファイル〕）を解決。resurrection パターン21度目（`WorkScopeProvider.tsx`・`src/lib/sync/`、`src/lib/privacy/` からの依存ゼロを確認して削除）。
+- 検証: tsc --noEmit clean / vitest run 5104件全通過（498ファイル、privacy 64件含む） / lint 0エラー・1256警告=基準線 / check:schema OK / lint:migrations OK。
+
+## 2026-08-30 LINE属人性の低減②: 受信箱のAI返信ドラフトを店舗ナレッジ根拠付きに強化（branch claude/line-chatbot-ledra-dy2fiq）
+
+- 背景: 受信箱（`/admin/messages`）の「AI返信ドラフト」は会話文脈だけから下書きしており、
+  営業時間・料金体系・対応可否などの店舗方針は担当者個人の知識頼み（属人性）。誰が返信しても
+  店舗方針に沿った一定品質の下書きになるよう、ドラフト生成を**店舗ナレッジで根拠づける**。
+- 内容: `generateReplyDraft` に `knowledge`（LINE 自動返信と同じ `tenant_line_knowledge` +
+  `global_line_knowledge` の enabled のみ）と `vehicle`（お客様の登録車両）を追加。プロンプトで
+  「店舗ナレッジがあればそれを事実の根拠にし、ナレッジに無いことは店舗方針として断定せず
+  『確認の上ご連絡します』と添える（推測でナレッジを補完しない）」を指示。ナレッジが無ければ
+  従来どおり会話文脈のみで下書き（挙動不変）。
+- 実装: `src/lib/ai/replyDraft.ts`（`knowledge`/`vehicle` 入力・`knowledgeFacts` 整形・プロンプト強化）、
+  `src/app/api/admin/messages/[key]/ai-reply/route.ts`（enabled ナレッジ + 登録車両を並列取得して渡す）。
+  ナレッジは自動返信と同じ enabled ソースを流用。**マイグレーション不要**。ドラフトは人が編集して
+  送る前提なので壁3・外向き自動送信には影響なし。
+- 検証: `replyDraft`（`knowledgeFacts` の整形/空スキップ、inbound 無しは空ドラフト）テスト追加。
+- コードレビュー由来の追加修正（同 PR、`/code-review`）:
+  - tenant と global を1リストに混ぜて優先関係を失っていたのを、**「店舗ナレッジ(最優先)」/
+    「共通ナレッジ(参考・矛盾時は店舗優先)」の2ブロック**に分離（`knowledgeReply` と同じ優先規則）。
+  - 登録車両は**1台に確定できるときだけ**添える（複数台は誤った車種を渡すため付けない）。
+  - 対話的ルートなのでナレッジ注入を `MAX_KNOWLEDGE_CHARS`（4000字）で上限化（遅延/コスト抑制）。
+  - 本文の改行を1行に畳む（箇条書きが崩れて別の事実に見えるのを防ぐ）。
+- 全体 5054 件パス、tsc/eslint エラー0。
+- 「LINE属人性の低減」の2件目。プラン: 既存の AI 返信ドラフトと同じ（Standard+）。
+
+## 2026-08-30 LINE属人性の低減①: スタッフ返信からのナレッジ自動蓄積（学習・レビュー承認制）（branch claude/line-chatbot-ledra-dy2fiq）
+
+- 背景: LINE 自動返信の回答ソース（`tenant_line_knowledge`）は手動登録に依存し、良い回答が特定
+  スタッフの頭の中に留まりがち（属人性）。実際のスタッフ返信からナレッジを育てて Bot の
+  カバー範囲を広げ、人依存を下げる。
+- 内容: スタッフが受信箱（`/admin/messages`）から LINE で顧客に返信した直後、その会話が
+  「他のお客様にも当てはまる FAQ・店舗ポリシー」を含むなら、AI が個人情報・固有値（氏名/ナンバー/
+  具体的な予約日時・金額等）を除いた汎用 Q&A に一般化し、`tenant_line_knowledge` に
+  **`enabled=false`（レビュー待ち）** で自動登録する。管理者が既存の LINE ナレッジ設定画面で
+  承認（有効化）してはじめて自動返信の回答ソースになる（＝顧客に届く回答に未チェックの内容が
+  混ざらない安全弁）。
+  - 再利用不可（雑談・個別対応・「確認して折り返します」等）は AI が `reusable=false` を返しスキップ。
+  - 上限（既定50件）到達時・重複時（正規化タイトル/本文一致）はスキップ。低 confidence もスキップ。
+- 実装: `src/lib/ai/knowledgeCapture.ts`（汎用化ジェネレータ、replyDraft と同流儀）＋
+  `src/lib/ai/automation/knowledgeCaptureAuto.ts`（IO 層。opt-in・上限・重複・enabled=false 保存）。
+  返信送信 API（`/api/admin/messages/[key]` POST）から `after()` で fire-and-forget 起動。
+  opt-in キー `inbound_message.auto_capture_knowledge`（actionCatalog）、ゲート
+  `shouldCaptureKnowledge`（orchestrator）。既存のナレッジ設定 UI は停止中エントリの表示・有効化・
+  編集・削除に対応済みのため、レビュー導線は**追加 UI なし**。**マイグレーション不要**。
+- 検証: `knowledgeCaptureAuto`（再利用 FAQ を enabled=false 保存＋監査／opt-in OFF／再利用不可／
+  低 confidence／上限到達／重複／プラン対象外）テスト追加。
+- コードレビュー由来の追加修正（同 PR、`/code-review`）:
+  - 会話文脈の取得を既存ヘルパー `fetchRecentConversation` に置換（両キー OR＝リンク前の
+    customer_id=NULL 期間の質問も拾う／配信失敗 outbound を除外／古い順）。ハンドロールの
+    弱いクエリを廃し、correctness 2件＋重複実装1件をまとめて解消。
+  - 未承認（enabled=false）候補の上限 `MAX_PENDING_DRAFTS`（10件）を追加。候補が全枠（50件）を
+    食い潰して手動登録を塞ぐのを防止。既存ナレッジ取得を1クエリに集約（上限・未承認数・重複判定を共用）。
+  - AI 呼び出し前に短文返信（12字未満の「承知しました」等）を足切り（無駄な AI コスト削減）。
+  - 再利用不可・低 confidence の正常スキップを outcome:"ok" に（AI エラー率を汚さない）。
+- 全体 4769 件パス、tsc/eslint エラー0（既存 actionCatalog の `_key` 警告のみ）。
+- 「LINE属人性の低減」の1件目。opt-in・既定 OFF なので既存テナントの挙動は不変。
+
+## 2026-08-30 IMP-046（#956）の code-review 指摘を修正。NON_OCCUPYING重複定義・型の意図しない拡大・ドキュメント不整合を解消
+
+- 内容: `src/lib/analytics/capacityAnalytics.ts` の `decomposeTimeBands()` が終端ステータス除外を
+  生の文字列比較で再実装していたのを、`occupancy.ts` の `NON_OCCUPYING` を import して再利用する
+  よう修正。`src/lib/analytics/operationalKpi.ts` の `JobTimeline.currentState` の型を
+  `JobState | string`（`string` に collapse し型安全性を失っていた）から `JobState` のみに変更。
+  `computeVerifiedRate()` の JSDoc 冒頭の分母説明が SUPERSEDED 除外に言及しておらず、直後の
+  ponytail コメント・実装と矛盾していたのを修正。テストタイトルの数値誤記（50%→実際は45%）を
+  修正。RELEASE_LOG.md/LEDRA_CURRENT.md/requirement-trace.md の「テスト40件」を実数（41件）に訂正。
+- 検証: tsc --noEmit / vitest run(5040件) / lint(0エラー、1256警告=基準線) / check:schema /
+  lint:migrations すべて green。
+
+## 2026-08-30 IMP-046（#956）を main へ取り込み。運用KPI計算・設備キャパシティ分析
+
+- 内容: IMP-046（運用KPI計算・設備キャパシティ分析、branch impl/IMP-046-analytics-kpi）を
+  main へ取り込んだ。82ファイルの phantom conflict（78ファイル一括解決、4ファイル手動）＋
+  resurrection（WorkScopeProvider.tsx を20度目の再削除、スキップ済み PR #947 の
+  `src/lib/sync/` 一式8ファイルも合わせて削除）を解消。
+- 検証: tsc --noEmit / vitest run(5040件) / lint(0エラー、1256警告=基準線) / check:schema /
+  lint:migrations すべて green。
+
+## 2026-08-30 IMP-045（#955）の code-review 指摘を修正。ガード3関数のチェック順不一致・重複ロジック・不要なキャストを解消
+
+- 内容: `src/lib/staff/membership.ts` の `validateRoleChange()` のチェック順を
+  `validateMemberRemoval()`/`validateMemberSuspension()` と統一（`insufficient_rank` を
+  `owner_protected` より先に判定し、権限のない操作者に対象の役職を明かさない）。
+  `ASSIGNABLE_ROLES.includes()` の不要な型キャストを削除。3つのガード関数すべてで
+  最終管理者判定に `wouldLoseLastAdmin()` を呼び出すよう統一（重複実装を解消）。
+  回帰テスト2件追加。
+- 検証: tsc --noEmit / vitest run(4999件) / lint(0エラー、1256警告=基準線) / check:schema /
+  lint:migrations すべて green。
+
+## 2026-08-30 IMP-045（#955）を main へ取り込み。スタッフメンバーシップ管理ガード — 移籍・停止・最終管理者保護
+
+- 内容: IMP-045（スタッフメンバーシップ管理ガード、branch impl/IMP-045-staff-management）を
+  main へ取り込んだ。80ファイルの phantom conflict（75ファイル一括解決、5ファイル手動）＋
+  resurrection（WorkScopeProvider.tsx を19度目の再削除、スキップ済み PR #947 の
+  `src/lib/sync/` 一式8ファイルも合わせて削除）を解消。LEDRA_CURRENT.md/RELEASE_LOG.md が
+  旧いテスト件数（33件）のまま取り残されていたのを、branch 内で既に更新済みだった
+  requirement-trace.md の実数（36件）に揃えた。
+- 検証: tsc --noEmit / vitest run(4997件) / lint(0エラー、1256警告=基準線) / check:schema /
+  lint:migrations すべて green。
+
+## 2026-08-30 IMP-044（#954）の code-review 指摘を修正。ブースシグナルの重複排除誤爆・follow_up_overdue上書き・イベント件数ドキュメント誤記を解消
+
+- 内容: `src/lib/priority/scorer.ts` の `scoreBoothSignal()` の `actionKey` に `reservationIds` を
+  含めるよう修正（同じブース・同じ kind で時間帯が異なる複数の定員超過ウィンドウが
+  `scoreAndRank()` の重複排除で握り潰されていた問題を解消）。`src/lib/priority/boothJobIntegration.ts`
+  の `enrichJobWithBoothContext()` に `base.action === "follow_up_overdue"` の早期リターンを追加し、
+  期限超過請求の督促がブース関連のヒント・priority 上書きより確実に優先されるよう修正。
+  RELEASE_LOG.md/LEDRA_CURRENT.md/requirement-trace.md の「PRIORITY_TRIGGERS は13ドメインイベント」を
+  実数12に、テスト件数内訳の boothJobIntegration/eventTriggers の入れ替わりを訂正。回帰テスト3件追加。
+- 検証: tsc --noEmit / vitest run(4961件) / lint(0エラー、1256警告=基準線) / check:schema /
+  lint:migrations すべて green。
+
+## 2026-08-30 IMP-044（#954）を main へ取り込み。Priority/NEXT ACTION エンジン — 統一スコアリング・ブース統合・イベントパイプライン
+
+- 内容: IMP-044（Priority/NEXT ACTION エンジン、branch impl/IMP-044-priority-engine）を
+  main へ取り込んだ。75ファイルの phantom conflict（71ファイル一括解決、4ファイル手動）＋
+  resurrection（WorkScopeProvider.tsx を18度目の再削除、スキップ済み PR #947 の
+  `src/lib/sync/` 一式8ファイルも合わせて削除）を解消。lint 新規2件
+  （`eventTriggers.test.ts`/`scorer.test.ts` の未使用 import）を修正。
+- 検証: tsc --noEmit / vitest run(4958件) / lint(0エラー、1256警告=基準線) / check:schema /
+  lint:migrations すべて green。
+
+## 2026-08-30 IMP-043（#953）の code-review 指摘を修正。DocumentCorrection遷移表のプロトタイプ汚染ガード欠如・POSブリッジの完全性欠落・関数名衝突を解消
+
+- 内容: `src/lib/domain/states.ts` の `DOCUMENT_CORRECTION_TRANSITIONS`/`isValidDocumentCorrectionTransition()`
+  を `transitions.ts` に移設し、他7軸と同じ `isValidTransition()`（`Object.hasOwn` ガード付き）を
+  再利用するよう統一（PR #950 の PartInstallation と同じ修正パターン）。`src/lib/documents/posLedgerBridge.ts`
+  の `bridgePosToLedger()` に、`documentId` はあるが `amount`・`refundAmount` とも0以下の取引を
+  `unbridgeable` に分類する処理を追加（従来はどのバケツにも入らず消えていた）。
+  `src/lib/documents/documentVersion.ts` の `isValidCorrectionTransition()` を
+  `isValidDocumentCorrectionStatusTransition()` に改名（`certificates/correction.ts` の
+  同名・別状態集合の関数との名前衝突を解消）。回帰テスト2件追加。
+- 検証: tsc --noEmit / vitest run(4920件) / lint(0エラー、1256警告=基準線) / check:schema /
+  lint:migrations すべて green。
+
+## 2026-08-30 IMP-043（#953）を main へ取り込み。見積/請求ワークフロー型基盤 — 承認スナップショット・帳票版管理・POS ブリッジ
+
+- 内容: IMP-043（見積/請求ワークフロー型基盤、branch impl/IMP-043-estimate-invoice-workflow）を
+  main へ取り込んだ。72ファイルの phantom conflict（65ファイル一括解決、7ファイル手動）＋
+  resurrection（WorkScopeProvider.tsx を17度目の再削除、スキップ済み PR #947 の
+  `src/lib/sync/` 一式8ファイルも合わせて削除）を解消。v2.0 正準語彙の8軸目
+  `DOCUMENT_CORRECTION_STATES`（ADR-0004 帳票訂正リクエスト状態）を states.ts/labels.ts/
+  __tests__/states.test.ts の同一PRで追加（ADR-0002 準拠）。lint 新規1件（`states.test.ts`
+  の未使用 import `documentCorrectionStateLabel`）を修正。
+- 検証: tsc --noEmit / vitest run(4914件) / lint(0エラー、1256警告=基準線) / check:schema /
+  lint:migrations すべて green。
+
+## 2026-08-30 IMP-042（#952）の code-review 指摘を修正。key 重複時の挙動不一致・非 readonly なスナップショット・ドキュメント誤記を解消
+
+- 内容: `src/lib/workflow/templateVersion.ts` の `diffTemplateSteps()`/`isSnapshotStale()`（Map ベース、
+  key 重複時に最後の出現を採用）と `resolveStepFromSnapshot()`（Array.find、最初の出現を採用）の
+  挙動不一致を `keyByFirstOccurrence()` ヘルパーで統一（最初の出現を採用に揃える）。
+  `WorkflowSnapshot.steps` を `readonly TemplateStep[]` に変更（JSDoc の「不変スナップショット」
+  という説明と型を一致させる）。モジュールヘッダの誤記（存在しない型名「TemplateSnapshot」）を
+  `WorkflowSnapshot` に修正。RELEASE_LOG.md/requirement-trace.md の「テスト20件」を実数の21件に訂正。
+  回帰テスト1件追加。
+- 検証: tsc --noEmit / vitest run(4851件、新規1件追加) / lint(0エラー、1256警告=基準線) /
+  check:schema / lint:migrations すべて green。
+- 対応PR: #952
+
+## 2026-08-30 IMP-042（#952）を main へ取り込み。ワークフローテンプレート版管理・スナップショット型基盤
+
+- 内容: IMP-042（ワークフローテンプレート版管理・スナップショット型基盤、branch impl/IMP-042-workflow-versioning）を
+  main へ取り込んだ。69ファイルの phantom conflict（65ファイル一括解決、4ファイル手動）＋
+  resurrection（WorkScopeProvider.tsx を16度目の再削除、スキップ済み PR #947 の
+  `src/lib/sync/` 一式8ファイルも合わせて削除）を解消。
+- 検証: tsc --noEmit / vitest run(4850件) / lint(0エラー、1256警告=基準線) / check:schema /
+  lint:migrations すべて green。
+
+## 2026-08-30 IMP-041（#951）の code-review 指摘を修正。データ不備の終日占有誤判定・no_show の稼働率誤カウントを解消
+
+- 内容: `src/lib/booths/occupancy.ts` の `findAvailableBooths()` と `countConcurrentAt()` が、
+  開始/終了時刻が片方欠損または逆転しているデータ不備の予約を「終日占有」として誤判定していた
+  問題を修正（`toEvents()` と同じ判定に統一）。`computeBoothUtilization()` が `no_show` を
+  稼働時間にカウントしていた問題を修正（`completed` は維持、`no_show` のみ除外する
+  `NOT_ACTUAL_WORK` を新設）。`boothSignals.ts` 内の終端ステータス除外チェックが3箇所で
+  重複していたのを `occupancy.ts` の `NON_OCCUPYING`（export 化）に統一。`peakConcurrent`/
+  `predictBoothFreeAt` の呼び出し前提（単一ブース分に絞り込み済みであること）を docstring に
+  明記。`predictBoothFreeAt` の既知のギャップ（終了時刻超過中で estimatedMinutes もない
+  in_progress 予約を捕捉できない）を ponytail コメントで明記。
+- 検証: tsc --noEmit / vitest run(4829件、新規4件追加) / lint(0エラー、1256警告=基準線) /
+  check:schema / lint:migrations すべて green。
+- 対応PR: #951
+
+## 2026-08-30 IMP-041（#951）を main へ取り込み。ブース占有予測・NEXT ACTION シグナル型基盤
+
+- 内容: IMP-041（ブース占有予測・NEXT ACTION シグナル型基盤、branch impl/IMP-041-booth-occupancy）を
+  main へ取り込んだ。65ファイルの phantom conflict（61ファイル一括解決、4ファイル手動）＋
+  resurrection（WorkScopeProvider.tsx を15度目の再削除、スキップ済み PR #947 の
+  `src/lib/sync/` 一式8ファイルも合わせて削除）を解消。lint 新規1件（`boothSignals.ts`
+  の未使用 import `peakConcurrent`）を修正。
+- 検証: tsc --noEmit / vitest run(4825件) / lint(0エラー) / check:schema /
+  lint:migrations すべて green。
+
+## 2026-08-30 IMP-040（#950）の code-review 指摘を修正。遷移表を transitions.ts へ統合、プロトタイプ汚染防止
+
+- 内容: `/code-review` の3件の指摘を修正。`PART_INSTALLATION_TRANSITIONS` を
+  `states.ts` から `transitions.ts` へ移設し、他6軸と同じ `Record<S, readonly S[]>`
+  型・`isValidTransition()` ヘルパーに統一（素の `table[from]` アクセスによる
+  `TypeError`（`"toString"` 等 Object.prototype 由来キー）を解消）。`transitions.ts`
+  のヘッダコメントを「6軸」→「7軸」に更新。DB 凍結ガード
+  （`part_installations_guard`）との関係を説明するコメントを、実際のトリガー内容に
+  基づいて修正（TS 表の方が厳しく、両者はスコープが異なる旨を明記）。テストを
+  `states.test.ts` から `transitions.test.ts` へ移設し、プロトタイプ汚染防止テストを
+  追加。
+- 検証: tsc --noEmit / vitest run(4786件) / lint(0エラー) / check:schema /
+  lint:migrations すべて green。
+
+## 2026-08-30 IMP-040（#950）を main へ取り込み。部品装着インテグリティ 正準語彙
+
+- 内容: IMP-040（部品装着状態の正準語彙7軸目、branch impl/IMP-040-parts-integrity）を
+  main へ取り込んだ。66ファイルの phantom conflict（59ファイル一括解決、7ファイル手動）＋
+  resurrection（WorkScopeProvider.tsx を14度目の再削除、スキップ済み PR #947 の
+  `src/lib/sync/` 一式8ファイルも合わせて削除）を解消。
+- 検証: tsc --noEmit / vitest run(4781件) / lint(0エラー) / check:schema /
+  lint:migrations すべて green。
+
+## 2026-08-30 IMP-034（#949）を main へ取り込み。タブレット 2-pane・共用端末 型基盤
+
+- 内容: IMP-034（タブレット 2-pane・共用端末型基盤、branch impl/IMP-034-tablet-shared-device）
+  を main へ取り込んだ。63ファイルの phantom conflict（58ファイル一括解決、5ファイル手動）＋
+  resurrection（WorkScopeProvider.tsx を13度目の再削除、スキップ済み PR #947 の
+  `src/lib/sync/` 一式8ファイルも合わせて削除）を解消。
+- 検証: tsc --noEmit / vitest run(4760件) / lint(0エラー) / check:schema /
+  lint:migrations すべて green。
+
+## 2026-08-30 IMP-033（#948）を main へ取り込み。MORE メニュー IA 型基盤
+
+- 内容: IMP-033（MORE メニュー IA 型基盤、branch impl/IMP-033-more-menu）を main へ
+  取り込んだ。62ファイルの phantom conflict（57ファイル一括解決、5ファイル手動）＋
+  resurrection（WorkScopeProvider.tsx を12度目の再削除、加えてスキップ済み PR #947
+  が追加した `src/lib/sync/` 一式8ファイルも合わせて削除——IMP-033 のブランチが
+  IMP-032 のブランチの上に積まれていたための帰結）を解消。lint 新規1件
+  （未使用 import）を修正し基準線に復帰。
+- 検証: tsc --noEmit / vitest run(4731件) / lint(0エラー) / check:schema /
+  lint:migrations すべて green。
+
+## 2026-08-30 「その他」タブが勝手にプラン画面へ飛ぶ不具合を修正（BillingFetchGuard の403誤判定）
+
+- 内容: `/admin/settings`（モバイル下部タブ「その他」）を開くと、`settings:view`
+  権限を持たない役割（staff/viewer）のアカウントでは即座に「請求・プラン」画面へ
+  強制遷移してしまっていた。原因はページが無条件マウントする `FollowUpSettings`
+  が `GET /api/admin/follow-up-settings` を叩き、権限不足で `apiForbidden()`（課金
+  と無関係な素の403）を返すのに対し、全 `/admin/*` 画面にグローバル設置されている
+  `BillingFetchGuard`（`src/app/admin/BillingFetchGuard.tsx`）が「402/403なら
+  `billing_url` が無くても既定で `/admin/billing` へ強制遷移」する実装だったため。
+  402（このアプリでは billing guard 専用）は従来どおり無条件に課金拒否とみなし、
+  403は `x-billing-url` ヘッダーまたは応答 body の `billing_url` を確認できた時
+  だけ課金拒否とみなすよう修正（fetch hook・XHR hook 両方）。判定ロジックを
+  `isBillingDenial(status, billingUrl)` として切り出し単体テストを追加。
+- 検証: `vitest run src/app/admin/__tests__/BillingFetchGuard.test.tsx`（4件）green。
+  `tsc --noEmit` / `eslint` は変更ファイルにエラーなし。
+- 経緯: DECISION_LOG 2026-08-30 参照。
+
+## 2026-08-27 配布資料のフォント崩れ・ハイフン混入・段組の破綻を直す
+
+代表から「ただ単に横にするだけならだれでもできる。バランス、見やすさを重視して
+ないと意味がない」「フォントが崩れてる。これは初期のころから散々言ってるやつ」。
+スクリーンショットで指摘された3件はいずれも実在の不具合だった。
+
+**1. フォント崩れ（サブセットにグリフが無い）。**
+`public/fonts/NotoSansJP-*.ttf` は日本語サブセット（7,466 グリフ）で記号の収録が薄い。
+全8資料の描画文字列 1,633 本を機械的に走査したところ、**8文字が非収録**だった。
+
+    ① ② ③  U+2460-2462   service-overview（「摩擦」3枚のカード見出し）
+    ✓       U+2713        pricing-overview（機能別比較表の対応印が全部豆腐）
+    →       U+2192        features / security / operation-guide / glossary
+    ※       U+203B        case-studies / roi-template
+    ₂       U+2082        glossary（SiO₂）
+    μ       U+03BC        glossary（膜厚 μm）
+
+**「初期から言われていた」のに直らなかったのは、PDF を開かない限り見えない
+不具合だったから。**対策は2層にした。(a) `pdfSafe()`（旧 `stripEmoji`）に置換表
+`GLYPH_FALLBACKS` を追加。`FEATURE_COMPARISON` や `GLOSSARY` は web と共有していて
+ブラウザでは正常に出るので、元データは触らず PDF に入る手前でだけ置き換える
+（`μ`→`µ` MICRO SIGN は収録済みで見た目が同じ）。(b) **グリフ網羅テスト**を追加し、
+react-pdf の要素ツリーを歩いて実際に描く文字を全部集め、非収録が1文字でも残れば落とす。
+
+**2. 本文にハイフンが生えていた。** react-pdf の既定のハイフネーションが日本語にも
+効き、「QRコードで-顧客に即共有」のように本文中へハイフンを挿していた。
+`Font.registerHyphenationCallback((w) => [w])` で単語を割らない実装に差し替え。
+
+**3. 段組の破綻。** 左列・右列に全カードを積む作りだったため列ごとに独立して
+改ページされ、**右列の最後の1枚だけが次ページに落ちて左半分が丸ごと空いて**いた。
+A4 横で天地が 34% 狭くなり顕在化した。`CardGrid` を追加してカードを2枚1組の行に並べ、
+行単位で `wrap={false}`。改ページは必ず行の境で起き、左右の高さも揃う。
+`i % 2` のパリティ分割は削除。
+
+検証: marketing 73 件パス、全体 452 files / 4,293 tests パス、tsc 0 / eslint 0。
+ページ数は8本とも変化なし。
+
+## 2026-08-27 HP のダウンロード資料を刷新（6本 → 8本 / 自前ページ採番を廃止）
+
+`/resources` と代理店ポータルで配っている提供資料を、内容・本数・デザインの3点で更新した。
+
+**1. 自前でページ番号を刷るのをやめた（実バグの修正）。**
+各ページが `pageLabel="3 / 5"` を自分で持っていたが、中身が A4 に収まらないと
+react-pdf が自動で改ページするため、**実物6ページの資料が「5」と刷っていた**。
+
+    料金プラン詳細  宣言 5 ページ / 実測 6 ページ
+    ROI テンプレート 宣言 7 ページ / 実測 8 ページ
+    機能紹介資料    宣言 10 ページ / 実測 12 ページ
+
+採番を react-pdf の `render={({ pageNumber, totalPages }) => ...}` に委ね、
+`SECURITY_PAGE_TOTAL` / `ROI_PAGE_TOTAL` / `casesPageTotal()` と、
+12 コンポーネントに引き回していた `pageTotal` 引数を削除した。
+オプションや機能が増えて溢れても番号が嘘にならない。
+なおカードの余白調整により、機能紹介資料は溢れ自体が解消して 11 ページになった。
+
+**2. 内容の鮮度。** 出荷済みなのに「ロードマップ上で順次対応予定」と書かれていた
+Square 連携・電子署名を現状に直し、会計連携（freee / マネーフォワード）・現場モバイル・
+案件ワークフロー・経営分析/ナレッジをサービス概要に追加した。
+ベタ書きだった件数（「8カテゴリ、約38機能」「機能別比較表 10 項目」＝実際は 12 項目）は
+`FEATURE_GROUPS` / `FEATURE_COMPARISON` / `PLANS` から算出するようにした。
+フッターの「更新: 」がモジュールスコープの `new Date()` で、
+**サーバープロセスが生きている限り起動日で固定**されていたのも直した。
+
+**3. 新規2本（どちらも既存のライブデータから生成、本部の差し替え不要）。**
+
+    運用スタートガイド  ← OPERATION_GUIDE_GROUPS（HelpDrawer / /guide と同じ 20 項目）
+    自動車施工・記録の用語集 ← GLOSSARY（4カテゴリ 19 語）
+
+全資料 ZIP・代理店ポータルの「常に最新の商品資料」欄・リード自動返信は
+すべてレジストリ駆動なので、追加のみで自動的に反映される（ZIP は 8 本で 4.7 秒 / 1.0MB）。
+
+**4. デザイン。** 代表判断で**ライトテーマに切り替えた**（従来は全面ダーク `#060a12`）。
+稟議・社内共有で刷られる前提の資料なので、紙の都合を優先している。
+色は globals.css のライトトークンをそのまま引く（`--text-primary #1d1d1f` /
+`--text-secondary #424247` / `--text-ink2 #555560` / `--text-muted #6e6e73` /
+`--accent-blue #0071e3` / `--accent-violet-text #8944ab` / `--accent-gold #b08d3f`）。
+**地と面の役割だけ web と逆**にした ―― web は `--bg-base #f5f5f7` の上に白いカードを置くが、
+紙では地が A4 全面を覆うため、地を白・カードを `#f5f5f7` にして、
+インクを使うのが情報の区切りだけになるようにしている。
+章扉の罫は全幅の淡いトラックの左 64pt だけをアクセント色にした2色帯。
+描画オペレータを実際に読んで、地 `#ffffff` / 罫 `#d9d9d9` / アクセント `#0071e3` /
+カード `#f5f5f7` が出ていることを確認済み。文字サイズ・余白は触っていないので
+**ページ数は8本とも変わらない**。
+
+**検証。** `resourcePdf.render.test.tsx` を追加し、8本すべてを実際にレンダリングして
+(a) 有効な PDF になること (b) カタログの `pageCount` が実物と一致すること
+(c) ガイド文言の絵文字が落ちていること（埋め込みフォントに絵文字グリフが無く豆腐になる）
+を確認する。今回のページ数のズレは、このテストが検出した。
+
+## 2026-08-30 IMP-031（#946）の code-review 指摘を修正。予約絞り込みの常時0件になる選択肢混入・型の非対称を解消
+
+- 内容: `/code-review` の2件の指摘を両方修正。`jobStatusDisplay.ts` に
+  `LIVE_RESERVATION_STATUSES`（`reservations.status` の DB CHECK 制約が現在許可
+  する5値）を新設し、`ReservationsClient.tsx` の絞り込み `<select>` がこれをベースに
+  選択肢を組み立てるよう変更（`RESERVATION_STATUS_DISPLAY` の無条件列挙をやめる）。
+  IMP-031 で追加した paused/no_show/partially_completed の表示定義は、DB マイグレーション
+  未実施のため実データに存在せず、以前は絞り込みで選べても常に0件になっていた。
+  `JobExceptionEvent.fromState` を `string` から `JobState` に修正（`toState` や
+  全評価器の入力パラメータとの非対称を解消）。回帰テスト3件を追加。
+- 検証: tsc --noEmit / vitest run(4714件) / lint(0エラー) / check:schema /
+  lint:migrations すべて green。
+
+## 2026-08-30 IMP-031（#946）を main へ取り込み。案件例外フロー型基盤、evaluateNoShow() の記述誤りを修正
+
+- 内容: IMP-031（案件例外フロー型基盤、branch impl/IMP-031-job-exceptions）を main へ
+  取り込んだ。53ファイルの phantom conflict（48ファイル一括解決、5ファイル手動）＋
+  resurrection 5ファイル（WorkScopeProvider.tsx / sync/* を11度目の再削除）を解消。
+  マージ後の全体テストで `evaluateNoShow()` の「CHECKED_IN → NO_SHOW: valid」テストが
+  失敗したため調査。実装は `JOB_TRANSITIONS`（IMP-015 で確定、CHECKED_IN→NO_SHOW は
+  明示的に除外）へ正しく委譲していたが、JSDoc・テスト・requirement-trace.md の記述
+  （「SCHEDULED/CHECKED_IN → NO_SHOW」）が IMP-015 の squash 前の中間コミットを参照した
+  誤りだったため、実際の正準ルール（SCHEDULED のみ→NO_SHOW）に合わせて3箇所を修正。
+- 検証: tsc --noEmit / vitest run(4711件) / lint(0エラー) / check:schema /
+  lint:migrations すべて green。
+
+## 2026-08-30 IMP-030（#945）の code-review 指摘を修正。revoke 可否判定の不整合・プロトタイプ汚染防止
+
+- 内容: `/code-review` の5件の指摘のうち4件を修正。`evaluateRevokeEligibility()`
+  （integrityIncident.ts）が正準遷移表 `CERTIFICATE_TRANSITIONS`（代表判断・2026-08-27:
+  REVOKED は ISSUING/VERIFYING からも遷移可）と矛盾し、同一PR内の兄弟関数
+  `evaluateRevoke()` と食い違っていたバグを `isValidTransition()` への委譲で解消。
+  `versionTransition.ts`/`correction.ts`/`integrityIncident.ts` の遷移表への素の
+  添字アクセス4箇所（IMP-029 の `evaluateEscalation()` と同種のプロトタイプ汚染
+  パターン）を `isValidTransition()` ヘルパーに置換。`resolveVersionRedirect()` の
+  `redirectToPublicId: undefined` 混入を修正。reasons マップの型を
+  `Partial<Record<CertificateState, string>>` に強化。`evaluateCorrectionEligibility()`
+  は独自のビジネスルール（VERIFIED のみ訂正可能）であり遷移表の許可可否とは別軸のため
+  変更不要と判断。回帰テスト6件を追加。
+- 検証: tsc --noEmit / vitest run(4660件) / lint(0エラー) / check:schema /
+  lint:migrations すべて green。
+
+## 2026-08-30 IMP-030（#945）を main へ取り込み。証明書訂正・Integrity Incident・revoke型基盤
+
+- 内容: IMP-030（証明書訂正・supersede・Integrity Incident・revoke 型基盤、
+  branch impl/IMP-030-correction-supersede-revoke）を main へ取り込んだ。53ファイルの
+  phantom conflict（48ファイル一括解決、5ファイル手動）＋resurrection 5ファイル
+  （WorkScopeProvider.tsx / sync/* を10度目の再削除）を解消。`gateEvaluator.ts` は
+  IMP-028（#943）の code-review 修正と本PR自身の変更が同一ファイルに重なっていたため、
+  main の内容を base に本PRの3箇所の diff hunk を個別確認の上で手動再適用した。
+- 検証: tsc/lint(0エラー・警告1256件)/vitest(4652件)/check:schema/lint:migrations すべて green。
+
+## 2026-08-30 IMP-029（#944）を main へ取り込み。中央通知エンジン型基盤、lint警告4件を修正
+
+- 内容: IMP-029（中央通知エンジン型基盤、branch impl/IMP-029-notification-engine）を main へ
+  取り込んだ。50ファイルの phantom conflict（46ファイル一括解決、4ファイル手動）＋resurrection
+  5ファイル（WorkScopeProvider.tsx / sync/* を9度目の再削除）を解消。新規テストファイル
+  （`notifications.test.ts`）の未使用import2件・未使用変数1件・`any`1件を修正（lint基準線
+  1256件に復帰）。
+- 検証: tsc/lint(0エラー・警告1256件)/vitest(4594件)/check:schema/lint:migrations すべて green。
+
+## 2026-08-30 IMP-028（#943）を main へ取り込み。PR #942 のマージがIMP-027自身のDECISION_LOG/RELEASE_LOGエントリを無音で欠落させていたのを復元
+
+- 内容: IMP-028（Certificate Gate 単一評価器、branch impl/IMP-028-certificate-gate）を main へ
+  取り込んだ。50ファイルの phantom conflict（45ファイル一括解決、5ファイル手動）＋resurrection
+  5ファイル（WorkScopeProvider.tsx/sync/* を8度目の再削除）を解消。手動対応した5ファイルの
+  うち DECISION_LOG.md/RELEASE_LOG.md の2つで、**PR #942（IMP-027）自身が追加していたはずの
+  元エントリが main に存在しない**ことを発見(前回の自動マージが無衝突で成功した際に無音で
+  失われていた)。IMP-027 の元コミットから原文を復元し、IMP-028 自身のエントリと合わせて
+  正しい年代順で再挿入した。lint 指摘1件（`CertificateGateCondition` 未使用import）を修正。
+- 検証: tsc/lint(0エラー・警告1256件=既存基準線)/vitest(4559件)/check:schema/lint:migrations
+  すべて green。詳細は DECISION_LOG「IMP-028（#943）を main へ取り込み」参照。
+
+## 2026-08-30 IMP-027（#942）を main へ取り込み。PaymentState 導出層・Policy 評価器、code-review 由来の修正4件
+
+- 内容: IMP-027（§11 支払いモデル、branch impl/IMP-027-payment-model）を main へ取り込んだ。
+  46ファイルの phantom conflict（main 側を採用）＋ resurrection 5ファイル（WorkScopeProvider.tsx /
+  sync/* を7度目の再削除）を解消。`/code-review` 指摘6件のうち4件を修正:
+  - `evaluateInsurance()` に UNKNOWN/CANCELED ガードを追加（保険承認後に決済が不明/取消に
+    なっても `met: true` を返していたバグ。盲目リトライ禁止原則に反していた）。テスト2件追加
+  - `derivePoSPaymentState` の exhaustiveness チェック変数を返り値として使い、未使用変数
+    lint warning を解消
+  - `derivePaymentState` の JSDoc に既存実装済みの「total <= 0 → PAID」分岐を追記
+  - b2b の支払いサイクル未設定メッセージが `signoff/state.ts` と文言重複していたため、
+    クロスリファレンスコメントを追加（統合はスコープ外として見送り）
+  - 残り2件（B2B都度払いの CREDIT_APPROVED 未実装、payment/ 配下の呼び出し元ゼロ）は
+    既存の設計方針の範囲内として不採用。詳細は DECISION_LOG 参照
+- tsc/lint/vitest(4540件+新規2件)/check:schema/lint:migrations/check:migrations すべて green。
+
+## 2026-08-30 IMP-026（#941）マージ後、db-migrate.yml が out-of-order で失敗——本番は直接確認したところ既に正しく適用済みだった
+
+- 内容: PR #941 squash マージ後、`db-migrate.yml` が `customer_concerns` migration の
+  out-of-order エラーで失敗した。本番 `supabase_migrations.schema_migrations` を直接
+  SELECT し、`statements` 列の全文が私の最終修正版（`auth.users(id)` / `set_updated_at()` /
+  `public.my_tenant_ids()`）と一致することを確認。さらに `customer_concerns` の実オブジェクト
+  （列・FK制約・CHECK制約4本・インデックス4本・updated_at トリガー・RLS有効化・SELECT/UPDATE
+  ポリシー2本、anon INSERTポリシーは無し=修正版どおり）も全種別 `pg_constraint`/`pg_indexes`/
+  `pg_trigger`/`pg_policies`/`pg_class` から直接照会し、修正版と一致することを確認した
+  （Codex レビュー指摘を受け、列・FKのみだった初回確認を全オブジェクト種別へ拡張）。
+  db-migrate.yml の実行はこの1回のみで、再実行や後続実行は無い——にもかかわらず本番には
+  正しい内容が存在する。git 経由の CI とは別経路で適用されたと推定するが、候補として
+  挙げていた「Supabase MCP の apply_migration」は誤りと判明（apply_migration は呼び出し時刻
+  ベースでバージョンを自動採番するため元の版番号 `20260820010000` のままでは載らない。
+  Codex レビュー指摘で訂正）。版番号を保てる経路としては手動 `supabase db push --include-all`
+  が最有力候補だが未検証。適用者・時期は特定できていない。
+  `db-migrate.yml` の手動再実行（workflow_dispatch）を試みたが、現在のトークン権限では
+  403 で拒否され、手動での green 化確認はできなかった。
+- 対象: `supabase/migrations/20260820010000_customer_concerns.sql`（本番）。次に
+  migrations を含む PR（IMP-027 以降）のマージ時、db-migrate.yml がこのファイルで
+  再度 out-of-order にならないか確認する。詳細は DECISION_LOG「IMP-026（#941）マージ後、
+  db-migrate.yml が out-of-order で失敗」参照。
+
+## 2026-08-30 見積りフロー改善④: 停滞した見積り会話フローの再促し（nudge）cron（branch claude/line-chatbot-ledra-dy2fiq）
+
+- 内容: お見積りの詳細（車検証写真 or 車種+年式）を依頼したまま一定時間ご返信が無い会話
+  （`awaiting_quote_detail`）は、これまで 72h で黙って失効するだけで、放置された見積りリードを
+  取りこぼしていた。失効前に **1回だけ「その後いかがでしょうか」の再促しを LINE で自動送信**する
+  cron を追加（opt-in・既定 OFF）。
+  - 対象は `awaiting_quote_detail` のみ（車検証/車種年式の再送だけで先へ進める“無状態”な再促しで、
+    過去メッセージのボタン=日程/キャンセル候補の陳腐化を気にせず送れるため）。日程選択待ち等の
+    再促しは古い候補ボタンの作り直しが要るため今回スコープ外。
+  - 条件: 最終活動から既定24h停滞（`updated_at`）＋未失効（`expires_at` 未来）＋ line_user_id 紐付け
+    ＋フォローアップ拒否でない。1会話につき1回（`notification_logs` type=flow_nudge で重複防止）。
+- 実装: `src/lib/cron/flowNudges.ts`（`processStalledFlowNudges`）＋ `src/app/api/cron/flow-nudges/route.ts`
+  （reservation-reminders と同じ cron-auth・`withCronLock`・opt-in テナントのキーセットページング）＋
+  `vercel.json` に `0 10 * * *` を追加。opt-in キー `inbound_message.auto_flow_nudge`（actionCatalog）、
+  ゲート `shouldNudgeStalledFlows`（orchestrator）、文面 `buildQuoteDetailNudge`（messages）。
+  **マイグレーション不要**（notification_logs の type/target_type は自由文字列）。
+- 検証: `flowNudges`（停滞のみ対象・新しい/失効は除外・dedup・未紐付けは送る・opt-out除外・
+  失敗ログ）テスト8件追加。
+- コードレビュー由来の追加修正（同 PR、`/code-review`）:
+  - dedup ログ insert のエラーを握りつぶさず warn で可視化（送信成功後に insert 失敗すると翌日
+    二重送信になり得るため。undo 不可なので送信自体は成功扱いのまま可視化）。
+  - 停滞フロー取得に `order(updated_at asc)+limit(500)` を追加（PostgREST 既定行上限で無言に
+    切れるのを避け、失効が近い会話から優先。溢れは翌日に dedup 済みで拾う）。
+  - コード側の時刻再判定をエポックミリ秒比較に変更（ISO 文字列のオフセット表記差による誤判定を回避）。
+- 全体 4474 件パス、tsc/eslint エラー0（既存 actionCatalog の `_key` 警告のみ）。
+- #2「見積りフロー改善」の4件目（最後）。これで #2 の4項目が完了。
+
+## 2026-08-30 IMP-026（#941）を main へ取り込み。check:schema・`/code-review`・Migrations Replay で計11件を修正、resurrection バグを6度目の再削除
+
+- 内容: IMP-026（顧客懸念提起フロー、branch impl/IMP-026-customer-concern）を main へ取り込む際、
+  マージ後の標準検証（`npm run check:schema`）・`/code-review`・CI の Migrations Replay で
+  本PR自身のバグ11件を発見・修正。
+  (1) `part_confirmation_signatures` の存在しない列 `part_installation_id` を SELECT していた
+  （実列名 `installation_id`）— 本番では `parts_confirmation` 経由の懸念提起が 400 で失敗する
+  状態だった。
+  (2) 新設 `customer_concerns` テーブルが `scripts/schema.snapshot.json` に未登録だった —
+  マイグレーション DDL から書き起こして登録。
+  (3) `hasUnresolvedConcerns`（IMP-028 Certificate Gate 用のブロック判定）がクエリエラー時に
+  fail-open していた — fail-closed（エラー時 true）に変更。
+  (4) 同関数が tenant_id でスコープしておらず `src/lib/supabase/admin.ts` の CRITICAL 規約に
+  反していた — `tenantId` 必須引数を追加。
+  (5) `delivery_receipt`/`body_repair_consent` の token 解決が `purpose` 列を見ておらず、
+  他フローのトークンと取り違えうる状態だった — 既存コードと同じ `purpose` フィルタを追加。
+  (6) `customer_concerns` の Slack 通知が `customer_inquiries`（別系統と明言）と同じ webhook を
+  共用していた — 専用の `SLACK_CUSTOMER_CONCERN_WEBHOOK_URL` を新設。
+  (7) `z.enum(X as unknown as [string, ...string[]])` という型消去キャストを4箇所で全廃
+  （`readonly T[]` 型注釈を外しタプル推論に任せるだけで解決）。
+  (8) 懸念を再オープンした際に旧 `resolved_by`/`resolved_at` が残るバグを修正。
+  (9) `hasUnresolvedConcerns`（過去にOR ロジックのリグレッション歴あり）にテスト7件を新設。
+  修正・プッシュ後、CI の Migrations Replay（空DBからの全マイグレーション再生）が新規失敗し、
+  マイグレーション自身のバグ2件を追加で発見・修正。
+  (10) `resolved_by UUID REFERENCES profiles(id)` と RLS ポリシー2箇所が存在しないテーブル
+  `profiles` を参照 — `auth.users(id)` / `public.my_tenant_ids()`（既存の確立済みパターン）に修正。
+  (11) `EXECUTE FUNCTION update_updated_at()` が存在しない関数を参照 — 実在する
+  `set_updated_at()` に修正。`npm run check:migrations` で「再生 OK（既知の9件を除く。増減なし）」
+  まで確認。
+  加えて、IMP-024/025 と同じ squash 履歴の断絶で `src/lib/sync/`・`WorkScopeProvider.tsx` が
+  6度目の復活をしていたため再削除。
+- 対象: `src/app/api/customer/concerns/route.ts`、`src/app/api/admin/concerns/[id]/route.ts`、
+  `src/lib/concerns/{blockCheck,types}.ts`、`scripts/schema.snapshot.json`、`.env.example`、
+  `supabase/migrations/20260820010000_customer_concerns.sql`。
+  詳細は DECISION_LOG「IMP-026（#941）を main へ取り込み。check:schema・`/code-review`・
+  CI の Migrations Replay で計11件を発見・対応」参照。
+
+## 2026-08-30 IMP-025（#940）を main へ取り込み。PII シールドの穴3件を修正、resurrection バグを5度目の再削除
+
+- 内容: IMP-025（車両パスポート PII シールド、branch impl/IMP-025-vehicle-passport）を main へ
+  取り込む際、`/code-review` で本 PR 自身の PII シールド実装に3件の穴を発見・修正。
+  (1) `PIIFieldOverlap` はトップレベル `keyof` しか見ないため、`PassportVerifyResponse` の
+  入れ子オブジェクト（vehicle/summary/meta_anchor/certificates[]）内の将来的な PII 追加を
+  検知できなかった — 4つの入れ子形状を個別にチェックする assertion を追加。
+  (2) `PublicTransferView` のチェックだけ共有レジストリを使わずハードコードされており、
+  `current_owner_email`/`current_owner_name` の重複を見逃していた — `PIIFieldOverlap` ベースに
+  統一し、`from_owner_email`/`from_owner_name` をレジストリに登録。
+  (3) `VEHICLE_TABLE_PII_COLUMNS` が `customer_name`/`customer_email`/`customer_phone_masked`
+  （マイグレーション20260321000002で既にDROP済み・実在しない列）を列挙する一方、実在する
+  `plate_display`（ナンバープレート）が未登録だった — レジストリを実スキーマに合わせて修正。
+  加えて、IMP-024 と同じ squash 履歴の断絶で `src/lib/sync/`・`WorkScopeProvider.tsx` が
+  5度目の復活をしていたため再削除（IMP-025 が IMP-024 の再削除前のコミットから fork していたため）。
+- 対象: `src/lib/passport/piiFields.ts`、`src/lib/vehicles/customerRelation.ts`、
+  `src/lib/passport/__tests__/piiShield.test.ts`、`docs/context/OPEN_QUESTIONS.md`
+  （未記載だった2件の未解決事項を追記）。詳細は DECISION_LOG「IMP-025（#940）を main へ
+  取り込み。PII シールドの穴3件を `/code-review` で発見・修正」参照。
+
+## 2026-08-29 見積りフロー改善③: 概算見積りに「正式見積り/相談」ボタン誘導＋文面整合（branch claude/line-chatbot-ledra-dy2fiq）
+
+- 内容: LINE の概算見積り自動返信が「正式・詳細なお見積りはご来店時に承ります」で終わる**行き止まり**で、
+  会話フロー（#993 で車検証OCR対応済みの正式見積りフロー）へ続く導線が無かった。むしろ概算は
+  「来店で」・正式見積りフローは「LINEで送れば見積り送付」と**文面が矛盾**しており、そのせいで
+  概算送信直後の自動フロー開始は意図的にスキップされていた（＝概算で会話が途切れていた）。
+  - **ボタン誘導**: 概算返信の直後に「お見積りをお願いしたい」（→見積りフロー開始 `flow:start_quote`）・
+    「スタッフに相談したい」（`flow:consult`）を添付（ナレッジ自動返信と同じ `buildFollowupButtons`）。
+  - **文面整合**: ボタンを添えるときは締めを「正式なお見積りは下のボタンからLINEで承ります
+    （車検証のお写真でより正確に）。ご来店でも承ります。」に揃え、概算＝来店のみ という矛盾を解消。
+    正式見積りフローの入口 `buildQuoteDetailAsk`（車検証等で精度UP）と繋がるようにした。
+- ボタン添付条件はナレッジ返信と同一（会話フロー opt-in 済み＋進行中フロー無し）。opt-in OFF や
+  進行中フロー有りのテナントは従来どおりの素テキスト・来店案内で挙動不変。
+- 実装: `quoteReplyAuto` に `attachButtons`／`buildRoughEstimateMessage` に `canContinueOnLine` を追加、
+  `inboundAuto` から `attachFollowupButtons` を配線（ナレッジ返信と同じ値）。マイグレーション不要。
+- 検証: `quoteReplyAuto`（ボタン付き=`sendCustomerLineButtons`＋start_quote/consult＋LINE整合文面／
+  未指定=素テキスト＋来店文面）テスト追加。
+- コードレビュー由来の追加修正（同 PR、`/code-review`）:
+  - 金額なし分岐（総額0）でも `canContinueOnLine` 時は「お車を拝見して＝来店前提」の一文を出さない
+    （締めの「LINEで承ります」と矛盾していた文面整合の取りこぼしを解消）。
+  - `actionCatalog` の本アクション説明を「来店に誘導」からボタンで LINE 見積りフローへも誘導する旨に更新
+    （runtime 挙動と capability 説明のドリフト解消）。
+- 全体 4448 件パス、tsc/eslint エラー0。
+- #2「見積りフロー改善」の3件目。後続: 停滞フローの再促し（最後の1件）。
+
+## 2026-08-29 IMP-024（#939）を main へ取り込み。squash 履歴の断絶で4度目の復活をしていた src/lib/sync/・WorkScopeProvider.tsx を再削除、VoiceMemoPanel の同時録音競合を修正
+
+- 内容: IMP-024（音声メモ統合、branch impl/IMP-024-voice）を main へ取り込む際、37 ファイルが
+  add/add 衝突。衝突していないファイルまで精査したところ、main の squash 済み履歴からは既に
+  除かれている `src/lib/sync/`（index.ts・types.ts・conflict.ts・テスト）と
+  `src/lib/navigation/WorkScopeProvider.tsx` が、衝突すら起こさずに作業ツリーへ復活していた
+  （#935・#936・#937 に続く4度目）。`scripts/check-resurrected-files.sh` は今回誤って
+  「OK」を返しており（ORIG_BASE が IMP-021 より前まで遡っていたため、削除される前の
+  「追加」イベント自体が判定範囲に入ってしまった）、手動の `/code-review` で発見。5ファイルを
+  再度削除。
+- 内容2: 同じ `/code-review` で、証明書作成フォームに VoiceMemoPanel が2つ（施工内容用・
+  備考用）並ぶ設計になったことで、片方が録音中にもう片方の `rec.start()` がマイクを奪う
+  競合を検出。モジュールスコープの排他ロックで、同時に1つのパネルしか録音できないよう修正。
+- 対象: `src/lib/sync/`・`WorkScopeProvider.tsx`（削除）、`VoiceMemoPanel.tsx`（排他ロック）、
+  `CertNewFormWrapper.tsx`（死んだ dispatchEvent 呼び出しも削除）。詳細は DECISION_LOG
+  「IMP-024（#939）を main へ取り込み。squash 履歴の断絶で4度目の復活をしていた
+  src/lib/sync/・WorkScopeProvider.tsx を再削除」参照。
+
+## 2026-08-29 certificate_images_guard を元の 20260820000000 へ戻す（本番は元の名前で既に適用済みだった）
+
+- 内容: PR #996 の改名（20260820000000→20260829000000）マージ後、db-migrate.yml が今度は逆方向の
+  "Remote migration versions not found in local migrations directory." で失敗した。本番の
+  `schema_migrations` を直接確認したところ、`20260820000000/certificate_images_guard` が
+  **元の名前のまま既に適用済み**だった（適用経緯は未確認）。改名（#996）は既に適用済みの
+  ファイルを改名してしまっていたことになる——DECISION_LOG 2026-07-21／run #973 が警告している
+  失敗パターンにそのまま該当。`20260829000000_certificate_images_guard.sql` を
+  `20260820000000_certificate_images_guard.sql` へ戻し（SQL は無変更）、
+  `supabase/__tests__/certificateImagesGuard.test.ts` のファイル名参照も元に戻した。
+- 検証: `lint:migrations`（282件）OK・`check:schema` OK・`certificateImagesGuard.test.ts`（6件）OK・
+  本番の適用済み全バージョンとローカルの全ファイルを機械的に突き合わせ、20260816010000 以降の
+  差分ゼロを確認。
+- 対象: GitHub Actions `DB migrate (apply to production)` ワークフロー。
+- 限界: 20260820000000 が本番へ適用された正確な経緯（誰が・いつ）は未確認。改名前に本番の
+  記録を都度再確認する運用を徹底する必要がある（DECISION_LOG 参照）。
+
+## 2026-08-29 certificate_images_guard マイグレーションを改名し db-migrate の out-of-order 停止を解消
+
+- 内容: PR #994 のマージ後、db-migrate.yml が
+  "Found local migration files to be inserted before the last migration on remote database."
+  で失敗した。`certificate_images_guard.sql`（PR #938 のドラフトが2026-08-20に作成、
+  レビュー待ちの間に main が7本進んだ）が未適用のまま本番の適用済み最新（20260828000003）より
+  古い日付になっていたため。`20260820000000_certificate_images_guard.sql` を
+  `20260829000000_certificate_images_guard.sql` へ改名（SQL は無変更）。
+  `supabase/__tests__/certificateImagesGuard.test.ts` のファイル名参照も同時に更新。
+  このリポジトリで同じ停止は run #972・#976・#977 に続き4回目（DECISION_LOG 2026-07-21 の
+  既存手順をそのまま適用）。
+- 検証: `lint:migrations`（282件）OK・`check:schema` OK・`certificateImagesGuard.test.ts`（6件）OK。
+- 対象: GitHub Actions `DB migrate (apply to production)` ワークフロー。
+  `certificate_images_guard` トリガーの実体（保護ロジック）は無変更。
+- 限界: レビュー待ちの長い PR が自身のマイグレーションバージョンを陳腐化させる構造的な
+  問題は未解決。OPEN_QUESTIONS に起票。
+
+## 2026-08-29 日程候補の精度向上: 日程変更で元予約の所要時間・代車・カテゴリを考慮（branch claude/line-chatbot-ledra-dy2fiq）
+
+- 内容: LINE の日程変更（reschedule）セルフ対応で提示する日程候補が、これまで所要時間も代車も
+  カテゴリも無視して「空いている枠」を一律に出していた。動かす対象の既存予約が持つ
+  **実所要時間（end−start）・代車要否（loaner_car_id）** を使って候補を絞り、作業はあるが
+  カテゴリ不明なので **受入制限枠は提案しない（excludeRestricted）** ようにした。
+  - 副次バグの解消: 変更確定時に候補の end_time をそのまま新予約の end_time にしていたため、
+    1時間の作業を3時間枠に移すと**予約が枠いっぱい（3時間）に膨らんでいた**。所要時間を
+    渡すことで end_time が実作業時間（start+所要）に揃い、元予約の長さを保つ。
+  - 所要時間に収まらない枠（fits=false）は顧客に提示しない（入れない枠を選べないように）。
+- 実装:
+  - `fetchFlowScheduleCandidates` に `estimatedMinutes` / `needsLoaner` / `excludeRestricted` を追加。
+    needsLoaner 時は `loaner_cars` / `loaner_car_loans` を読んで空き代車を日別算出。fits=false を除外。
+  - 代車の空き計算を純粋関数 `computeFreeLoanersByDate`（`booking/candidates.ts`）に切り出し、
+    `booking-candidates` route（管理UI）と LINE 会話フローで**単一情報源**にした（在庫計算の二重実装を防止）。
+  - `reservationDurationMinutes`（純粋関数）で end−start を分換算（終日/時刻なし/逆転は null）。
+  - reschedule フロー起点・pick→slot・確定直前の再検証の3経路すべてで同じ条件を渡し、
+    再検証の end_time 一致判定が壊れないようにした。
+- 見積り（新規予約）フローは施工内容→品目→カテゴリ/所要時間の解決層が無く所要時間が不明なため
+  従来どおり（estimatedMinutes=null）。人手（considerStaff）は今回スコープ外。マイグレーション不要。
+- 検証: `candidates`（computeFreeLoanersByDate）／`scheduleCandidates`（所要フィルタ・代車ゲート・
+  制限枠除外の結合）／`rescheduleFlowAuto`（元予約から所要・代車を渡すこと）テスト追加。
+- コードレビュー由来の追加修正（同 PR、`/code-review`）:
+  - **【重大】limit 食い潰しの解消**: `fits` 除外を `proposeCandidates` の `limit` 集計**後**に
+    かけていたため、短い枠が先に limit を消費して入る枠が取りこぼされ、空き枠があるのに
+    スタッフ引き継ぎになり得た。`proposeCandidates` に `onlyFitting` を追加し push（=limit 集計）
+    より前に fits=false を除外。回帰テスト追加。
+  - 確定直前の再検証を `start_time` 一致のみで同定（end_time は所要時間からの導出値なので照合に
+    使わない。target 欠落時の誤コンフリクトを回避）。
+  - reschedule テストで `reservationDurationMinutes` を本物（importActual）で検証。
+- 全体 4444 件パス、tsc/eslint エラー0。
+- #2「見積りフロー改善」の2件目。後続: 概算見積りにボタン誘導＋文面整合・停滞フローの再促し。
+
+## 2026-08-29 IMP-023（#938）マージ後、本番にだけ存在した未追跡マイグレーションを復旧（db-migrate 停止解消）
+
+- 内容: PR #938（証跡凍結ガード）を main へ squash merge 後、`db-migrate.yml` が
+  "Remote migration versions not found in local migrations directory." で失敗した。
+  本番 `cahybswpduchptvyvdkk` の `supabase_migrations.schema_migrations` を直接確認したところ、
+  `20260828000003 / user_interface_preferences`（tenant_id・user_id・display_mode・
+  onboarding_completed_at を持つテーブル。RLS 有効・SELECT ポリシーのみ）が本番にのみ記録されており、
+  このリポジトリの git 履歴（squash 済み main を含め全履歴検索）に一度も出現していなかった。
+  作成者・適用時期は特定できていない（このセッションの作業ではない）。DECISION_LOG 2026-07-21／
+  過去3回（run #971・#973 ほか）と同じパターン（Supabase MCP の `apply_migration` による本番直接適用
+  はリポジトリにファイルを残さない）。過去3件と異なり同一内容の別ファイルが repo に無いため、
+  空プレースホルダではなく本番の `statements` をそのまま採録した
+  `supabase/migrations/20260828000003_user_interface_preferences.sql` を追加して復旧した。
+  `supabase migration repair`（本番台帳の書き換え）は使っていない——本番へは一切書き込んでいない。
+- 検証: `lint:migrations`（281件検査）OK・`check:schema` OK（このテーブルはアプリコード未参照のため
+  クエリ照合には影響なし）。
+- 対象: GitHub Actions `DB migrate (apply to production)` ワークフロー全般（以後のマイグレーション
+  自動適用）。`user_interface_preferences` テーブル自体はアプリコードから未参照で機能への影響なし。
+- 限界: このテーブルの利用目的・書き込み経路（RLS に INSERT/UPDATE ポリシーが無い）は未確認
+  【要確認】。誰が・いつ本番へ適用したかも特定できていない。OPEN_QUESTIONS に起票。
+
+## 2026-08-29 見積りフロー改善①: 見積り詳細待ちの車検証写真をOCRで取り込む（branch claude/line-chatbot-ledra-dy2fiq）
+
+- 内容: 見積り会話フローの詳細待ち（`awaiting_quote_detail`）中に顧客が車検証写真を送ると、
+  これまでは OCR に配線されておらず「車種+年式テキスト」しか先に進めなかった。今回、写真を
+  OCR（既存 `parseShakenshoAuto` を再利用）して車両（メーカー/型式/初度登録）を読み取り、
+  見積りフローを前進させる。
+  - 施工内容が既に context にあれば、写真の車両で正式見積り下書きまで作成（`maybeAdvanceQuoteFlowOnDetail`）。
+  - 施工内容が未知（FAQ ボタン起点等）なら、読み取った車両を context に保持し施工内容だけ聞き返す
+    （車両を捨てない）。
+  - 車検証として読めない画像・車名不読は未処理（false）で通常の受信箱記録（スタッフ対応）に委ねる。
+- 実装: `conversationFlowAuto.maybeAdvanceQuoteFlowOnPhoto`、文面 `buildQuoteServiceAskAfterPhoto`、
+  `client.ts` の画像処理で車両撮影フロー（`handleVehiclePhotoMessage`）に該当しなければ本ハンドラを試す。
+  OCR は身分証書類ソース（`identity_documents`）許可時のみ（既存 parse-shakken と同ゲート）。
+  opt-in は既存の会話フロー（`inbound_message.auto_conversation_flow`）。マイグレーション不要。
+- 検証: `conversationFlowAuto`（施工内容ありで draft／未知なら車両保持＋施工内容聞き返し／不読は未処理／
+  フロー不在／ソース OFF）テスト追加。全体 4419 件パス、tsc/eslint エラー0（既存 client.ts の `text` 警告のみ）。
+- コードレビュー由来の追加修正（同 PR、`/code-review`）:
+  - **二重下書き防止（重要）**: `maybeAdvanceQuoteFlowOnDetail` を「下書き作成の前に quote_drafted を
+    排他クレーム」する構造に変更（写真/テキストの再配信・連投で見積り下書き・お礼が二重に作られていた
+    既存レースを解消。材料なしなら詳細待ちへ戻す）。写真経路もこれに合流。
+  - 画像バイト列の Buffer コピーを 1 回に（2 ハンドラで二重確保していた）。
+  - 未処理時に写真を二重記録しないよう記録タイミングを整理。
+- #2「見積りフロー改善」の1件目。後続: 日程候補の精度向上・概算見積りにボタン誘導・停滞フローの再促し。
+
+## 2026-08-29 IMP-023（#938）: 証跡凍結ガード。main 取り込み時に本番マイグレーションの設計不備を4件修正
+
+- 内容: v2.0 §7 の証跡凍結ガード（`certificate_images_guard` DB トリガー）と必須ショット進捗計算
+  （`evidenceProgress.ts`）を main へ統合。実装内容そのものは元の #938 のドラフト
+  （2026-08-20、詳細は同日付の RELEASE_LOG エントリ参照）から変わらないが、
+  **本番 DB へ自動適用されるマイグレーションを含むため、取り込み時の `/code-review` で
+  4件の指摘を修正**した（うち1件は代表判断で公開区分「マイグレーション適用してマージ」の
+  明示確認を得た上でのマージ）:
+  1. **expired 証明書の凍結解除ループホール（重大）**: `NOT IN ('active', 'void')` を
+     「制限なし」条件にしていたため、保証期間満了で自動的に expired へ遷移した瞬間
+     （`cron/maintenance`）に凍結が解除され、まさに紛争が起きやすい満了後に写真の
+     削除・改ざんが自由になる設計になっていた。`= 'draft'` のみを制限なしとする条件に
+     修正（active/void/expired をすべて保護）。詳細は DECISION_LOG「IMP-023 凍結ガードの
+     draft/expired 同列扱いは誤りだったため expired も保護対象に修正」参照。
+  2. **DELETE API のストレージ削除順序**: `/api/certificates/images/[id]` が DB 行の
+     ガード付き削除より先にストレージから実ファイルを消していたため、トリガーに
+     ブロックされて 409 を返しても実ファイルは既に失われる状態だった。DB 削除を先に
+     実行する順序へ修正。
+  3. **polygon-backfill の書き込みエラー握りつぶし**: アンカー結果の UPDATE
+     （`polygon_tx_hash`+`authenticity_grade` を1文にまとめていた）がガードにより
+     拒否されても戻り値の error を見ておらず、成功扱いのまま進んでいた。tx hash の
+     UPDATE（非保護列）と authenticity_grade の UPDATE（保護列）を分離し、後者が
+     ブロックされてもアンカー自体の前進を止めないよう修正。
+  4. **certificate_id の付け替えが証跡列チェックをすり抜ける穴**: 凍結保護対象の
+     証跡列リストに `certificate_id` が含まれておらず、別証明書への付け替えで
+     実質的に証跡を切り離せる潜在的な穴があった。リストに追加。
+  - `evidenceProgress.ts` の同じ stage を共有する複数の必須ショットが同じ写真を
+    二重にカウントするバグも合わせて修正（現時点で UI 未接続のため実害はなし、
+    ミューテーションプローブ検証済みのテストを追加）。
+  - `supabase/__tests__/certificateImagesGuard.test.ts` を新設（既存
+    `partInstallations.test.ts` と同方式の静的 SQL 監査）。
+- **同一 PR への Codex（`chatgpt-codex-connector[bot]`）レビューでさらに2件を追加修正**:
+  5. **保護対象列の不足**: `processUploadedPhoto.ts` がアップロード時に一度だけ書き込む
+     証跡フィールド（c2pa_manifest/c2pa_verified/external_c2pa_*/capture_nonce/
+     capture_binding_reason/device_attestation_*/exif_*/gps_check_verdict/
+     gps_distance_bucket/deepfake_score/deepfake_verdict）が凍結保護リストから漏れており、
+     真正性判定の根拠そのものを発行後に書き換えられる状態だった。全16列を追加
+     （polygon_tx_hash/polygon_network は事後アンカリングの正規更新のため意図的に対象外）。
+  6. **polygon-backfill のグレード更新失敗を一律ガード扱いにしていた**: ガード拒否
+     （P0001）以外の理由（ネットワーク断等）で失敗しても区別せず warn ログにしていたため、
+     一時的な失敗が永久に再試行されなくなる恐れがあった。P0001 かどうかで
+     ログレベルを分離。
+  - **Codex は同時に、この移行が対応しきれていない3つの既知の限界も指摘**（マイグレーション
+    ファイルのコメントに明記、この PR ではスコープ外）: (a) ガードが親ステータスを
+    ロック無しで SELECT するだけなので、証明書の activate と写真 DELETE が真に同時に
+    走ると理論上すり抜けられる TOCTOU（(b) certificates.status 自体は本ガードの対象外
+    のため、active→draft のような逆方向遷移を直接 UPDATE されると凍結が解除される、
+    (c) 親 certificates 行自体を削除する（ON DELETE CASCADE）と子の写真行はガードの
+    「親が見つからない」＝「制限なし」判定に該当し、削除経路がすり抜ける。これら3件は
+    `certificates` 側の別ガード・ロック機構が必要な、より大きな変更のため、IMP-030
+    以降での対応を代表に提案・確認中。
+- 検証: tsc/vitest(4408件)/lint/check:schema/lint:migrations すべて green。マイグレーションは
+  main マージ後に `db-migrate.yml` が自動的に本番へ適用する（承認ゲートなし）。
+
+## 2026-08-29 予約・作業状況の問い合わせにLINEで自動返信（新規、branch claude/line-chatbot-ledra-dy2fiq）
+
+- 内容: 顧客が LINE で「作業どうなってる?」「いつ仕上がる?」等（intent=status_inquiry）と送ると、
+  その顧客本人の直近予約の状況を自動返信する。対象選択は「作業中/来店受付（進行中）→ 直近の未来予約 →
+  直近の完了」の優先順。稼働中の `reservations.status`（confirmed/arrived/in_progress/completed）に
+  対応する顧客向け文言で返し、in_progress は `progress_pct` があれば進捗も添える。
+- 本人確認: line_user_id 紐付け済みのお客様のみ（他人の予約状況を漏らさない）。未紐付け・対象なしは
+  スタッフ引き継ぎ。opt-in `inbound_message.auto_status_reply`（既定 OFF、Standard+・AI 有効）。
+- 実装: 新 intent `status_inquiry`（`inboundReservationExtract`）、起点 IO `statusReplyAuto.ts`、
+  文面 `buildWorkStatusReply`/`buildWorkStatusHandoff`（`messages.ts`）、`inboundAuto` で
+  キャンセル/変更の後・他返信の前に判定し早期 return。
+- 正準 JobState へのマッピングは持たない（ADR-0002 / IMP-015 まで）。稼働中の 5 値だけを顧客向けに翻訳。
+- 検証: statusReplyAuto（opt-in/対象選択優先順/未紐付け/対象なし/進捗表示）＋ inboundAuto ゲートの
+  テスト追加。全体 4414 件パス、tsc/eslint エラー0。
+- コードレビュー由来の追加修正（同 PR、`/code-review`）:
+  - **越境情報開示の防止（重要）**: 顧客解決を**必ず line_user_id 紐付けから**行うよう変更。inboundAuto が
+    AI 抽出のメール/電話から解決した customerId を渡してきても信用しない（本文に他人のメールを書いた
+    未紐付けユーザーに他人の予約状況を返さない）。回帰テスト追加。
+  - status_inquiry を `knowledgeReplyAuto` の許可 intent に追加（status 返信 OFF のテナントで、状況質問が
+    ナレッジ返信に拾われなくなる回帰を防ぐ。can_answer 判定があるので過剰返信しない）。
+  - `progress_pct` が 0（DB 既定）のとき「進捗 0%」を出さない（未設定と 0% を区別できないため）。
+  - 予約取得クエリのエラーを「予約なし」と誤断定せず引き継ぎに寄せる（ログも残す）。
+- スコープ外（後続）: 証明書・支払い状況の案内、複数予約の一覧提示、作業ステップ単位の詳細。
+
+## 2026-08-29 予約前日リマインダー（キャンセル/変更ボタン付き、新規、branch claude/line-chatbot-ledra-dy2fiq）
+
+- 内容: 翌日(JST)に未キャンセル予約があり LINE 紐付け済みのお客様へ、前日夕方に LINE で
+  「明日ご予約です」を自動送信する新規 cron。self-cancel / self-reschedule の opt-in が ON なら、
+  そのままキャンセル/日程変更できるボタン（`flow:start_cancel` / `flow:start_reschedule`）を添える
+  （タップで既存のセルフ対応フローが起動）。予約1件につき1回だけ（`notification_logs` で dedup）。
+- opt-in `reservation.auto_day_before_reminder`（既定 OFF、`actionCatalog.ts`/`orchestrator.ts`）。
+  Standard+・AI 有効・`followup_opt_out` 尊重。LINE 紐付けが無ければ送らない（ボタン前提のため）。
+- 実装: cron ロジック `src/lib/cron/reservationReminders.ts`、route `/api/cron/reservation-reminders`
+  （UTC 09:00 = JST 18:00、`vercel.json` 登録）、メッセージ `buildReservationReminder`、postback
+  ハンドラ `flow:start_cancel`/`flow:start_reschedule`（`conversationFlowPostback`、循環回避で動的 import、
+  起動不可なら consult フォールバック）。
+- マイグレーション不要: opt-in は既存 `tenant_ai_automation_settings.auto_actions`(JSON)、通知記録は
+  既存 `notification_logs`（`type`/`target_type` は自由記述 text、`channel="line"` は既存 check 適合）。
+- 検証: cron 本体（明日抽出・dedup・opt-out/未紐付けスキップ・ボタン有無・失敗ログ）＋ postback
+  ハンドラのテスト追加。全体 4404 件パス、tsc/eslint エラー0。
+- コードレビュー由来の追加ハードニング（同 PR、`/code-review`）:
+  - opt-in テナント発見を **tenant_id キーセットページング**に（PostgREST 既定 1000 行上限で
+    opt-in 済みテナントを無言で取りこぼさない。followUp.ts と同じ理由）。
+  - discovery クエリの失敗を throw させ **`sendCronFailureAlert` に上げる**（全滅を「0 件成功」で
+    隠さない）。テナント単位の失敗は個別に握って他テナントを止めない。
+  - リマインダーのボタン起動が false（主因=進行中フロー有り）のとき、consult フォールバックで
+    **無関係なフローを human_takeover に奪わない** no-op に（見積り等の進行中フローを守る）。
+- スコープ外（後続）: 送信時刻のテナント個別設定、メール併用、複数日前（2日前等）の追加。
+
+## 2026-08-29 日程変更の空き計算を「自予約除外」に精緻化（後片付け、branch claude/line-chatbot-ledra-dy2fiq）
+
+- 内容: 日程変更（#987）で残していた「同日内変更時に候補が過少に見えうる」を解消。
+  `fetchFlowScheduleCandidates` に `excludeReservationId` を追加し、動かす対象の予約を
+  空き計算から除外する（`reservations` クエリに `.neq("id", …)`）。候補提示（1件/複数の両経路）と
+  確定直前の再検証の 3 箇所で対象予約 ID を渡す。これで同日内の時間帯変更でも、対象予約が
+  自分の旧枠を占有したまま数えられて候補が減る/自枠に弾かれることが無くなる（二重予約は従来どおり起きない）。
+- あわせて `reservations/mutate.ts` の ponytail コメントを更新: admin route.ts のキャンセル/変更を
+  共有ヘルパーへ寄せる単一情報源化は**行わない**方針に修正（認可モデルが異なるため。詳細は DECISION_LOG）。
+- 対象: LINE 日程変更のセルフ対応（opt-in `inbound_message.auto_self_reschedule`）。
+- コードレビュー由来の追加修正: `fetchFlowScheduleCandidates` の予約取得に **`all_day` を追加**。
+  終日予約はその日の全枠を占有するが、未取得だと `proposeCandidates` の占有判定をすり抜け、満杯の
+  終日予約がある日にも候補が出て二重予約になりうる既存バグを修正（canonical な booking-candidates
+  route と同じ理由で `all_day` を含める）。LINE の見積り→日程提示フローにも効く共有関数の修正。
+  ※ fake admin は列projectionを模さないため単体では観測不能。canonical route とのパリティで担保。
+- 検証: `rescheduleFlowAuto` で `excludeReservationId` 引き渡しをアサート。全体 4386 件パス、tsc/eslint エラー0。
+
+## 2026-08-29 IMP-022（#937）: Work List & Job Hub。main 取り込み時に3度目の復活バグを修正、検出をスクリプト化
+
+- 内容: v2.0 §6 の Work List & Job Hub（ステータス表示の単一定義源
+  `jobStatusDisplay.ts`・情報階層・CTA規律）を main へ統合。実装内容そのものは
+  元の #937 のドラフト（2026-08-20、詳細は同日付の RELEASE_LOG エントリ参照）
+  から変わらない。
+- **main への取り込み時の `/code-review` で `src/lib/sync/` と
+  `WorkScopeProvider.tsx` の復活（3回目）を検出・修正**: #935・#936 で二度
+  発生し二度直したはずの「main で削除済みのファイルが古いブランチとの
+  マージで衝突なしに復活する」バグが、#937 でも三度目の発生をした。今回は
+  #936 時点で「検証済み」としていた検出手順（main の履歴を `git log
+  --diff-filter=D` で辿る方式）自体に構造的な欠陥があったと判明: main の
+  squash マージでは、1本のスタック PR 内で完結した「追加してから削除」が
+  main の履歴に一切残らないため、main の履歴を情報源にする限り原理的に
+  検出できない。検出方法を「main の履歴」ではなく「今回マージしている PR
+  自身のコミットが当該ファイルを触っているか」に置き換え、
+  `scripts/check-resurrected-files.sh`（`npm run check:resurrected`）として
+  スクリプト化した。ミューテーションプローブ（削除前=検出・削除後=クリーン）
+  で動作確認済み。詳細は DECISION_LOG「削除済みファイルの復活検出を3度目の
+  失敗を経てスクリプト化した」参照。
+
+## 2026-08-29 LINEで顧客が予約の日程を自分で変更できるセルフ対応（reschedule、branch claude/line-chatbot-ledra-dy2fiq）
+
+- 内容: キャンセルのセルフ対応（#983）に続く第二弾。顧客が LINE で「予約の日程を変更したい」
+  （intent=change_reservation）と送った時点で、**本人の今後の予約を提示（複数なら選択）→
+  空いている新しい日程候補をボタンで選択→即時反映**（`scheduled_date`/`start_time`/`end_time`
+  を更新＋Google カレンダー更新＋スタッフ通知）を自動化した。会話フロー基盤を再利用。
+  - 締め切りは**作業日の前日まで**（キャンセルと同じ `scheduled_date > todayJst()`）。当日・過去・
+    対象なし・**空き候補なし**・未紐付けはスタッフ引き継ぎ。反映は即時自動。
+  - 新状態 `awaiting_reschedule_pick`/`awaiting_reschedule_slot`、新イベント
+    `reschedule_pick_selected`/`reschedule_slot_selected`（`states.ts`/`interpret.ts`）。
+    共有ヘルパー `rescheduleReservationById`（`reservations/mutate.ts`：日時更新＋gcal 更新、
+    所有者＋締め切り＋終端ガード、`.select("id")` で 0 行更新を成功と誤認しない）。起点 IO
+    `ai/automation/rescheduleFlowAuto.ts`、実行は `conversationFlowPostback.ts`。
+  - 安全性: 確定直前に空き状況を再検証（埋まっていれば conflict 引き継ぎ）、closed 楽観クレームで
+    二重更新防止、締め切りを実 DB 値で再検証。候補ボタン配信失敗時は行を `expired` に落とす。
+  - 「その他の日程を相談する」（既存 `flow:cancel`→handoff）で人手にも切替可能。consult ボタンは
+    self-reschedule のみ有効なテナントでも受ける（死にボタン回避）。
+  - opt-in `inbound_message.auto_self_reschedule`（既定 OFF、`actionCatalog.ts`/`orchestrator.ts`）。
+    会話フロー・自己キャンセルの opt-in とは独立。
+- 対象: LINE 受信の AI 自動応答（全業種、Standard プラン以上・opt-in）。#983 とは別 PR。
+- 検証: 単体テスト追加（`reservations/mutate`・`rescheduleFlowAuto`・`conversationFlowPostback`・
+  `inboundAutoReplyGate`・`interpret`・`states`）。automation+line+reservations 299 件、全体 4373 件パス、tsc/eslint エラー0。
+- コードレビュー由来の追加ハードニング（同 PR、`/code-review`）:
+  - 変更先の日程も「前日まで」に揃える。`fetchFlowScheduleCandidates(fromDate)` を追加し、日程変更の
+    候補は**翌日起点**で出す（当日への自己変更を防ぐ。締め切りの対象を旧日付だけでなく新日付にも適用）。
+  - 変更先が埋まっていた場合、`closed` のままにせず `human_takeover` へ移す（スタッフがトークを
+    引き継いで別日程を調整できるように。`handleSlotSelected` と挙動を揃える）。
+  - 「その他の日程を相談する」引き継ぎに `logAutoActionExecuted` を追加（見積りフロー側と監査粒度を統一）。
+- スコープ外（後続）: リマインダー本文へのキャンセル/変更ボタン添付、admin route.ts のキャンセル/
+  変更処理を共有ヘルパーへ寄せる単一情報源化。
+
+## 2026-08-29 IMP-021（#936）: 3秒理解ホーム。main 取り込み時に重大な復活バグと初期表示スコープの問題を修正
+
+- 内容: v2.0 §5 のダッシュボード「3秒理解」（NEXT ACTION セクション・今日の進捗
+  ProgressCard・3段階ワークスコープ切替 HomeScopeToggle）を main へ統合。実装内容
+  そのものは元の #936 のドラフト（2026-08-19、詳細は同日付の RELEASE_LOG エントリ
+  参照）から変わらない。
+- **main への取り込み時の `/code-review` で5件を修正**（うち2件は重大）:
+  1. **`src/lib/sync/` の復活（2回目）**: #935 で一度直した「main で削除済みの
+     モジュールが古いブランチとのマージで衝突なしに復活する」バグが、#936 でも
+     同じ理由で再発した。今回は機械的な検出方法を実際に作って検証し（DECISION_LOG
+     「削除済みファイルの復活を機械的に検出する方法を作り、検証した」参照）、それで
+     見つけて再度削除した。
+  2. **ダッシュボード初期表示スコープの回帰**: `defaultScope(caller.role)` を
+     無指定時のフォールバックに使うと、staff/viewer は今まで見えていた店舗全体の
+     タスクが「自分の分だけ」に縮み、viewer はトグルが出ないため戻す手段も無くなる
+     ところだった。代表判断が出るまで現状維持（"store" 固定）に変更。詳細は
+     DECISION_LOG「IMP-021 の初期表示スコープは代表判断が出るまで既存の
+     tenant-wide 表示を維持」参照。
+  3. 新規テスト2件が UTC より遅いタイムゾーン（米国等）で失敗するバグを修正
+     （`now` を深夜0時UTCから正午UTCへ変更、既存の姉妹テストと同じ規約）。
+  4. `TodayOverviewSection` と `TodayTasksWidget` が同一リクエスト内で
+     `fetchTodaySignals` を同じ引数で二重に呼んでいた（DB クエリが2倍）。
+     `fetchTodaySignals` を React `cache()` でラップして解消。
+  5. 死んだコード2件を削除: `WorkScopeProvider.tsx`（呼び出し元ゼロの投機的な
+     抽象化）、`TodayTasksScopeToggle.tsx`（HomeScopeToggle に統合済みで
+     import 元ゼロ）。
+- まだ答えが出ていないこと: staff/viewer の初期表示スコープを self にすべきか
+  現状維持でよいかは代表判断待ち。`todayTasks.ts` の日付計算が正のUTCオフセット
+  （JST 等）で1日ずれる既存バグを発見したが、今回のスコープ外として保留
+  （OPEN_QUESTIONS 参照）。
+- テスト: 既存5件 + 修正後全通過。全4391テスト通過、`tsc --noEmit` クリーン、
+  lint 0 エラー。
+
+## 2026-08-28 IMP-020（#935）: ナビゲーション基盤は残し、モバイル画面は main の実装を採用
+
+- 内容: (1) `src/lib/navigation/tabs.ts`（正準タブ定義 `CANONICAL_TABS`/`WEB_TABS`/
+  `MOBILE_TABS`）・`quickCreate.ts`（権限ゲート+コンテキスト継承付き Quick Create、
+  5アクション）・`scope.ts`（Role別ワークスコープ型定義）を新設。(2) CommandPalette
+  にエンティティ検索（`/api/admin/search`、300msデバウンス）+ Quick Create セクションを
+  統合。(3) Web サイドバーの `MobileTabBar.tsx` を `WEB_TABS` 参照に変更。
+- **main への取り込み時の判断**: モバイルアプリのタブ画面6ファイル（タブバー本体・
+  車両/証明書一覧・その他メニュー）は、#935 のドラフト作成（8/19）後に main 側で
+  独立に本番相当の実装が入っていたため、**衝突解決では main 側をそのまま採用**し、
+  #935 側のプレースホルダー実装は破棄した。詳細は DECISION_LOG 参照。
+- 対象: モバイル下部ナビは v2.0 正準5タブ（ホーム/作業/車両/証明/その他）と一致済み。
+  Web の CommandPalette は権限ゲート付き Quick Create に対応。モバイル FAB との統合・
+  Role別スコープ切替 UI は未着手（IMP-021 待ち）。
+- テスト: `src/lib/navigation/__tests__/navigation.test.ts` 28件追加。
+- **`/code-review` の指摘5件を修正**（うち1件は重大）:
+  1. **`src/lib/sync/` の復活**: main が #934 で削除済みのモジュールが、#935 の
+     分岐時点がその削除より前だったため衝突なしで復活していた。再度削除。
+     詳細は DECISION_LOG「マージが『衝突なし』で削除済みモジュールを復活させる
+     ことがある」参照。
+  2. `QUICK_CREATE_ACTIONS` の予約/顧客 href が存在しない `/admin/*/new` を
+     指していた（実際は一覧ページの `?create=1` でモーダルを開く方式）。href を
+     修正し、`ReservationsClient.tsx`/`ReservationsModeSwitch.tsx` に
+     `?create=1` 対応を追加（`CustomersClient`/`CustomersModeSwitch` と同じ規約）。
+     `applyCreateContext()` も、href が既にクエリを持つ場合に `&` で連結するよう修正
+     （`?` が2つできるバグを防止）。
+  3. `inferCreateContext()` の正規表現が `/admin/vehicles/new` 等の `new` を
+     ID として誤って拾っていた（`vehicleId: "new"` のような存在しない ID が
+     混入しうる）。`new` を除外するよう修正。
+  4. `MobileTabBar.tsx` の権限フィルタが、`TAB_HREFS` と `TABS` が同じ配列から
+     作られているため常に true になる死んだ分岐だった。削除して簡素化
+     （意図（正準タブは権限で消さない）はコメントに残す）。
+  5. `CommandPalette.tsx` のエンティティ→チップ変換が `entityResultsToChips()`
+     （`src/lib/search/entities.ts`）と同種のロジックを手で再実装しており将来
+     ズレる可能性がある。型が異なり単純な流用はできないため、ponytail コメントで
+     並存を明記するに留めた（未着手）。
+  テスト6件追加（`/new` 除外・`?create=1` href・クエリ連結）。全 4348 テスト通過、
+  `tsc --noEmit` クリーン、lint 0 エラー。
+
 ## 2026-08-27 「正しく無いのが載るのはあかん」——遷移表を直してから通した（#933）／同期基盤は止めた（#934）
 
 ### #933: 正準遷移表の足りない辺を8件直してからマージ
@@ -228,6 +2213,21 @@ Ledra の画面内で完結させるなら Connect 埋め込みコンポーネ�
   「終端」と答えており、`reservations.status` の `completed` が完了扱いになった。
 
 いずれも mutation probe（修正を戻すと落ちること）を実行確認したテストを添えた。
+## 2026-08-27 帳票PDF: 発注書・発注請書・検収書のタイトルから「御」を撤去
+
+- 対象: `src/lib/pdfDocument.tsx`（全帳票 PDF 生成）、admin の帳票テンプレート編集画面
+  （`TemplatesClient.tsx` / `LayoutPreview.tsx`）。
+- 変更: purchase_order（発注書）/ order_confirmation（発注請書）/ inspection（検収書）の
+  3種別は、本文の挨拶文が自社主語（「発注いたします」「検収いたしました」）のため、
+  テナントの「御」プレフィックス設定に関わらずタイトルへ常に付けないようにした
+  （`src/types/document.ts` の `hasNoHonorificPrefix()` を唯一の出所として参照）。
+- 編集画面: 該当3種を選択しているときは「御」プレフィックスのトグルを disabled にし、
+  「発注書・発注請書・検収書は自社が発行する書類のため、「御」は常に付きません。」と
+  ヒント文を表示。設定しても反映されない状態を防ぐ。
+- 経緯: PR #985（帳票の基本テンプレートを PDF プレビューするスクリプト追加）で全9種別を
+  実際に出力して目視確認した際に発覚。判断は DECISION_LOG.md 2026-08-27 を参照。
+- 影響なし: 見積書・納品書・領収書・請求書・合算請求書・外注請求書の6種は変更なし
+  （引き続きテナントの `layout.title.prefix` 設定に従う）。
 ## 2026-08-26 LINEで顧客が予約を自分でキャンセルできるセルフ対応（第一弾・キャンセルのみ、branch claude/line-chatbot-ledra-dy2fiq）
 
 - 内容: これまで `cancel` intent は抽出しても人手に回していたが、顧客が LINE で「予約を
@@ -597,6 +2597,91 @@ supabase migration repair --status reverted 20260825000000
 - 記録済みだった場合は在庫を引き直さない（従来の形だと在庫だけ二重に減る）。
 - 重複防止の分岐を外すとテストが落ちることを確認済み（`src/lib/pos/__tests__/recordSale.test.ts`）。
 
+## 2026-08-25 恒久失敗キューの取りこぼしを修正（コードレビュー2巡目の反映）
+- 内容: 前項の修正に対するコードレビューで、恒久失敗の判定が**別の壊し方をしていた**ことが分かり6件を修正した。
+- 実装:
+  - `src/app/api/admin/certificates/route.ts`: **`/api/admin/certificates` はあらゆる失敗を 400 で返していた**。
+    DB障害のような一時的なエラーまで 400 になるため、新しい恒久失敗判定が
+    「二度と送れない」と誤認して未送信の証明書を止めてしまう状態だった。
+    入力が原因のコード（`ACTION_VALIDATION_ERRORS`）は **422**、それ以外は **500** に分けた。
+  - `src/lib/outbox/queue.ts`: **404 を恒久扱いから外した**。証明書の作成がまだ同期されていない段階で
+    後続（発行・写真アップロード）が走ると 404 になりうるが、これは順番の問題で次回の drain では通る。
+  - `public/sw.js`: **Background Sync 側に drain ループのもう1つのコピーがあり、前項の修正が入っていなかった**。
+    タブを閉じている間だけ永久リトライが復活する状態だったので、`isPermanentClientError` / `markBlocked` を同じ規則で実装。
+    両者を必ずそろえる旨をコメントに明記。
+  - `src/lib/outbox/queue.ts`: `countOutbox()` が blocked を数えていたため、バッジが
+    「N 件 同期待ち」のまま減らないのに同期を押すと「同期待ちはありません」と出る食い違いがあった。blocked を除外。
+  - `src/app/admin/certificates/PendingOfflineCerts.tsx`: 恒久失敗は**種別を問わず**表示するようにした。
+    発行 (`certificate_activate`) や写真アップロードが止まっているのにどこにも出ないと、
+    証明書が draft のまま残っていることに利用者が気づけない。
+  - `apps/mobile/src/app/certificates/new.tsx`: 車両マスタの自動作成を**ナンバー入力時のみ**に限定。
+    ナンバーが無いと同一車両を identify できず、入庫のたびに別の `vehicles` 行ができて
+    走行距離の履歴が1点ずつ分かれてしまうため。
+- 検証: API のステータス分岐テスト2件（入力エラー→422 / 想定外エラー→500）を追加。
+  404 を再送継続側に移したテストも更新。`node --check public/sw.js` 通過。
+  モバイルはローカルで型検査緑。`tsc` クリーン / 全テスト **417ファイル 3,821件** 緑。
+- **未対応（正直な記録）**: 「証明書を作る経路を洗い出して全部に入れた」と前項に書いたが、これは不正確だった。
+  AI自動化 (`src/lib/ai/automation/certificateRecordAuto.ts`) と `POST /api/certificates/create` は
+  `maintenance_json` を書かないため走行距離が積まれない。どちらも人が値を入力する画面が無く、
+  必須化しても満たしようがないため今回は変更していない。OPEN_QUESTIONS 2026-08-25 に起票。
+## 2026-08-25 オフラインキューの永久リトライを止め、モバイルの車両マスタ自動作成を実装
+- 内容: 走行距離必須化のコードレビューで残していた2件を修正した。どちらも「静かに失敗する」状態を解消するもの。
+- 対象: オフライン送信キュー（全機能）、モバイルの証明書作成、`/admin/certificates` の保留中証明書UI。
+- 実装:
+  - `src/lib/outbox/types.ts`: `OutboxItem.blockedAt` を追加。恒久的に送れないと判定した時刻。
+  - `src/lib/outbox/queue.ts`:
+    - `isPermanentClientError()` を追加。**400 / 404 / 405 / 410 / 413 / 415 / 422** は再送しても結果が変わらないので恒久扱い。
+      **401 / 403**（再ログイン・権限付与で回復）と **408 / 429 / 5xx**（時間をおけば通る）は従来どおり再送を続ける。
+    - `drainItems` が恒久エラーで `markBlocked` を呼び、`blockedAt` の付いたアイテムは以後スキップする。
+      これで**永久リトライが後続アイテムの送信機会を食い潰すことがなくなる**。
+    - `markOutboxBlocked()` を追加。**削除はしない** — 利用者が内容を確認してから取り消せるようにするため。
+    - `DrainResult` に `blocked` を追加。
+  - `src/app/admin/certificates/PendingOfflineCerts.tsx`: 恒久失敗のアイテムを「作り直しが必要」として明示し、
+    「この内容では発行できないため再送を止めています。取消してから作り直してください」と案内。同期結果メッセージにも件数を出す。
+  - `apps/mobile/src/app/certificates/new.tsx`: `resolveVehicleId()` を追加し、車両マスタ未選択でも
+    **ナンバーで既存を探す → 無ければ新規作成**して `vehicle_id` を埋める（WEB の `createCertAction` と同じ手順）。
+    トリガー `fn_sync_mileage_from_certificate` は `vehicle_id` が null だと早期 return するため、
+    これが無いとマスタ未選択の発行で走行距離が積まれなかった。車両作成に失敗しても証明書の発行自体は止めない。
+- 検証: outbox のテスト3件を追加（400で再送を止める／401・403・408・429・500・503は再送を続ける／
+  blocked済みは後続を止めない）。**恒久エラー判定を潰すと実際に落ちること**も確認。
+  既存の drain テスト8箇所を新しい `DrainDeps` に更新。
+  モバイルは依存をインストールして**ローカルで型検査・単体テストとも緑**（CI の `Mobile Typecheck & Unit Tests` も緑）。
+  `tsc` クリーン / 変更ファイルの `eslint` エラー0 / 全テスト **417ファイル 3,820件** 緑。
+## 2026-08-25 証明書の走行距離を必須化（全施工種別・常時表示）
+- 内容: 走行距離を任意の付加情報から**必須項目**に変更し、整備テンプレート限定・折りたたみの中という配置をやめて、
+  施工種別を問わず車種選択の直後に常時表示するようにした。本番の走行距離タイムライン `vehicle_mileage_logs` が
+  0件だった（証明書45件すべてで値が空）のを解消するのが目的。
+- 対象: 証明書の新規作成（WEB管理画面・外部/オフラインJSON API・モバイル）。既存の証明書と編集画面は対象外。
+- 実装:
+  - `src/lib/maintenance/mileage.ts` (新規): `parseMileageKm()` / `MAX_MILEAGE_KM`。
+    判定条件は「DBトリガー `fn_sync_mileage_from_certificate` が捨てない値」＝1以上の整数・上限200万km。
+    空・0・負数・小数・`"35000km"` のような単位付き・桁間違いを弾く。フォームとサーバーで同じ関数を使う。
+  - `src/app/admin/certificates/new/CertNewFormWrapper.tsx`: 常時表示の必須入力を車両セクション直下に追加。
+    送信前チェックも追加（**オフライン経路は Server Action を通らずキューに積むため、ここを通さないと
+    「保存できたのに復帰後の同期で必ず失敗する」証明書が溜まる**）。`mileage_required` のエラー文言を追加。
+  - `src/app/admin/certificates/new/actions.ts`: 信頼境界としてサーバー側で必須チェック。
+    値は既存の `maintenance_json.mileage` に載せ、**既存トリガーに `vehicle_mileage_logs` へ落とさせる**
+    （新テーブル・新マイグレーションなし）。整備欄の描画は公開ページ・PDF とも `service_type === "maintenance"`
+    で閉じているため、コーティング等の証明書に整備欄が出ることはない。
+  - `src/app/admin/certificates/new/MaintenanceDetailsSection.tsx`: 重複する走行距離欄を削除（入力欄は1つに集約）。
+  - `src/lib/certificates/createCertificateApi.ts`: `certCreateJsonSchema` に `mileage_km` を必須で追加し、
+    JSON→FormData / FormData→JSON の両変換に載せた。ここを optional にすると
+    「フォームだけ必須・APIは素通り」の抜け道になるため。
+  - `apps/mobile/src/app/certificates/new.tsx` + `apps/mobile/src/lib/mileage.ts` (新規):
+    モバイルは Supabase へ直 insert していて Server Action を通らないため、同じ必須化を個別に実装。
+    パスエイリアスが無いので判定関数はミラーコピー（両者を揃える旨をコメントに明記）。
+- 検証: `parseMileageKm` の単体テスト4件（正常・トリガーが捨てる値・単位付き/小数・桁間違い）、
+  スキーマの必須化テスト、**オフライン往復（json→FormData→json）で値が落ちないテスト**を追加。
+  既存テストのフィクスチャ14件を新しい契約に更新。`tsc` クリーン、全テスト **417ファイル 3,815件** 緑。
+  モバイル分は**CI の `Mobile Typecheck & Unit Tests`（`apps/mobile` で `npm ci` → `tsc`）が緑**。
+  ローカルでは依存が未インストールで筆者が回せなかっただけで、型検査は通っている。未検証なのは実機動作のみ。
+- コードレビュー反映: (1) `maintenance_json` が常に非空になることで製造元品質フラグ `no_service_detail` が
+  どの証明書でも立たなくなる回帰を修正（走行距離は「何をしたか」の記録ではないので施工内容の判定から除外。
+  `src/lib/manufacturers/qualityFlags.ts`）。(2) `maintenance_json` に配列が来ると `typeof [] === "object"` で
+  素通りし、配列への `.mileage` 代入が JSON 化で消えて走行距離が黙って失われる問題を修正（配列を弾く）。
+  (3) モバイルは車両マスタを自動作成しないため、マスタ未選択だとトリガーが早期 return して走行距離が
+  積まれない点をコメントで明示し OPEN_QUESTIONS に起票（挙動自体は未修正）。
+  (4) デプロイ前にオフラインキューへ滞留したアイテムが 400 で永久リトライになる件も OPEN_QUESTIONS に起票。
 ## 2026-08-24 決済まわりの取りこぼしを修正（code-review 指摘13件）
 
 - **カードが既に切れている時は、新しい決済を作らせない。** タッチ決済は
@@ -1236,6 +3321,43 @@ supabase migration repair --status reverted 20260825000000
   （件数の増減だけを見ると入れ替わりを見落とす。実際、途中の版で
   `RNTextInput` の未使用 import が1件増えていたのをこの照合で検出して撤去した）。
 
+## 2026-08-23 入力された車体番号が車両パスポートに反映されないバグを修正（VIN正規化のトリガー化）
+- 内容: `vehicles.vin_code_normalized` を `vin_code` から自動導出する DB トリガーを追加し、取り残されていた行をバックフィルした。
+  マイグレーション `20260424000004` はこの列を追加して**一度だけ**バックフィルしたが、以降この列を埋める仕組みが無く、
+  アプリ側の書き込み経路（車両作成API・CSVインポート・車検証OCRからの作成・パスポートupsert・管理画面の新規/編集フォーム）は
+  いずれも `vin_code` しか書いていなかった。結果、**バックフィル以降に入力された車体番号はすべて NULL のまま**で、
+  `/v/[vin]`（車両パスポート）・有料車両履歴レポート・加盟店への収益還元のいずれからも引けなくなっていた。
+  本番実測では車体番号入力済み6台のうち5台（2026-05-08〜2026-08-21に作成）がこの状態だった。
+- 対象: 車両パスポート `/v/[vin]`、車両履歴レポート（`src/lib/vehicleReport/*`）、加盟店収益還元、外部 v1 API のVIN照会。
+  車両を作るすべての経路（Web管理画面・CSVインポート・車検証OCR・モバイル・外部API）。
+- 実装:
+  - `supabase/migrations/20260825000000_vehicles_vin_normalized_trigger.sql` (新規):
+    - `set_vehicle_vin_normalized()` + `BEFORE INSERT OR UPDATE` トリガー。書き込み経路が5箇所以上あるため、
+      呼び出し元ごとではなく DB 側の一点で担保する（既存の `set_updated_at` と同じパターン）。
+    - 元のバックフィルに無かった **NFKC 正規化を追加**。全角で入力された車体番号も引けるようになる。
+      式はアプリ側の `src/lib/passport/normalizeVin.ts` と一致（NFKC → 大文字化 → 空白とハイフンの除去）。
+    - 取り残された行のバックフィル（`IS DISTINCT FROM` 条件で冪等）。
+    - 自己検証を同梱: (1) トリガーが実際に正規化するかを一時テーブルで確認、(2) 車体番号があるのに引けない車両が
+      残っていないかを確認。どちらか壊れていればマイグレーションが例外で落ちる。
+  - `src/lib/passport/getPassportData.ts`: `/v/[vin]` の VIN 照合を `trim().toUpperCase()` から
+    共通ヘルパー `normalizeVin()` に変更。保存側を正規化しても照合側がハイフン・全角を処理していなかったため、
+    `/v/JH4-DC5-3001` のような URL では車両を引けなかった（コードレビューで発見）。
+    生の入力を正規化しているのはここ1箇所だけで、他の `trim().toUpperCase()` は正規化済みの値への防御的な呼び出し。
+  - `src/lib/passport/__tests__/normalizeVin.test.ts`: U+FEFF（BOM）を除去するケースを追加。
+    PostgreSQL の `\s` は U+FEFF に一致しないため、SQL 側では明示的に列挙して JS と挙動を揃えている。
+- 既知の副作用（意図的）: VIN を編集すると正規化キーが変わり、`vehicle_report_orders`・`vehicle_passports` が
+  旧キーに取り残される。カスケードは範囲外として OPEN_QUESTIONS に起票（現時点でレポート購入実績0件のため実害なし）。
+- 検証: ローカルの PostgreSQL 16 に修正前の本番状態（正規化済み1件・取り残し5件・全角VIN・重複VIN・NULL/空白VIN・値が古い行）を
+  再現して適用。バックフィル結果・新規INSERT時の正規化・VIN編集時の再正規化・VIN削除時のクリア・無関係な列のUPDATEで壊れないこと・
+  再適用の冪等性を確認。正規化ルールが JS 側の `normalizeVin()` と
+全10ケース（全角・ハイフン・NBSP・U+3000・BOM・プレースホルダ含む）で一致することも突き合わせた。
+正規化ルールを壊した版・バックフィルを外した版のそれぞれで自己検証が実際に落ちること（検証が空回りしていないこと）も確認済み。
+## 2026-08-23 super_admin RLS修正・エラー表示改善 (PR #963)
+- 内容: `my_tenant_role()`関数で`super_admin`→`owner`にマッピングし、全テーブルのRLS書き込みポリシーがsuper_adminを許可するように修正。`StoresClient.tsx`のエラー表示を`data.message`優先に変更。
+- 対象: 全テーブルのRLSポリシー（stores, certificates, vehicles, customers等）、店舗管理画面。
+- 実装:
+  - `supabase/migrations/20260822000000_fix_super_admin_rls.sql` (新規): my_tenant_role()のCASE式追加
+  - `src/app/admin/stores/StoresClient.tsx`: エラーハンドリング3箇所で`data.message || data.error`に変更
 ## 2026-08-22 モバイル: 規約・問い合わせ・ナレッジをアプリ内で完結させる
 
 - **規約・プライバシーポリシー**: 外部ブラウザへ飛ばすのをやめ、アプリ内で表示。
@@ -1265,14 +3387,557 @@ supabase migration repair --status reverted 20260825000000
 - 注記: 投稿・取り消しは `/api/mobile/academy/lessons` が**未デプロイのため本番反映後に動く**。
   規約類は同梱したので即動く。
 
-## 記入フォーマット
+## 2026-08-22 SEO/LLMO改善: llms.txt, OGメタデータ補完, canonical追加, Twitterハンドル設定 (PR #962)
+- 内容: AIクローラー向けllms.txt/llms-full.txtを新規追加、ブログ・事例詳細ページのOG/Twitter/JSON-LD補完、法的ページのcanonical URL追加、Twitterハンドル(@detailing_holy)の全ページ反映。
+- 対象: マーケティングサイト全体（SEO/LLMO/SNSシェア）。
+- 実装:
+  - `src/app/llms.txt/route.ts` (新規): siteConfigから動的生成する簡潔版AI向けテキスト
+  - `src/app/llms-full.txt/route.ts` (新規): 料金・機能・全ページリンク・キーワード含む詳細版
+  - `src/components/marketing/JsonLd.tsx`: ArticleJsonLdにpathPrefix/articleTypeパラメータ追加（後方互換）
+  - `src/app/(marketing)/blog/[slug]/page.tsx`: OG(article)/Twitter/BlogPosting JSON-LD追加
+  - `src/app/(marketing)/cases/[slug]/page.tsx`: OG(article)/Twitter/Article JSON-LD + publishedAt伝搬
+  - `src/app/(marketing)/news/[slug]/page.tsx`: twitter site/creator追加
+  - `src/lib/marketing/config.ts`: twitterHandle追加
+  - `src/app/layout.tsx`: twitter.site/creator反映
+  - `/privacy`, `/terms`, `/law`, `/contact`: canonical追加
+  - `/tokusho`: canonical・og:urlを/lawに統一、sitemapから除去
 
-```
 
-## YYYY-MM-DD 変更タイトル (PR #番号 / commit)
-- 内容: 何を実装・変更したか
-- 対象: どの画面・API・業種向けか
-```
+## 2026-08-22 モバイル: ウォークイン会計の品目選択を POS レジ型に刷新／タブバーを丸ボタン化
+
+- 内容（会計）: ウォークイン会計の品目選択が可変幅ピルの折り返し配置で、全品目を縦スクロールへ
+  直に流し込んでいたため、品数が増えるほど見た目も操作も破綻していた。POS レジのレイアウトに作り替え。
+  - 等幅タイルのグリッド（ウィンドウ幅で 2/3/4 列）。端数行は null パディングして最後の1枚が横に伸びない
+  - FlatList 化で画面分のみ描画。品目が増えても描画コストが増えない
+  - 検索バーとカテゴリタブをグリッドから分離して常時固定（従来は一緒にスクロールで流れて消えた）
+  - 「よく使う」カテゴリ（`menu_items.sort_order` 上位12件）を追加し、12件超のテナントでは既定表示
+  - 検索中はカテゴリを跨いで検索。カート投入済みタイルは枠と数量バッジで区別
+  - 品目選択 → 明細・支払いの2ステップ化。下部に「◯点 / ¥合計」バーを常設
+- 内容（タブバー）: 「押しにくい・隣との境界が見えない」への対応。
+  - 各タブを直径48px（最小タップ領域44pt以上）の丸ボタン化。**非選択時も背景と枠線を出して境界を可視化**
+  - `sizing.tabBarHeight` を 84 → 80（中身のみ）に変更し、実高さは `insets.bottom` を足して算出
+  - クイック作成の + を右下からタブバー中央の真上へ移設（白縁取り+影、8px 離して重ならない）
+  - `sizing.fabClearance` を追加し、中央 + に最後の行が隠れないようタブ配下5画面の下余白に適用
+- `/code-review` で検出した自作バグの同時修正:
+  - カスタム品目（自由入力）が会計ステップにしか無いのに、遷移ボタンをカート空で無効化していた
+    → メニュー未登録の店舗・都度見積りの会計が成立しなくなる。ボタンを常時有効化
+  - `useDeviceType` をウィンドウ幅判定にしたため iPad Split View で `isIPad` が取引中に反転し、
+    決済手段の構成が入れ替わる（`"qr"` のまま iPad 構成になると QR を出さずに記帳）
+    → 端末固有の事実である `Platform.isPad` で判定するよう修正
+  - 会計ステップでの端末バック／ヘッダー戻るが画面ごと閉じてカートを黙って捨てる
+    → `BackHandler` と `headerLeft` で品目選択へ戻すよう結線
+  - タブバーに数値 height を渡すと react-navigation はセーフエリアを足さないため、固定 paddingBottom では
+    Android のジェスチャーバー配下にラベルが潜る → `insets.bottom` を自前で加算
+  - QR 提示中もカートを編集できたため Stripe の請求額と `pos_checkout` の記帳額がずれ得た
+    → `qrPolling` 中は数量操作・カスタム品目追加・品目選択への復帰を止める
+  - 数量バッジが角丸タイルの外にはみ出しており Android でクリップされる → タイル内のフローに移動
+  - 合成カテゴリ名（「すべて」「よく使う」）と同名の実カテゴリで key 重複と誤表示 → 実カテゴリ側を弾く
+  - おつりの色が `Math.max` で丸めた後の値を見ていて、預かり不足でも緑 → `received >= total` で判定
+- 対象: `apps/mobile/src/app/pos/walk-in.tsx`、`apps/mobile/src/app/(tabs)/_layout.tsx`、
+  `apps/mobile/src/constants/tokens.ts`、`(tabs)/{index,more/index,work/index,vehicles/index,certificates/index}.tsx`、
+  `apps/mobile/src/lib/menuFilter.ts`（新規・純ロジック）、`menuFilter.check.ts`（新規・自己チェック、`npm test` に追加）。
+- 注記: 「よく使う」は店舗が手で並べた `sort_order` の上位であり**実売上頻度ではない【要確認】**。
+  頻度順にするなら `payment_items` の集計クエリが要る。
+  タブは v2.0 §2 の正準5構成のままなので、+ を列の中に入れると必ず中心からずれる（6スロットでは
+  41.7% か 58.3%）。列の上に浮かせるのが中央に置ける唯一の形として採用した。
+
+## 2026-08-22 モバイル: ルート衝突の解消（戻るボタン欠落・二重ヘッダーの根因）
+
+- 内容: 代表から「戻るボタンが追加されていない、もう3回目」との指摘。原因は**同一 URL を指す
+  ルートファイルの重複**で、戻るボタンを入れた側が影に隠れて表示されていなかった。
+  - `app/(tabs)/reservations/index.tsx` と `app/reservations/index.tsx` が両方 `/reservations` を指し、
+    タブ側が URL を握っていた。タブ側は Tabs ナビゲーターの内側で描画されるため戻るボタンを出せず、
+    さらに `href: null` の `Tabs.Screen` に `headerShown: false` が無かったため、
+    Tabs のヘッダー（タイトル未設定＝ルート名 "reservations"）と入れ子 Stack のヘッダー「予約」で
+    **二重ヘッダー**になっていた。同じ重複が `/certificates` `/vehicles` にも存在
+  - 対処: 予約・会計は v2.0 §2 の正準5タブに含まれないため、タブから外してトップレベル Stack へ集約。
+    `(tabs)/reservations/` と `(tabs)/pos/` を削除（`pos/index.tsx` はトップレベルへ移動）、
+    到達不能だった `certificates/index.tsx` `vehicles/index.tsx` を削除
+- 再発防止: 戻るボタンを8つの `_layout.tsx` に手書きしていたのが取りこぼしの温床だったため、
+  `components/screenOptions.tsx` に `stackScreenOptions` として集約。各 Stack はこれを渡すだけ。
+- ヘッダーを持たない単体画面の修正: `notifications` `dashboard` はルート Stack が
+  `headerShown: false` で、Stack も持たないため**戻る導線が一切無かった**。個別にヘッダーを付与。
+- クイック作成（+）の死んだ導線を修正: 「予約作成」`/(tabs)/reservations/new`、
+  「作業開始」`/(tabs)/work/new` はいずれも**存在しないファイル**を指しており無反応だった。
+  `/reservations/new` と `/reservations/new?type=walk_in` に修正し、
+  `reservations/new.tsx` が `type` クエリで飛び込みを初期選択できるようにした。
+- 「その他」の死んだリンク6本を撤去: `/sync` `/help` `/feedback` `/about` `/settings/staff`
+  `/settings/general` は画面が存在せず無反応だった。`/contact` `/terms` `/privacy` は Web
+  （`app.ledra.co.jp`）に実在するため `Linking.openURL` で外部リンク化し、アイコンで区別。
+  代わりに実在する「NFCタグ台帳」「Tap to Pay」を追加。
+- タブバーの + は中央配置をやめ、右下の独立した FAB に戻した（代表の指示）。
+  タブ5枚では列内で中央に置けず、列の上に浮かせるとリスト行の中央に恒常的に重なるため。
+- 検証: 全ナビゲーション先（`route:` と `router.push/replace`）がファイルとして実在するかを
+  機械的に照合し、アプリ内リンクの欠落ゼロを確認。
+- 対象: `apps/mobile/src/components/screenOptions.tsx`（新規）、8つの `_layout.tsx`、
+  `app/_layout.tsx`、`(tabs)/_layout.tsx`、`(tabs)/index.tsx`、`(tabs)/more/index.tsx`、
+  `components/ui/QuickCreateSheet.tsx`、`reservations/new.tsx`、`notifications.tsx`。
+  削除: `(tabs)/reservations/`、`(tabs)/pos/`（`pos/index.tsx` へ移動）、
+  `certificates/index.tsx`、`vehicles/index.tsx`。
+- 注記: 撤去した6項目（Sync Center / ヘルプ / フィードバック / Ledraについて / スタッフ権限 /
+  各種設定）は**画面を実装したらメニューに戻す**。認証フロー7画面は前進のみの線形フローのため
+  戻るボタンは付けていない。
+
+## 2026-08-22 モバイル: 日付の UTC/ローカル不一致を解消、ルーティング再編の取りこぼしを修正
+
+- ルーティング再編（同日の別エントリ）に `/code-review` をかけて検出した分の修正。
+- **日付が朝9時前にずれる（4箇所）**: `toISOString().split("T")[0]` は UTC 日付を返すのに、
+  時刻や画面表示はローカルだった。JST 09:00 前は日付だけ前日になる。
+  - `reservations/new.tsx`: 飛び込み受付・予約作成が**前日の日付で登録される**（開店前受付が直撃）
+  - `reservations/index.tsx`: 見出しは今日なのにクエリは前日を引く（前回まで影に隠れていた画面）
+  - `(tabs)/index.tsx`: 同ファイルで `dayjs` を使っているのにここだけ UTC。今日の集計が前日になる
+  - 対処: 既存依存の `dayjs().format("YYYY-MM-DD")` に統一
+- **レジ管理を到達不能にしていた**: 「その他」の POS 導線を `/pos/register` から `/pos` に
+  変えた結果、レジの開設・締め画面へ行く手段が消えていた。専用行を復帰。
+  前回の検証が「リンク→ファイル」の一方向しか見ていなかったため検出できていなかった。
+- **孤立していた画面2つに導線追加**: `/nfc/scan`（NFCスキャン）と `/dashboard`
+  （店舗ダッシュボード）はどこからも開けなかった。「その他」に追加。
+- **ディープリンク直起動で戻るボタンが無反応**: `ledra://` スキームで直接起動すると履歴が空で
+  `router.back()` が何も起こさない。`canGoBack()` で分岐しホームへ戻すよう修正。
+- **Web リンクの env 取り違え**: `EXPO_PUBLIC_API_URL`（API ベース）を使っていた。
+  `settings/index.tsx` に既にある `EXPO_PUBLIC_WEB_URL` + フォールバック + `canOpenURL` の
+  パターンへ寄せ、失敗時は Snackbar で理由を出す（無反応で消えない）。
+- **タブ根4つのヘッダー体裁が不揃い**: 作業・その他が素の `Stack` で既定ヘッダーのままだった。
+  `tabStackScreenOptions` を追加して車両・証明と統一。
+- 「その他」の店舗カードは chevron を出しながら何も起きなかったため、店舗切替へ結線。
+- `@react-navigation/native-stack` の直 import をやめ、`Stack` の props から型を借用
+  （expo-router の推移的依存にしか無く、インストール方式によっては解決に失敗する）。
+- 検証: ナビゲーションを**双方向**で照合（リンク→ファイル / 画面→到達導線）。欠落・孤立ともゼロ。
+
+## 2026-08-21 全画面デザイントークン適用 & 認証/オンボーディングフロー新設（branch claude/imp-000-implementation-r0eje1 / PR #926）
+- 内容: モバイルアプリの全41画面をLedraデザイントークン準拠にする最終仕上げ。
+  - **既存28画面の一括トークン移行**: hardcoded colors→tokens, Card→View+card styles,
+    Button→LedraButton, Chip→StatusBadge, SegmentedButtons→SegmentedControl,
+    Dialog→Alert.alert()/LedraAlert, Searchbar→native TextInput, Divider→View+colors.divider
+  - **認証フロー新規4画面**: OTP認証（verify-otp: 6桁個別入力+自動フォーカス+60秒リセンド）、
+    生体認証セットアップ（biometric-setup: 3メリット+アニメーション成功画面）、
+    オンボーディング（3スライド横スワイプ+ページインジケーター+スキップ）、
+    パスワードリセット（forgot-password: ブランドヘッダー+成功画面）
+  - **認証フロー既存3画面リデザイン**: ログイン（Ledra Blueブランドヘッダー+角丸フォームカード）、
+    サインアップ（同ブランドヘッダーパターン）、店舗選択（コンパクトブランドバー）
+- 対象: モバイルアプリ（`apps/mobile/`）。全41画面（スクリーン）がデザイントークン準拠。
+- 検証: `npx tsc --noEmit` 通過、`expo lint` エラー0件、テスト通過。
+  32ファイル変更、+4903行/-2859行。
+## 2026-08-21 UI-040/060/070 モバイルアプリ UI リデザイン Phase 2（branch claude/imp-000-implementation-r0eje1 / PR #926）
+- 内容: Phase 1（UI-010/020/030）に続き、残りの主要画面をLedraデザイントークンベースに全面リデザイン。
+  - **UI-040（作業リスト & Job Hub）**: 作業一覧を StatusBadge+車両アイコン+メタ行のカード形式に再構成。
+    作業詳細を Vehicle heroカード+ProgressRing+NEXT ACTION+ステッパー+5タブ（概要/作業/証拠/書類/履歴）の
+    多機能ハブに拡張。
+  - **UI-060（車両 & 証明書タブ）**: 車両タブのスタブを検索バー付き一覧に実装（証明書数バッジ付き）。
+    車両詳細を Vehicle Passport レイアウト（Heroカード+2x2 Stat Grid+証明書タイムライン+NFCタグ一覧）に刷新。
+    証明書タブのスタブを SegmentedControl（すべて/有効/下書き）フィルター付き一覧に実装。
+    証明書詳細を VERIFIED shield hero+完全性検証チェック（写真同期/NFC/ステータス）+PDF/QR/共有アクションに刷新。
+  - **UI-070（通知センター）**: 新規画面作成。すべて/未読フィルター、タイプ別カラーアイコン、相対時刻表示、
+    未読インジケーター（青ドット+左ボーダー）。
+- 対象: モバイルアプリ（`apps/mobile/`）。ウェブ管理画面は対象外。
+- 検証: `npx tsc --noEmit` 通過、`npm run lint` エラー0件、全3806テスト通過。
+  7ファイル変更、+2217行/-571行。
+## 2026-08-20 IMP-044 §20.2 Priority/NEXT ACTION エンジン（branch impl/IMP-044-priority-engine）
+
+- 内容: 3 つの独立した優先度システム + ブースシグナルを統一スコアリングサービスに統合する型基盤を実装。
+  - `src/lib/priority/scorer.ts`: 統一スコアリングサービス
+    - `ScoredAction` 型 — 全シグナルソースを統一スコア (0-100) で表現、actionKey で重複排除
+    - `scoreTile()` / `scoreJobSuggestion()` / `scoreCustomerAction()` / `scoreBoothSignal()` — 各ソースの priority 表現を統一スコアに正規化
+    - `scoreAndRank()` — 全ソースを統合・重複排除・降順ソート。limit で上位 N 件に絞り込み可
+  - `src/lib/priority/boothJobIntegration.ts`: ブース→ジョブ次アクション統合
+    - `enrichJobWithBoothContext()` — pickJobNextActionCandidate の結果をブース文脈で調整（未割当 → priority:high 引き上げ、定員超過 → ヒント追加）
+    - `boothSignalsForReservation()` / `deriveBoothContextForJob()` — シグナル→ジョブ文脈変換ヘルパ
+  - `src/lib/priority/eventTriggers.ts`: イベント→優先度パイプライン型定義
+    - `PRIORITY_TRIGGERS` — 12 ドメインイベントの優先度影響マッピング
+    - `isPriorityAffecting()` / `getPriorityTrigger()` — イベント型から影響判定
+    - `toPriorityRecalcRequest()` — DomainEvent から再計算リクエスト生成
+  - テスト 38 件追加（scorer 17 + boothJobIntegration 11 + eventTriggers 10）
+- 対象: 型定義・ロジック層（src/lib/priority/）。UI 変更・DB マイグレーションなし。
+- 依存: IMP-014, IMP-021, IMP-041
+- 下流: IMP-046（経営分析 KPI — 優先度スコアの集計）
+
+## 2026-08-20 IMP-054 §24 P0_RELEASE_GATE — P0 リリースゲート最終検証（branch impl/IMP-054-p0-release-gate、2026-08-30マージ時に是正）
+
+- 内容: v2.0 §24 P0 リリースゲートの最終検証メタタスク。
+  - 全36タスク（IMP-000〜IMP-054）の実装状態を検証 → **31タスク実装済み、5タスク（IMP-016/020/027/032/050）が部分または未着手**（原案は「全て実装済み」としていたが、マージ時の全行再検証で誤りと判明し是正）
+  - IMP-011/012/013/014 の requirement-trace.md 行を監査時記述から実装済みに更新（この4件は実装は完了済みだったが行が未更新だった）
+  - P0 充足サマリ 10 項目に実装証跡列を追加 → 7項目✅実装済み・3項目⚠️部分
+  - IMP-054 行を実態に即した記述に更新
+- 対象: 実装計画全体（ドキュメント更新のみ、コード変更なし）
+- 設計判断: P0 リリースゲートはメタタスク。全 P0 タスクの完了を証跡付きで確認する監査役割であり、未完了のタスクを「完了」と誤って宣言しないことがその責務そのもの。IMP-032（SYNC_CENTER）は PR #947 がユーザー判断でスキップ中のため、扱いが決まるまで未着手のまま。
+
+## 2026-08-20 IMP-053 §14.4 OBSERVABILITY_ERROR_CONTRACT — 構造化エラー契約（branch impl/IMP-053-observability-error-contract）
+
+- 内容: v2.0 §14.4 が要求する構造化エラー契約の型基盤を実装。
+  - `src/lib/observability/errorContract.ts`: 構造化エラー契約
+    - `DataSafetyLevel` — 4段階データ安全性(safe/partial/unknown/compromised)
+    - `RecoveryAction` — 復旧アクション型(retry/retry_after/contact_support/manual_check/refresh/rollback/none)
+    - `ErrorCategory` — 11分類(validation/auth/data_integrity/external_service/timeout/rate_limit/state_transition/resource_not_found/concurrency/configuration/unknown)
+    - `RetryPolicy` — 再試行ポリシー(retryable/maxAttempts/backoff/baseDelaySeconds)
+    - `StructuredError` — 全エラーが答えるべき4問（データ安全性・分類・再試行可否・復旧手段）
+    - `createStructuredError()` — 純粋ファクトリ
+    - `structuredErrors.*` — 6プリセット(validation/externalService/stateTransition/dataIntegrity/timeout/concurrency)
+    - `requiresImmediateAttention()` — 即時対応要否判定
+    - `toSentryContext()` — Sentry breadcrumb 変換
+    - `toClientPayload()` — クライアント向けペイロード抽出（本番detail除外）
+  - `src/lib/observability/index.ts`: barrel export
+- 対象: 全API/cron/webhook（型基盤。既存 response.ts の ErrorCode/apiError は変更なし）
+- 設計判断: 型基盤先行。既存エラーヘルパーとの統合は消費側が段階的に行う。
+
+## 2026-08-20 IMP-052 §23 E2E_SUITE — 必須 E2E テストスイート（branch impl/IMP-052-e2e-suite）
+
+- 内容: v2.0 §23 が要求する必須 E2E テスト（正常ワークフロー・例外10種・顧客確認・WCAG AA）を Playwright で実装。
+  - `e2e/helpers/env.ts`: E2E 環境変数ヘルパー（adminCreds / customerPortalConfig。adminCreds は既存 `helpers/auth.ts` の `hasAdminCreds()` を再エクスポート）
+  - `e2e/helpers/a11y.ts`: axe-core WCAG AA ランタイム検証ラッパー（動的 import で未インストール時 skip）
+  - `e2e/workflow-flow.spec.ts`: 正常ワークフロー 8 テスト（ダッシュボード → 予約一覧 → 作業詳細 → 証明書 → 車両 → 顧客 → 請求書）
+  - `e2e/exception-flows.spec.ts`: 例外フロー 8 テスト（API 4: 予約更新バリデーション/証明書無効化/ステータス遷移/証明書ステータスAPI + UI 4: settings/404/POS/search）
+  - `e2e/customer-confirmation.spec.ts`: 顧客確認フロー 4 テスト（ログイン/無効テナント/公開証明書/パスポート）
+  - `e2e/accessibility.spec.ts`: WCAG AA 9 テスト（公開4 + 管理4 + 全違反レポート1）
+  - `.github/workflows/ci.yml`: E2E ジョブ復元（secrets ゲート — E2E_USER_EMAIL 未設定時は自動スキップ）
+- 対象: 全テナント（管理画面・顧客ポータル・公開ページ）
+- 設計判断: テストは全て環境変数ゲート付き。secrets 未設定の fork/外部 CI では全 skip。critical impact のみ fail（a11y）。既存 14 spec の auth gate / smoke check パターンを踏襲。
+
+## 2026-08-20 IMP-051 §3.5 ACCESSIBILITY_I18N_AUDIT — アクセシビリティ監査フレームワーク＆翻訳QA基盤（branch impl/IMP-051-accessibility-i18n-audit）
+
+- 内容: v2.0 §3.5 が要求するアクセシビリティ・多言語品質保証の型基盤を2モジュール群で実装。
+  - `src/lib/a11y/contrastCheck.ts`: WCAG 2.1 SC 1.4.3 準拠コントラスト比チェッカー
+    - `parseHexColor()` — #RGB / #RRGGBB パース
+    - `relativeLuminance()` — WCAG 相対輝度計算
+    - `contrastRatio()` — 2色のコントラスト比(1:1〜21:1)
+    - `meetsWcagAA()` — 3コンテキスト(normal/large/ui)での AA 判定
+    - `checkColorPair()` — hex ペアのワンショット検証
+  - `src/lib/a11y/auditTypes.ts`: WCAG AA 監査フレームワーク型定義
+    - `WCAG_AA_KEY_CRITERIA` — Ledra に関連する WCAG 2.1 Level AA 基準 19 件
+    - `COMPONENT_ARIA_MAP` — 10 コンポーネントの ARIA 要件マップ(Modal/Drawer/BottomSheet/Alert/StatusBadge/IconButton/SegmentedControl/Tabs/ProgressCard/Toast)
+    - `A11yFinding` / `A11yAuditResult` — 監査結果構造化型
+  - `src/lib/i18n/qa.ts`: 翻訳品質保証ユーティリティ
+    - `findMissingTranslations()` — 全ロケール間のキー過不足検出
+    - `findPlaceholderMismatches()` — {var} プレースホルダ整合性チェック
+    - `computeTranslationCoverage()` — ロケール別カバレッジ算出
+    - `findGlossaryGaps()` — 用語集エントリの翻訳欠落検出
+- 対象: 全画面・全コンポーネント。CI でのデザイントークンリグレッション検出、翻訳抜け自動チェックの基礎。
+- DB/API/UI 変更なし（型基盤先行）。テスト 46 件。
+
+## 2026-08-20 IMP-050 §18 SECURITY_PRIVACY — プライバシー・データ分類・可視性・マスキング基盤（branch impl/IMP-050-privacy-classification）
+
+- 内容: v2.0 §18 が要求するプライバシー・データ保護基盤を4モジュールの純関数で実装。
+  - `src/lib/privacy/classification.ts`: 4段階データ分類（ISO 27001 A.5.12 準拠）
+    - `DataClassification` 型（restricted/pii/confidential/public）
+    - `FIELD_CLASSIFICATIONS` レジストリ（20エントリ: customers/vehicles/invoices/tenant_secrets）
+    - `getFieldClassification()` — テーブル.カラム→分類ルックアップ
+    - `maxClassification()` — フィールド群の最厳分類
+    - `findClassificationViolations()` — 閾値超過フィールド検出
+  - `src/lib/privacy/visibility.ts`: 4段階可視性モデル
+    - `VisibilityLevel` 型（owner_only/tenant_internal/partner_shared/public）
+    - `ViewerContext` — ロール/データ主体/パートナー開示同意から有効レベル解決
+    - `findHiddenFields()` — 閲覧者レベルに基づく非表示フィールド識別
+    - `DEFAULT_REQUIRED_VISIBILITY` — 分類→可視性の最低要件マッピング
+  - `src/lib/privacy/rendition.ts`: レンディション・マスキング（ADR-0003 一般化）
+    - 4戦略（nullify/redact/truncate/hash）
+    - `createRendition()` — 非破壊レコードマスキング
+    - 定義済みルール3セット（CERTIFICATE/VEHICLE/PASSPORT_PUBLIC_RULES）
+  - `src/lib/privacy/exportAudit.ts`: エクスポート監査イベント
+    - 4スコープ（admin/customer/agent/insurer）の統一監査フォーマット
+    - `createExportAuditEntry()` — 監査エントリ生成
+    - `detectAbnormalExportFrequency()` — 頻度異常検出
+- 対象: 既存 PII 遮断（customerRelation.ts）・公開ビュー（certificates_public）・エクスポートルートの型安全な一般化
+- テスト: 67件（classification 16 + visibility 21 + rendition 20 + exportAudit 10）
+- 依存: なし（純関数モジュール、IO なし）
+
+## 2026-08-20 IMP-046 §21 ANALYTICS_STORE — 運用KPI・キャパシティ分析（branch impl/IMP-046-analytics-kpi）
+
+- 内容: v2.0 §21 が要求する運用指標とキャパシティ可視化の純関数計算器を実装。
+  - `src/lib/analytics/operationalKpi.ts`: 運用KPI計算器6本
+    - `computeVerifiedRate()` — 証明書VERIFIED到達率
+    - `computeEvidenceSufficiencyRate()` — 証跡充足率
+    - `computeAvgReviewWaitHours()` — 平均レビュー待ち時間（作業完了→VERIFIED）
+    - `computeAvgCycleTimeHours()` — 平均ジョブサイクルタイム（SCHEDULED→VERIFIED）
+    - `computeSlaComplianceRate()` — SLA遵守率（IMP-029 EscalationResult消費）
+    - `computeDailyThroughput()` — 日次スループット
+    - `computeOperationalKPIs()` — 一括算出（部分入力可）
+  - `src/lib/analytics/capacityAnalytics.ts`: キャパシティ分析
+    - `decomposeTimeBands()` — capacity>1ブースの時間帯別占有分解（IMP-041 L330/L347から委ねられた実装）
+    - `computeFleetUtilization()` — 全ブースフリート稼働率サマリー
+    - `computeStaffCapacity()` — スタッフ負荷分析（負荷率・効率・過負荷/遊休識別）
+- 対象: 経営ダッシュボード（/admin/management）のデータソース拡張
+- テスト: 41件（operationalKpi 26 + capacityAnalytics 15）
+- 依存: IMP-041（BoothUtilization再利用）、IMP-029（EscalationStage型参照）、IMP-001（CertificateState/JobState型参照）
+
+## 2026-08-20 IMP-045 §16 STAFF_MANAGEMENT — メンバーシップ管理ガード（branch impl/IMP-045-staff-management）
+
+- 内容: 既存スタッフ管理基盤の欠損3領域（移籍・停止・最終管理者保護）を純関数ガードで補完。
+  - `src/lib/staff/membership.ts`: メンバーシップ管理の型定義と純粋ガード関数
+    - `MembershipState` 型（active/suspended/deactivated）
+    - `validateRoleChange()` — ロール変更ガード（自己変更・owner保護・権限・ASSIGNABLE_ROLES）
+    - `validateMemberRemoval()` — 削除ガード（最終管理者保護: admin以上が1名以下なら拒否）
+    - `validateMemberSuspension()` — 停止/無効化ガード（suspend→suspended、deactivate→deactivated）
+    - `validateStoreTransfer()` — 店舗間移籍ガード（ロール引継ぎ、admin以上必須）
+    - `wouldLoseLastAdmin()` — 汎用最終管理者チェック
+  - `src/lib/auth/permissionVerbs.ts`: Permission文字列改名見送りの判断をコメント更新
+- 対象: テナント管理画面（/admin/members、/admin/stores）のバックエンドガードロジック
+- テスト: 36件（コードレビュー修正で3件追加: 最終admin降格保護・移籍先重複チェック）
+- 設計判断: Permission文字列の一括改名は見送り（VERB_MAPによる翻訳レイヤーが十分に機能しており、55種の文字列改名コストに見合わない）
+
+## 2026-08-20 IMP-043 §11 見積/請求ワークフロー — 承認スナップショット・版管理・POS ブリッジ型基盤（branch impl/IMP-043-estimate-invoice-workflow）
+
+- 内容: v2.0 §11 Estimate/Invoice/Payment の残ギャップ「顧客承認額の版管理」
+  「POS→元帳自動ブリッジ」「返金元帳エントリ」の型基盤を実装。ADR-0004 準拠。
+  (1) 見積承認スナップショット — `createApprovalSnapshot()` で承認時の明細・金額を
+  deep copy 凍結。`diffEstimateRevision()` で承認後の編集差分を検出し再承認要否を判定。
+  3 承認方法（customer_web/verbal_confirmation/message_reply）。
+  (2) 帳票版管理（ADR-0004「訂正は上書きではなく版の追加」準拠）— `DocumentVersion` 型
+  （版番号+ハッシュ+合計）、`DocumentCorrectionRequest`（5 カテゴリ×4 ステータス）、
+  遷移表 `isValidDocumentCorrectionStatusTransition()`、`requiresCorrectionWorkflow()`（invoice 系
+  + estimate の確定済みのみ対象）。
+  (3) POS→元帳ブリッジ — `bridgePosToLedger()` で POS 取引を `LedgerEntryInput` に
+  変換。プロバイダ別 PaymentMethod 自動マッピング。voided 除外、帳票なし→unbridgeable
+  分類、返金→`RefundLedgerEntryInput` 分離。`computeRefundRecording()` で negative_entry
+  / separate_table の 2 方式を提供。
+  テスト 56 件。
+- 対象: 型定義・ロジック層（src/lib/documents/）。UI 変更・DB マイグレーションなし。
+
+## 2026-08-20 IMP-042 WORKFLOW_BUILDER 版管理テンプレート型基盤（branch impl/IMP-042-workflow-versioning）
+
+- 内容: ワークフローテンプレートの版管理（バージョニング + ジョブ実行時凍結）の型基盤を実装。
+  - `src/lib/workflow/templateVersion.ts`: 版管理の型定義と純関数
+    - `WorkflowSnapshot` — ジョブ開始時にテンプレートを凍結する不変スナップショット型
+    - `TemplateStep` — 6+ 箇所に散在していた WorkflowStep 型の正準共有定義
+    - `createWorkflowSnapshot()` — テンプレートから deep copy スナップショットを生成
+    - `diffTemplateSteps()` — 2 つの steps 配列を key ベースで比較（added/removed/modified/reordered）
+    - `isSnapshotStale()` — 凍結スナップショットと現行テンプレートの乖離判定
+    - `resolveStepFromSnapshot()` — 凍結スナップショットからステップ解決
+    - `computeSnapshotProgress()` — 凍結スナップショットからの進捗計算
+  - テスト 21 件追加
+- 対象: 全施工店（ワークフローテンプレート利用店舗）
+- 依存: IMP-015, IMP-013
+- 注記: DB マイグレーション（reservations.workflow_snapshot jsonb 列追加等）は消費タスクで実施。型基盤先行パターン。
+
+## 2026-08-20 IMP-041 §21 設備/リフト稼働 占有予測・NEXT ACTION シグナル（branch impl/IMP-041-booth-occupancy）
+
+- 内容: ブース占有予測とNEXT ACTIONブースシグナルの型基盤を実装。
+  - `src/lib/booths/occupancy.ts`: ブース占有予測の純関数群
+    - `peakConcurrent()` — スイープラインによる同時占有ピーク計算（BoothsClient.maxConcurrent のサーバー側版）
+    - `computeBoothUtilization()` — 営業時間に対する稼働率（0–100%）
+    - `detectCapacityConflicts()` — 定員超過の時間帯検出
+    - `predictBoothFreeAt()` — in_progress 予約の終了時刻から空き推定
+    - `findAvailableBooths()` — 指定時刻の空きブース検索（空き時間帯リスト付き）
+  - `src/lib/booths/boothSignals.ts`: NEXT ACTION ブースシグナル
+    - `BoothSignalKind` 4種: booth_freed / assign_booth / capacity_exceeded / booth_overloaded
+    - `deriveBoothSignals()` — 予約・ブース状態からアクション可能シグナルを導出
+  - テスト 41 件追加（occupancy 27 + signals 9 + duration 5）、全 4550 件通過
+- 対象: 全施工店（ブース管理機能利用店舗）
+- 依存: IMP-014, IMP-021, IMP-022
+- 下流: IMP-044（NEXT ACTION エンジン拡張）、IMP-046（経営分析 KPI）
+
+## 2026-08-20 IMP-040 §8 部品装着インテグリティ 正準語彙（branch impl/IMP-040-parts-integrity）
+
+- 内容: v2.0 §8 の部品装着状態を正準ドメイン語彙の 7 軸目として追加。
+  - `src/lib/domain/states.ts`: `PART_INSTALLATION_STATES`（DRAFT/INSTALLED/CUSTOMER_VERIFIED/DISPUTED/VOIDED）、
+    型ガード `isPartInstallationState`、正準遷移表 `PART_INSTALLATION_TRANSITIONS`、
+    遷移検証関数 `isValidPartInstallationTransition()`。
+  - `src/lib/domain/labels.ts`: 6 言語ラベル（ja: 既存 admin/parts-integrity UI 表記と一致）。
+  - `src/lib/parts/partsIntegrity.ts`: Certificate Gate 部品整合性条件の導出関数
+    `derivePartsIntegrityOk()` — 未解決 critical findings でブロック。
+- 対象: 型基盤。UI・DB 変更なし。DB 実装値(小文字)との対応は IMP-015 に委ねる(ADR-0002 準拠)。
+- テスト: 51 件（domain/states 37 件 + parts/partsIntegrity 7 件）
+
+## 2026-08-20 IMP-034 §2/§4 タブレット 2-pane・共用端末 型基盤（branch impl/IMP-034-tablet-shared-device）
+
+- 内容: v2.0 §2/§4 のタブレット 2-pane レイアウトと共用端末ユーザー切替の型基盤を実装。
+  - `src/lib/navigation/deviceClass.ts`: 3 段階デバイスクラス（mobile/tablet/desktop）、
+    ブレークポイント定数（768px/1024px）、`resolveDeviceClass()` 判定関数。
+  - `src/lib/navigation/tabletLayout.ts`: タブレット 2-pane 画面マッピング（作業/車両/証明書/顧客の 4 ペア）、
+    ペイン幅比率定義、`resolveLayoutMode()` / `findPaneConfig()` レイアウト解決関数。
+  - `src/lib/auth/sharedDevice.ts`: 共用端末セッションモード（personal/shared）、
+    切替認証方式（pin/biometric/full_auth）、端末信頼度連携、自動ロック設定。
+  - テスト 29 件（ナビゲーション計 78 件）。
+  - UI コンポーネント・認証フロー変更なし（型基盤のみ）。
+- 対象: タブレット端末最適化 / 整備工場共用端末
+
+## 2026-08-20 IMP-033 §2 MORE メニュー IA 型基盤（branch impl/IMP-033-more-menu）
+
+- 内容: v2.0 §2 MORE（その他）タブの項目構成を正準定義する型基盤を実装。
+  - `src/lib/navigation/moreMenu.ts`: MoreMenuItem 型、MORE_MENU_ITEMS 正準リスト（10 項目、4 セクション）、
+    権限ベースフィルタリング(`filterMoreMenuItems`)、セクショングループ化(`groupMoreMenuItems`)。
+  - 現行モバイル 7 項目 + メンバー管理・店舗管理・同期センターを追加。
+  - プラットフォーム別表示制御（NFC 系はモバイル専用）。
+  - テスト 21 件（既存 28 件 + 新規 21 件 = ナビゲーション計 49 件）。
+  - UI コンポーネント変更なし（消費側が `filterMoreMenuItems` 経由で使う）。
+- 対象: モバイル「その他」タブ / Web 設定ハブの項目定義
+
+## 2026-08-20 IMP-031 §19.1 例外フロー（cancel/no-show/pause/追加作業）型基盤（branch impl/IMP-031-job-exceptions）
+
+- 内容: v2.0 §19.1 の案件例外フローの型基盤と遷移評価器を実装。
+  - `src/lib/domain/jobExceptions.ts`:
+    - 例外遷移評価器 5 本（evaluateCancel / evaluateNoShow / evaluatePause /
+      evaluateResume / evaluatePartialComplete）。全て JOB_TRANSITIONS を参照し
+      遷移ルールを二重管理しない。
+    - 例外メタデータ型: CancelReasonCategory(6) / PauseReasonCategory(6) /
+      NoShowAction(3) / PartialCompleteReason(5) / JobExceptionEvent。
+    - スコープ変更型: ScopeChangeCategory(5) / ScopeChangeRecord / requiresApproval()。
+    - isExceptionState() ヘルパー。
+  - `src/lib/domain/jobStatusDisplay.ts` 変更: paused / no_show / partially_completed
+    の表示構成追加（ReservationStatus を 5→8 値に拡張）。
+  - テスト 51 件。DB マイグレーション・API ルート変更なし。
+- 対象: 案件管理全般（予約の例外状態遷移）
+
+## 2026-08-20 IMP-030 §12.3-12.4 訂正・supersede・Integrity Incident・revoke 型基盤（branch impl/IMP-030-correction-supersede-revoke）
+
+- 内容: v2.0 §12.3-12.4 / ADR-0004 の訂正ワークフロー・Integrity Incident・版遷移の
+  型基盤を `src/lib/certificates/` に実装。
+  - `correction.ts`: 訂正リクエスト型（5 状態 × 5 カテゴリ）+ 訂正可否判定
+    （VERIFIED + 未処理訂正なしのみ許可）+ 状態遷移検証 + Gate 条件用
+    `hasPendingOrApprovedCorrection()`。
+  - `integrityIncident.ts`: Integrity Incident 型（6 カテゴリ × 3 重大度 × 5 状態）
+    + revoke 可否判定 + 即時 revoke 判定（critical=全即時、high+tampering=即時）。
+  - `versionTransition.ts`: `evaluateSupersede()`（VERIFIED→SUPERSEDED）+
+    `evaluateRevoke()`（VERIFIED→REVOKED）+ `resolveVersionRedirect()`
+    （旧版アクセス時の誘導情報）。
+  - `gateEvaluator.ts` 変更: `no_pending_corrections` 条件を実装接続。
+    `correctionRequests` 入力追加、後方互換あり。
+  - テスト 57 件（correction 21 + integrityIncident 15 + versionTransition 7 + gate 統合 7 + 定数 7）。
+- 対象: 全テナント共通の証明書訂正・無効化基盤。DB マイグレーションなし。
+
+## 2026-08-20 IMP-029 §13 通知・エスカレーション・Deep Link 中央通知エンジン型基盤（branch impl/IMP-029-notification-engine）
+
+- 内容: v2.0 §13 の中央通知エンジン型基盤を `src/lib/notifications/` に実装。
+  既存の用途別通知モジュール（bookingNotify, SLA cron 等）は変更せず共存。
+  - `types.ts`: 18 タイプカタログ（booking_created, order_created, sla_overdue 等）、
+    Severity 3 段（urgent/action_required/informational）、Channel 6 種、Category 11 種。
+    `isActionRequired()` で要対応判定、`getTypeConfig()` で未知タイプの安全フォールバック。
+  - `deepLink.ts`: 10 エンティティ × 3 ロール（admin/insurer/customer）の Deep Link 生成。
+    実ルート構造（`/admin/jobs/{id}`, `/insurer/cases/{id}` 等）に合致。
+  - `escalation.ts`: insurer-sla-alerts cron の純関数部分を汎用化した SLA エスカレーション評価器。
+    `evaluateEscalation()` + `shouldEscalate()`（重複抑止・エスカレーション遷移）。
+  - `routing.ts`: `resolveChannels()`（disable/add override 付き）、`countActionRequired()`
+    （未読 × urgent/action_required）、`groupByCategory()`、`filterBySeverity()`。
+  - テスト 35 件（types 5 + deepLink 9 + escalation 10 + routing 11）。
+- 対象: 全テナント・保険会社共通の通知基盤。DB マイグレーションなし。
+
+## 2026-08-20 IMP-028 §12 Certificate Gate 単一評価器（branch impl/IMP-028-certificate-gate）
+
+- 内容: v2.0 §19.4 / ADR-0005 の Certificate Gate 単一評価器を実装。
+  `evaluateCertificateGate()` 純関数が 10 条件を一括評価し `CertificateGateResult`
+  （ready: boolean + 各条件の met/detail）を返す。
+  実装済み条件: required_evidence_present（写真枚数 + コーティング/PPF の Before/After）、
+  payment_policy_met（IMP-027 の evaluatePaymentPolicy 連携）、
+  no_unresolved_alerts（IMP-026 の hasUnresolvedConcerns 連携）。
+  残り 7 条件はデフォルト met:true のスタブ（後続タスクで実装時に追加）。
+  テスト 17 件。
+- 対象: バックエンド型定義・ロジック層（src/lib/certificates/gateEvaluator.ts）。
+  活性化ルートへの統合・UI 変更・DB マイグレーションなし。
+
+## 2026-08-20 IMP-027 §11 支払いモデル — PaymentState 導出層・Policy 評価器（branch impl/IMP-027-payment-model）
+
+- 内容: v2.0 §11 Estimate/Invoice/Payment のギャップ「正準 PaymentState と既存実装語彙の橋渡し」
+  「Payment Policy 評価器」「UNKNOWN 盲目リトライ禁止」を実装。
+  (1) PaymentState 導出層 — 帳票(documents.status + payment_entries)、POS 取引(payments.status)、
+  予約(reservations.payment_status) の3系統から正準 PaymentState 9状態を純関数で導出。
+  DB カラム追加なし。
+  (2) Payment Policy 評価器 — consumer(個人: PAID必須) / b2b(法人: consolidated=自動承認,
+  per_job=PAID必須, 未設定=ブロック) / insurance(保険: insurerApproved=Phase2) の3ポリシー。
+  Certificate Gate `payment_policy_met` 条件の実装基盤。
+  (3) UNKNOWN 盲目リトライ禁止 — `isBlindRetryBlocked()` + 全ポリシーで UNKNOWN 不成立。
+  テスト41件。
+- 対象: バックエンド型定義・ロジック層（src/lib/payment/）。UI 変更・DB マイグレーションなし。
+
+## 2026-08-20 IMP-026 §10 顧客確認Web — 「気になる点を伝える」懸念提起フロー（branch impl/IMP-026-customer-concern / PR #941）
+
+- 内容: v2.0 §10 Customer Confirmation Web の残ギャップ「気になる点を伝える→Customer Issue
+  作成→請求/証明ブロック」を実装。
+  (1) `customer_concerns` テーブル（DBマイグレーション）— source_type 4系統
+  （delivery_receipt/parts_confirmation/body_repair_consent/body_repair_tracking）×
+  status 4状態（open/investigating/resolved/dismissed）×category 5分類。
+  job_id/certificate_id FK によるブロック判定対応。
+  (2) `RaiseConcernButton` コンポーネント — 4確認ページに「気になる点を伝える」UI を統合。
+  ダーク/ライトバリアント対応（受領サインはダークテーマ、部品/板金はライト）。
+  カテゴリ選択・テキスト入力・お名前・メール（任意）のフォーム。
+  (3) 顧客API（POST /api/customer/concerns）— トークンからテナント/ジョブ/証明書を
+  逆引き解決。レート制限+Slack 通知。管理者API（GET/PATCH /api/admin/concerns）。
+  (4) ブロック判定ヘルパー（`hasUnresolvedConcerns`）— IMP-028 Certificate Gate で使用。
+  (5) 型モデル（`src/lib/concerns/types.ts`）+テスト15件。
+- 対象: 受領サイン・部品確認・板金同意・進捗追跡の4確認ページ。IMP-028 の前提条件。
+
+## 2026-08-20 IMP-025 §9 車両パスポート基盤 — PII遮断体系検証・車両顧客関係型モデル（branch impl/IMP-025-vehicle-passport / PR #940）
+
+- 内容: v2.0 §9 車両デジタルパスポートの残ギャップ2件をクローズ。
+  (1) PII遮断体系検証 — `piiFields.ts` でコンパイル時型アサーション4型分（PassportCertCard /
+  PassportData / PassportVerifyResponse / PublicTransferView）を導入。公開サーフェスの型キーが
+  PII フィールドと重複しないことを TS 型レベルで保証。`piiShield.test.ts` で実行時検証18件
+  （クエリ SELECT 列監査、フィールド形状検証、前所有者 PII 非露出検証）。
+  (2) 車両顧客関係型モデル — ADR-0006 に基づく `customerRelation.ts` を新設。
+  `VehicleCustomerRelation` / `VehicleRelationEndReason` / `PublicVehicleIdentity` 型と
+  `VEHICLE_TABLE_PII_COLUMNS` / `PASSPORT_TABLE_PII_COLUMNS` レジストリを定義。
+  DB マイグレーション（`vehicle_customer_relationships` テーブル化）は IMP-050 に委譲。
+  車両パスポートの既存インフラ（DB / 公開ページ / 所有権移転 / API / メタアンカー）は
+  変更なし — これらは既に稼働中。
+- 対象: パスポート公開サーフェス全般。IMP-026/050 の前提条件。
+
+## 2026-08-20 IMP-024 §7 音声→AI構造化→人間確認 — オフライン検知・多言語音声・備考接続（branch impl/IMP-024-voice / PR #939）
+
+- 内容: v2.0 §7 の音声メモ→AI構造化パイプラインの統合ギャップ3件をクローズ。
+  (1) VoiceMemoPanel にオフライン検知追加 — `navigator.onLine` チェックで AI 呼び出し前に
+  明示的エラー表示（従来は無言のネットワークエラー）。
+  (2) `speechLang` prop + `LOCALE_SPEECH_LANG` マッピング追加 — Web Speech API の
+  `SpeechRecognition.lang` をハードコード `ja-JP` から呼び出し側が指定可能に（6言語対応
+  の基盤）。
+  (3) 証明書作成フォームの備考欄に VoiceMemoPanel(note variant)接続 — feature audit
+  指摘の「ほぼゼロ工数」ギャップをクローズ。
+  モバイル音声入力は未実装（OPEN_QUESTIONS.md に設計選択肢が記録済み、iOS マイク権限未設定）。
+- 対象: 証明書作成フォーム、音声メモパネル、i18n ロケール基盤。IMP-026 の前提条件。
+
+## 2026-08-20 IMP-023 §7 JOB_EVIDENCE — 証跡凍結ガード・必須ショット進捗（branch impl/IMP-023-evidence / PR #938）
+
+- 内容: v2.0 §7 の証跡撮影基盤ギャップを2件クローズ。(1) `certificate_images_guard` DB
+  トリガー — 発行済み(active)/取消済み(void)証明書に紐づく写真行の DELETE を DB レベルで
+  ブロック。証跡列(sha256/original_sha256/perceptual_hash/stage/authenticity_grade/
+  tsa_token/tsa_authority/tsa_timestamp_at/c2pa_manifest_cid/storage_path)の破壊的 UPDATE
+  も拒否。非証跡列(sort_order 等)の更新は許可。DELETE API route にトリガーエラーの 409
+  ハンドリング追加。(2) `evidenceProgress.ts` — 工程ガイドの必須ショット宣言とアップロード
+  済み写真の stage タグを突合せ、進捗(total/fulfilled/missing)を返す純関数。テスト 8 件。
+- 対象: 証明書写真システム。設計原則 10「原本証跡は不変/追記のみ」の充足。IMP-024/026 の前提条件。
+
+## 2026-08-20 IMP-022 §6 Work List & Job Hub — ステータス統一・情報階層・CTA規律（branch impl/IMP-022-work-list-job-hub / PR #937）
+
+- 内容: v2.0 §6 の Work List & Job Hub を実装。(1) 予約ステータス表示統一
+  (`src/lib/domain/jobStatusDisplay.ts` — 5値×色/ラベル/ヒント/BadgeVariant の単一定義源。
+  ReservationsClient/CalendarView/JobStatusPanel/StorefrontJobWorkflow の 4 箇所の重複
+  STATUS_CONFIG を置換)。(2) ステッパー情報階層 — 現ステップを拡大(border-2, text-sm,
+  px-3.5)、完了/未着手を圧縮(text-[11px], px-2.5)。JobStatusPanel + JobSignoffPanel
+  の両ステッパーに適用。(3) CTA 規律 — Next Actions セクションをステータスで出し分け:
+  作業前(confirmed/arrived)は証明書/請求書非表示、完了後は予約編集非表示、キャンセルは
+  全非表示。(4) types.ts の STATUS_FLOW/STATUS_LABEL/STATUS_HINT を共有モジュールからの
+  再エクスポートに置換。新 DB クエリ・マイグレーションなし。テスト 7 件。
+- 対象: 案件ワークフロー画面、予約一覧/カレンダー。IMP-023/024/026/027/028 の前提条件。
+
+## 2026-08-20 UI-010/020/030 モバイルアプリ UI リデザイン Phase 1（branch claude/imp-000-implementation-r0eje1 / PR #926）
+- 内容: Ledra_UIUX_Development_Specification_v2.0 のリファレンス画像を視覚目標として、
+  モバイル Expo アプリ（`apps/mobile/`）の UI を全面リデザイン。3タスクを一括実装。
+  - **UI-010（デザインシステム基盤）**: `apps/mobile/src/constants/tokens.ts` を新規作成し、
+    色・タイポグラフィ・余白・角丸・サイズ・影のすべてのトークンを単一定義源に集約。
+    react-native-paper テーマ（`theme.ts`）をトークンから導出するよう接続。
+    9 つの共有 UI コンポーネントを新規作成（LedraButton / StatusBadge / SegmentedControl /
+    NextActionCard / StatusCard / ProgressRing / LedraAlert / Skeleton / BottomSheet）。
+    既存コンポーネント（EmptyState / LoadingScreen / OfflineBanner / Steps）もトークン移行。
+  - **UI-020（モバイルシェル）**: タブレイアウトを v2.0 正準5タブ（ホーム/作業/車両/証明/その他）に再編。
+    浮遊型 Ledra Blue 円形アクティブインジケータ、Quick Create FAB（+ボタン）、
+    QuickCreateSheet（車両登録/顧客登録/予約作成/作業開始の4アクション）を実装。
+  - **UI-030（ホーム & MORE 画面）**: ホーム画面をリファレンス01_home に合わせ全面再構築
+    （日付挨拶・3段階スコープ・作業サマリカード+ProgressRing・NEXT ACTION・進行中一覧・
+    対応必要一覧・タイムライン）。MORE 画面をリファレンス07 に合わせセクション別リストに再編。
+- 対象: モバイルアプリ（`apps/mobile/`）。ウェブ管理画面は対象外。
+- コードレビュー: 自己レビューで BottomSheet の閉じアニメーション未再生バグと
+  onRefresh の try/finally 欠如を発見・修正してから push。
+- 検証: `npx tsc --noEmit`（モバイル・ルート両方）通過、`npm run lint` エラー0件。
+  25ファイル変更、+2589行/-552行。
+
+## 2026-08-19 IMP-021 §5 HOME — 3秒理解ホーム（branch impl/IMP-021-home / PR #936）
+
+- 内容: v2.0 §5 のダッシュボード「3秒理解」を実装。(1) NEXT ACTION セクション —
+  今日のタスクタイル（todayTasks.ts ベース）から最優先 1 件を NextActionCard で提示。
+  優先度→Severity 自動変換（urgent→CRITICAL、warn→HIGH、normal→ACTION）、
+  CTA ボタン付き。(2) 今日の進捗 ProgressCard — 当日予約の完了/合計を円形プログレスで表示。
+  (3) WorkScopeProvider — React Context（自分/店舗/全店舗 3 段階切替、URL params 連動）。
+  (4) HomeScopeToggle — SegmentedControl ベースの 3 段階スコープ切替（旧 2 段階から拡張、
+  PageHeader の actions に配置）。(5) ダッシュボードレイアウト再構築 — NEXT ACTION →
+  Progress → Approval → Setup → QuickActions → TodayTasks → Stats の順に再配置。
+  新 DB クエリ・マイグレーションなし（既存 fetchTodaySignals を再利用）。テスト 13 件。
+- 対象: 管理画面ダッシュボード。IMP-022（Work List）・IMP-029（Job Detail）の前提条件。
 
 ## 2026-08-19 IMP-016 オフライン同期キュー・競合検出基盤（branch impl/IMP-016-offline-sync / PR #TBD）
 
@@ -1354,230 +4019,6 @@ supabase migration repair --status reverted 20260825000000
   (5) `WithTranslations<T>` UGC 翻訳分離型（`src/lib/i18n/translated.ts` 型定義のみ）。
   (6) `LOCALE_LABELS` マップ（言語選択 UI 用）。vi/id/fil/hi 翻訳は推定、正式検証は IMP-051。
 - 対象: 開発基盤（画面変更なし。IMP-012/020/024/026/051 の前提条件）。
-## 2026-08-10 LINE自動返信（ナレッジ）に「次の行動」誘導ボタンを追加（branch claude/line-chatbot-ledra-dy2fiq）
-
-- 内容: LINE のナレッジ自動返信（`knowledgeReplyAuto.ts`）が回答をプレーンテキストで
-  返すだけで会話が途切れやすかった問題に対し、回答の末尾に quick-reply 誘導ボタン
-  （「お見積りをお願いしたい」「スタッフに相談したい」）を添付できるようにした。
-  タップで既存の見積り会話フロー（`awaiting_quote_detail` を作成し車検証/車種+年式を依頼）
-  開始、またはスタッフ引き継ぎ（`human_takeover`＋通知）に繋がる。既存の
-  `sendCustomerLineButtons` / `handleFlowPostback` / `createFlow` / `buildQuoteDetailAsk` を
-  再利用し、状態機械（`states.ts`）とDBスキーマは変更なし。
-  - 新 postback: `flow:start_quote` / `flow:consult`（`conversationFlowPostback.ts` が
-    状態非依存で処理。`parseFlowPostback` で判定）。
-  - ボタン定義は `buildFollowupButtons()`（`src/lib/line/flow/messages.ts`、単一情報源）。
-  - **会話フロー opt-in（`shouldRunConversationFlow`）が有効なテナントのみ**ボタン化。
-    OFF のテナントは従来どおりテキスト送信で挙動不変（blast radius 最小）。
-- 挙動の要点（自動コードレビュー Codex を2ラウンド回して堅牢化）:
-  - `flow:consult`（相談）: スタッフへ通知＋お客様へ相談受付案内し、以降の自動処理を止める
-    `human_takeover` 状態を**永続化**する（進行中フローがあれば検証＋1回再試行で落とし、無ければ
-    マーカーを新規作成）。単発相談でもボットが再応答しない。マーカーは 72h で失効し getActiveFlow
-    が無視して自動応答が自然復帰する。**失効行 rot の対策**として `createFlow` に「同一キーの失効
-    済み進行中行を expired へ掃除するスイープ」を追加した（一意インデックスは `state NOT IN
-    (closed,expired)` で張られ他に失効スイープが無いため、これが無いと期限切れ human_takeover 行が
-    残って同一キーの createFlow が永久に失敗する rot が起きる）。
-  - `flow:start_quote`（見積り）: **紐付け顧客のみ** `awaiting_quote_detail` を作成（未紐付けは
-    フローを作らずスタッフ引き継ぎ＝詰まり防止）。本番 webhook は customerId を渡さないため
-    `line_user_id` から顧客を解決し、フロー作成・照会のキーを inbound 側（customer_id 優先）と
-    一致させる。施工内容が未知の入口なので施工内容＋車種年式を**テキストで**依頼
-    （`buildQuoteDetailAskWithService`。車検証写真は `awaiting_quote_detail` で OCR 未配線のため
-    求めない）。
-  - `inboundAuto`: 返信・**予約自動起票の前**にフロー状態を一度見て、`human_takeover` の間は
-    顧客向け自動処理（予約起票・ナレッジ・概算・フロー開始）を全て止める（受信箱の下書き＝受動
-    抽出は残す）。進行中フローがある間は誘導ボタンを付けない（`attachButtons` を渡す）。
-  - webhook（`client.ts`）: `maybeAutoProcessInboundMessage` の**前**に送る決定的な定型返信
-    （「予約」→予約リンク、未紐付けの連携案内）も `human_takeover` 中は抑止する（`isHumanTakeoverActive`。
-    返す定型返信が実際にある回のみ判定してホットパスに無駄なクエリを足さない）。これで AI 層・
-    決定的層の両方で takeover が一貫して効く。
-- 対象: LINE 受信の AI 自動応答（全業種、Standard プラン以上・opt-in）。
-- 検証: 単体テスト追加（`conversationFlowPostback.test.ts`・`knowledgeReplyAuto.test.ts`・
-  `inboundAutoReplyGate.test.ts`）。automation+line 全体で 200 件パス、tsc/eslint エラー0。
-- フロー照会のキー堅牢化: `getActiveFlow` を `customer_id` **または** `line_user_id` の
-  いずれか一致に変更（全 LINE フローは line_user_id を持つ）。未紐付けで作った行を後から
-  紐付いた顧客 ID で照会しても取りこぼさず、紐付け前後で進行中フローを見失って抑止/前進が
-  切れる問題を解消（この keying 不整合は複数の経路で再発していた根本原因）。
-- 配信失敗の後始末: `start_quote` で `createFlow` 後に LINE push が失敗した場合、作った
-  `awaiting_quote_detail` 行を `expired` に落とす（届いていない詳細依頼のフローが残って以降の
-  ボタン再提示・見積り前進を 72h 塞ぐのを防ぐ）。takeover 遷移時は `expires_at` を今から 72h に
-  更新し、競合作成で `createFlow` が弾かれた場合は最新フローを読み直して落とす。
-- 未対応（別PR/フェーズ）: `awaiting_quote_detail` 中の車検証写真→OCR 配線、未紐付け客の
-  自動登録導線（現状は未紐付けはスタッフ引き継ぎ）。
-- 補足: 「FAQで答えられる内容そのものを増やす」のは `tenant_line_knowledge` への登録
-  （データ運用）であり本PRの範囲外。本PRは「登録済みFAQに答えた後の誘導UX」を担当。
-  概算見積り返信（`quoteReplyAuto`）へのボタン適用は、現行文面「ご来店時に承ります」と
-  誘導が矛盾するため後続PRに回した。
-
-## 2026-08-25 恒久失敗キューの取りこぼしを修正（コードレビュー2巡目の反映）
-- 内容: 前項の修正に対するコードレビューで、恒久失敗の判定が**別の壊し方をしていた**ことが分かり6件を修正した。
-- 実装:
-  - `src/app/api/admin/certificates/route.ts`: **`/api/admin/certificates` はあらゆる失敗を 400 で返していた**。
-    DB障害のような一時的なエラーまで 400 になるため、新しい恒久失敗判定が
-    「二度と送れない」と誤認して未送信の証明書を止めてしまう状態だった。
-    入力が原因のコード（`ACTION_VALIDATION_ERRORS`）は **422**、それ以外は **500** に分けた。
-  - `src/lib/outbox/queue.ts`: **404 を恒久扱いから外した**。証明書の作成がまだ同期されていない段階で
-    後続（発行・写真アップロード）が走ると 404 になりうるが、これは順番の問題で次回の drain では通る。
-  - `public/sw.js`: **Background Sync 側に drain ループのもう1つのコピーがあり、前項の修正が入っていなかった**。
-    タブを閉じている間だけ永久リトライが復活する状態だったので、`isPermanentClientError` / `markBlocked` を同じ規則で実装。
-    両者を必ずそろえる旨をコメントに明記。
-  - `src/lib/outbox/queue.ts`: `countOutbox()` が blocked を数えていたため、バッジが
-    「N 件 同期待ち」のまま減らないのに同期を押すと「同期待ちはありません」と出る食い違いがあった。blocked を除外。
-  - `src/app/admin/certificates/PendingOfflineCerts.tsx`: 恒久失敗は**種別を問わず**表示するようにした。
-    発行 (`certificate_activate`) や写真アップロードが止まっているのにどこにも出ないと、
-    証明書が draft のまま残っていることに利用者が気づけない。
-  - `apps/mobile/src/app/certificates/new.tsx`: 車両マスタの自動作成を**ナンバー入力時のみ**に限定。
-    ナンバーが無いと同一車両を identify できず、入庫のたびに別の `vehicles` 行ができて
-    走行距離の履歴が1点ずつ分かれてしまうため。
-- 検証: API のステータス分岐テスト2件（入力エラー→422 / 想定外エラー→500）を追加。
-  404 を再送継続側に移したテストも更新。`node --check public/sw.js` 通過。
-  モバイルはローカルで型検査緑。`tsc` クリーン / 全テスト **417ファイル 3,821件** 緑。
-- **未対応（正直な記録）**: 「証明書を作る経路を洗い出して全部に入れた」と前項に書いたが、これは不正確だった。
-  AI自動化 (`src/lib/ai/automation/certificateRecordAuto.ts`) と `POST /api/certificates/create` は
-  `maintenance_json` を書かないため走行距離が積まれない。どちらも人が値を入力する画面が無く、
-  必須化しても満たしようがないため今回は変更していない。OPEN_QUESTIONS 2026-08-25 に起票。
-## 2026-08-25 オフラインキューの永久リトライを止め、モバイルの車両マスタ自動作成を実装
-- 内容: 走行距離必須化のコードレビューで残していた2件を修正した。どちらも「静かに失敗する」状態を解消するもの。
-- 対象: オフライン送信キュー（全機能）、モバイルの証明書作成、`/admin/certificates` の保留中証明書UI。
-- 実装:
-  - `src/lib/outbox/types.ts`: `OutboxItem.blockedAt` を追加。恒久的に送れないと判定した時刻。
-  - `src/lib/outbox/queue.ts`:
-    - `isPermanentClientError()` を追加。**400 / 404 / 405 / 410 / 413 / 415 / 422** は再送しても結果が変わらないので恒久扱い。
-      **401 / 403**（再ログイン・権限付与で回復）と **408 / 429 / 5xx**（時間をおけば通る）は従来どおり再送を続ける。
-    - `drainItems` が恒久エラーで `markBlocked` を呼び、`blockedAt` の付いたアイテムは以後スキップする。
-      これで**永久リトライが後続アイテムの送信機会を食い潰すことがなくなる**。
-    - `markOutboxBlocked()` を追加。**削除はしない** — 利用者が内容を確認してから取り消せるようにするため。
-    - `DrainResult` に `blocked` を追加。
-  - `src/app/admin/certificates/PendingOfflineCerts.tsx`: 恒久失敗のアイテムを「作り直しが必要」として明示し、
-    「この内容では発行できないため再送を止めています。取消してから作り直してください」と案内。同期結果メッセージにも件数を出す。
-  - `apps/mobile/src/app/certificates/new.tsx`: `resolveVehicleId()` を追加し、車両マスタ未選択でも
-    **ナンバーで既存を探す → 無ければ新規作成**して `vehicle_id` を埋める（WEB の `createCertAction` と同じ手順）。
-    トリガー `fn_sync_mileage_from_certificate` は `vehicle_id` が null だと早期 return するため、
-    これが無いとマスタ未選択の発行で走行距離が積まれなかった。車両作成に失敗しても証明書の発行自体は止めない。
-- 検証: outbox のテスト3件を追加（400で再送を止める／401・403・408・429・500・503は再送を続ける／
-  blocked済みは後続を止めない）。**恒久エラー判定を潰すと実際に落ちること**も確認。
-  既存の drain テスト8箇所を新しい `DrainDeps` に更新。
-  モバイルは依存をインストールして**ローカルで型検査・単体テストとも緑**（CI の `Mobile Typecheck & Unit Tests` も緑）。
-  `tsc` クリーン / 変更ファイルの `eslint` エラー0 / 全テスト **417ファイル 3,820件** 緑。
-## 2026-08-25 証明書の走行距離を必須化（全施工種別・常時表示）
-- 内容: 走行距離を任意の付加情報から**必須項目**に変更し、整備テンプレート限定・折りたたみの中という配置をやめて、
-  施工種別を問わず車種選択の直後に常時表示するようにした。本番の走行距離タイムライン `vehicle_mileage_logs` が
-  0件だった（証明書45件すべてで値が空）のを解消するのが目的。
-- 対象: 証明書の新規作成（WEB管理画面・外部/オフラインJSON API・モバイル）。既存の証明書と編集画面は対象外。
-- 実装:
-  - `src/lib/maintenance/mileage.ts` (新規): `parseMileageKm()` / `MAX_MILEAGE_KM`。
-    判定条件は「DBトリガー `fn_sync_mileage_from_certificate` が捨てない値」＝1以上の整数・上限200万km。
-    空・0・負数・小数・`"35000km"` のような単位付き・桁間違いを弾く。フォームとサーバーで同じ関数を使う。
-  - `src/app/admin/certificates/new/CertNewFormWrapper.tsx`: 常時表示の必須入力を車両セクション直下に追加。
-    送信前チェックも追加（**オフライン経路は Server Action を通らずキューに積むため、ここを通さないと
-    「保存できたのに復帰後の同期で必ず失敗する」証明書が溜まる**）。`mileage_required` のエラー文言を追加。
-  - `src/app/admin/certificates/new/actions.ts`: 信頼境界としてサーバー側で必須チェック。
-    値は既存の `maintenance_json.mileage` に載せ、**既存トリガーに `vehicle_mileage_logs` へ落とさせる**
-    （新テーブル・新マイグレーションなし）。整備欄の描画は公開ページ・PDF とも `service_type === "maintenance"`
-    で閉じているため、コーティング等の証明書に整備欄が出ることはない。
-  - `src/app/admin/certificates/new/MaintenanceDetailsSection.tsx`: 重複する走行距離欄を削除（入力欄は1つに集約）。
-  - `src/lib/certificates/createCertificateApi.ts`: `certCreateJsonSchema` に `mileage_km` を必須で追加し、
-    JSON→FormData / FormData→JSON の両変換に載せた。ここを optional にすると
-    「フォームだけ必須・APIは素通り」の抜け道になるため。
-  - `apps/mobile/src/app/certificates/new.tsx` + `apps/mobile/src/lib/mileage.ts` (新規):
-    モバイルは Supabase へ直 insert していて Server Action を通らないため、同じ必須化を個別に実装。
-    パスエイリアスが無いので判定関数はミラーコピー（両者を揃える旨をコメントに明記）。
-- 検証: `parseMileageKm` の単体テスト4件（正常・トリガーが捨てる値・単位付き/小数・桁間違い）、
-  スキーマの必須化テスト、**オフライン往復（json→FormData→json）で値が落ちないテスト**を追加。
-  既存テストのフィクスチャ14件を新しい契約に更新。`tsc` クリーン、全テスト **417ファイル 3,815件** 緑。
-  モバイル分は**CI の `Mobile Typecheck & Unit Tests`（`apps/mobile` で `npm ci` → `tsc`）が緑**。
-  ローカルでは依存が未インストールで筆者が回せなかっただけで、型検査は通っている。未検証なのは実機動作のみ。
-- コードレビュー反映: (1) `maintenance_json` が常に非空になることで製造元品質フラグ `no_service_detail` が
-  どの証明書でも立たなくなる回帰を修正（走行距離は「何をしたか」の記録ではないので施工内容の判定から除外。
-  `src/lib/manufacturers/qualityFlags.ts`）。(2) `maintenance_json` に配列が来ると `typeof [] === "object"` で
-  素通りし、配列への `.mileage` 代入が JSON 化で消えて走行距離が黙って失われる問題を修正（配列を弾く）。
-  (3) モバイルは車両マスタを自動作成しないため、マスタ未選択だとトリガーが早期 return して走行距離が
-  積まれない点をコメントで明示し OPEN_QUESTIONS に起票（挙動自体は未修正）。
-  (4) デプロイ前にオフラインキューへ滞留したアイテムが 400 で永久リトライになる件も OPEN_QUESTIONS に起票。
-## 2026-08-23 入力された車体番号が車両パスポートに反映されないバグを修正（VIN正規化のトリガー化）
-- 内容: `vehicles.vin_code_normalized` を `vin_code` から自動導出する DB トリガーを追加し、取り残されていた行をバックフィルした。
-  マイグレーション `20260424000004` はこの列を追加して**一度だけ**バックフィルしたが、以降この列を埋める仕組みが無く、
-  アプリ側の書き込み経路（車両作成API・CSVインポート・車検証OCRからの作成・パスポートupsert・管理画面の新規/編集フォーム）は
-  いずれも `vin_code` しか書いていなかった。結果、**バックフィル以降に入力された車体番号はすべて NULL のまま**で、
-  `/v/[vin]`（車両パスポート）・有料車両履歴レポート・加盟店への収益還元のいずれからも引けなくなっていた。
-  本番実測では車体番号入力済み6台のうち5台（2026-05-08〜2026-08-21に作成）がこの状態だった。
-- 対象: 車両パスポート `/v/[vin]`、車両履歴レポート（`src/lib/vehicleReport/*`）、加盟店収益還元、外部 v1 API のVIN照会。
-  車両を作るすべての経路（Web管理画面・CSVインポート・車検証OCR・モバイル・外部API）。
-- 実装:
-  - `supabase/migrations/20260825000000_vehicles_vin_normalized_trigger.sql` (新規):
-    - `set_vehicle_vin_normalized()` + `BEFORE INSERT OR UPDATE` トリガー。書き込み経路が5箇所以上あるため、
-      呼び出し元ごとではなく DB 側の一点で担保する（既存の `set_updated_at` と同じパターン）。
-    - 元のバックフィルに無かった **NFKC 正規化を追加**。全角で入力された車体番号も引けるようになる。
-      式はアプリ側の `src/lib/passport/normalizeVin.ts` と一致（NFKC → 大文字化 → 空白とハイフンの除去）。
-    - 取り残された行のバックフィル（`IS DISTINCT FROM` 条件で冪等）。
-    - 自己検証を同梱: (1) トリガーが実際に正規化するかを一時テーブルで確認、(2) 車体番号があるのに引けない車両が
-      残っていないかを確認。どちらか壊れていればマイグレーションが例外で落ちる。
-  - `src/lib/passport/getPassportData.ts`: `/v/[vin]` の VIN 照合を `trim().toUpperCase()` から
-    共通ヘルパー `normalizeVin()` に変更。保存側を正規化しても照合側がハイフン・全角を処理していなかったため、
-    `/v/JH4-DC5-3001` のような URL では車両を引けなかった（コードレビューで発見）。
-    生の入力を正規化しているのはここ1箇所だけで、他の `trim().toUpperCase()` は正規化済みの値への防御的な呼び出し。
-  - `src/lib/passport/__tests__/normalizeVin.test.ts`: U+FEFF（BOM）を除去するケースを追加。
-    PostgreSQL の `\s` は U+FEFF に一致しないため、SQL 側では明示的に列挙して JS と挙動を揃えている。
-- 既知の副作用（意図的）: VIN を編集すると正規化キーが変わり、`vehicle_report_orders`・`vehicle_passports` が
-  旧キーに取り残される。カスケードは範囲外として OPEN_QUESTIONS に起票（現時点でレポート購入実績0件のため実害なし）。
-- 検証: ローカルの PostgreSQL 16 に修正前の本番状態（正規化済み1件・取り残し5件・全角VIN・重複VIN・NULL/空白VIN・値が古い行）を
-  再現して適用。バックフィル結果・新規INSERT時の正規化・VIN編集時の再正規化・VIN削除時のクリア・無関係な列のUPDATEで壊れないこと・
-  再適用の冪等性を確認。正規化ルールが JS 側の `normalizeVin()` と
-全10ケース（全角・ハイフン・NBSP・U+3000・BOM・プレースホルダ含む）で一致することも突き合わせた。
-正規化ルールを壊した版・バックフィルを外した版のそれぞれで自己検証が実際に落ちること（検証が空回りしていないこと）も確認済み。
-## 2026-08-23 super_admin RLS修正・エラー表示改善 (PR #963)
-- 内容: `my_tenant_role()`関数で`super_admin`→`owner`にマッピングし、全テーブルのRLS書き込みポリシーがsuper_adminを許可するように修正。`StoresClient.tsx`のエラー表示を`data.message`優先に変更。
-- 対象: 全テーブルのRLSポリシー（stores, certificates, vehicles, customers等）、店舗管理画面。
-- 実装:
-  - `supabase/migrations/20260822000000_fix_super_admin_rls.sql` (新規): my_tenant_role()のCASE式追加
-  - `src/app/admin/stores/StoresClient.tsx`: エラーハンドリング3箇所で`data.message || data.error`に変更
-## 2026-08-21 全画面デザイントークン適用 & 認証/オンボーディングフロー新設（branch claude/imp-000-implementation-r0eje1 / PR #926）
-- 内容: モバイルアプリの全41画面をLedraデザイントークン準拠にする最終仕上げ。
-  - **既存28画面の一括トークン移行**: hardcoded colors→tokens, Card→View+card styles,
-    Button→LedraButton, Chip→StatusBadge, SegmentedButtons→SegmentedControl,
-    Dialog→Alert.alert()/LedraAlert, Searchbar→native TextInput, Divider→View+colors.divider
-  - **認証フロー新規4画面**: OTP認証（verify-otp: 6桁個別入力+自動フォーカス+60秒リセンド）、
-    生体認証セットアップ（biometric-setup: 3メリット+アニメーション成功画面）、
-    オンボーディング（3スライド横スワイプ+ページインジケーター+スキップ）、
-    パスワードリセット（forgot-password: ブランドヘッダー+成功画面）
-  - **認証フロー既存3画面リデザイン**: ログイン（Ledra Blueブランドヘッダー+角丸フォームカード）、
-    サインアップ（同ブランドヘッダーパターン）、店舗選択（コンパクトブランドバー）
-- 対象: モバイルアプリ（`apps/mobile/`）。全41画面（スクリーン）がデザイントークン準拠。
-- 検証: `npx tsc --noEmit` 通過、`expo lint` エラー0件、テスト通過。
-  32ファイル変更、+4903行/-2859行。
-## 2026-08-21 UI-040/060/070 モバイルアプリ UI リデザイン Phase 2（branch claude/imp-000-implementation-r0eje1 / PR #926）
-- 内容: Phase 1（UI-010/020/030）に続き、残りの主要画面をLedraデザイントークンベースに全面リデザイン。
-  - **UI-040（作業リスト & Job Hub）**: 作業一覧を StatusBadge+車両アイコン+メタ行のカード形式に再構成。
-    作業詳細を Vehicle heroカード+ProgressRing+NEXT ACTION+ステッパー+5タブ（概要/作業/証拠/書類/履歴）の
-    多機能ハブに拡張。
-  - **UI-060（車両 & 証明書タブ）**: 車両タブのスタブを検索バー付き一覧に実装（証明書数バッジ付き）。
-    車両詳細を Vehicle Passport レイアウト（Heroカード+2x2 Stat Grid+証明書タイムライン+NFCタグ一覧）に刷新。
-    証明書タブのスタブを SegmentedControl（すべて/有効/下書き）フィルター付き一覧に実装。
-    証明書詳細を VERIFIED shield hero+完全性検証チェック（写真同期/NFC/ステータス）+PDF/QR/共有アクションに刷新。
-  - **UI-070（通知センター）**: 新規画面作成。すべて/未読フィルター、タイプ別カラーアイコン、相対時刻表示、
-    未読インジケーター（青ドット+左ボーダー）。
-- 対象: モバイルアプリ（`apps/mobile/`）。ウェブ管理画面は対象外。
-- 検証: `npx tsc --noEmit` 通過、`npm run lint` エラー0件、全3806テスト通過。
-  7ファイル変更、+2217行/-571行。
-## 2026-08-20 UI-010/020/030 モバイルアプリ UI リデザイン Phase 1（branch claude/imp-000-implementation-r0eje1 / PR #926）
-- 内容: Ledra_UIUX_Development_Specification_v2.0 のリファレンス画像を視覚目標として、
-  モバイル Expo アプリ（`apps/mobile/`）の UI を全面リデザイン。3タスクを一括実装。
-  - **UI-010（デザインシステム基盤）**: `apps/mobile/src/constants/tokens.ts` を新規作成し、
-    色・タイポグラフィ・余白・角丸・サイズ・影のすべてのトークンを単一定義源に集約。
-    react-native-paper テーマ（`theme.ts`）をトークンから導出するよう接続。
-    9 つの共有 UI コンポーネントを新規作成（LedraButton / StatusBadge / SegmentedControl /
-    NextActionCard / StatusCard / ProgressRing / LedraAlert / Skeleton / BottomSheet）。
-    既存コンポーネント（EmptyState / LoadingScreen / OfflineBanner / Steps）もトークン移行。
-  - **UI-020（モバイルシェル）**: タブレイアウトを v2.0 正準5タブ（ホーム/作業/車両/証明/その他）に再編。
-    浮遊型 Ledra Blue 円形アクティブインジケータ、Quick Create FAB（+ボタン）、
-    QuickCreateSheet（車両登録/顧客登録/予約作成/作業開始の4アクション）を実装。
-  - **UI-030（ホーム & MORE 画面）**: ホーム画面をリファレンス01_home に合わせ全面再構築
-    （日付挨拶・3段階スコープ・作業サマリカード+ProgressRing・NEXT ACTION・進行中一覧・
-    対応必要一覧・タイムライン）。MORE 画面をリファレンス07 に合わせセクション別リストに再編。
-- 対象: モバイルアプリ（`apps/mobile/`）。ウェブ管理画面は対象外。
-- コードレビュー: 自己レビューで BottomSheet の閉じアニメーション未再生バグと
-  onRefresh の try/finally 欠如を発見・修正してから push。
-- 検証: `npx tsc --noEmit`（モバイル・ルート両方）通過、`npm run lint` エラー0件。
-  25ファイル変更、+2589行/-552行。
-
 ## 2026-08-19 IMP-010 デザイントークン & 共有コンポーネント基盤（branch impl/IMP-010-design-tokens / PR #928）
 
 - 内容: v2.0 §3 の不足 UI プリミティブ8つを新設 — SegmentedControl（ピル型切替、3箇所の
@@ -1610,22 +4051,6 @@ supabase migration repair --status reverted 20260825000000
   既存検証（lint / lint:migrations / tsc / vitest coverage / build / mobile typecheck+test）を無変更で実行し
   ベースラインを記録。コード変更ゼロ。
 - 対象: 開発プロセス（ユーザー向け機能の変更なし）。
-
-## 2026-08-22 SEO/LLMO改善: llms.txt, OGメタデータ補完, canonical追加, Twitterハンドル設定 (PR #962)
-- 内容: AIクローラー向けllms.txt/llms-full.txtを新規追加、ブログ・事例詳細ページのOG/Twitter/JSON-LD補完、法的ページのcanonical URL追加、Twitterハンドル(@detailing_holy)の全ページ反映。
-- 対象: マーケティングサイト全体（SEO/LLMO/SNSシェア）。
-- 実装:
-  - `src/app/llms.txt/route.ts` (新規): siteConfigから動的生成する簡潔版AI向けテキスト
-  - `src/app/llms-full.txt/route.ts` (新規): 料金・機能・全ページリンク・キーワード含む詳細版
-  - `src/components/marketing/JsonLd.tsx`: ArticleJsonLdにpathPrefix/articleTypeパラメータ追加（後方互換）
-  - `src/app/(marketing)/blog/[slug]/page.tsx`: OG(article)/Twitter/BlogPosting JSON-LD追加
-  - `src/app/(marketing)/cases/[slug]/page.tsx`: OG(article)/Twitter/Article JSON-LD + publishedAt伝搬
-  - `src/app/(marketing)/news/[slug]/page.tsx`: twitter site/creator追加
-  - `src/lib/marketing/config.ts`: twitterHandle追加
-  - `src/app/layout.tsx`: twitter.site/creator反映
-  - `/privacy`, `/terms`, `/law`, `/contact`: canonical追加
-  - `/tokusho`: canonical・og:urlを/lawに統一、sitemapから除去
-
 
 ## 2026-08-16 LINE連携の入力を「Channel ID と Secret の2つだけ」に（branch claude/multi-integration-login-opnzfh）
 
@@ -1854,6 +4279,59 @@ supabase migration repair --status reverted 20260825000000
 - 対象: 車両登録（`/admin/vehicles/new`）、車両編集（`/admin/vehicles/[id]/edit`）、
   証明書発行の車両ピッカー（`/admin/certificates/new`）、車両サイズOCR（`VehicleSizeOCR`）
 
+## 2026-08-10 LINE自動返信（ナレッジ）に「次の行動」誘導ボタンを追加（branch claude/line-chatbot-ledra-dy2fiq）
+
+- 内容: LINE のナレッジ自動返信（`knowledgeReplyAuto.ts`）が回答をプレーンテキストで
+  返すだけで会話が途切れやすかった問題に対し、回答の末尾に quick-reply 誘導ボタン
+  （「お見積りをお願いしたい」「スタッフに相談したい」）を添付できるようにした。
+  タップで既存の見積り会話フロー（`awaiting_quote_detail` を作成し車検証/車種+年式を依頼）
+  開始、またはスタッフ引き継ぎ（`human_takeover`＋通知）に繋がる。既存の
+  `sendCustomerLineButtons` / `handleFlowPostback` / `createFlow` / `buildQuoteDetailAsk` を
+  再利用し、状態機械（`states.ts`）とDBスキーマは変更なし。
+  - 新 postback: `flow:start_quote` / `flow:consult`（`conversationFlowPostback.ts` が
+    状態非依存で処理。`parseFlowPostback` で判定）。
+  - ボタン定義は `buildFollowupButtons()`（`src/lib/line/flow/messages.ts`、単一情報源）。
+  - **会話フロー opt-in（`shouldRunConversationFlow`）が有効なテナントのみ**ボタン化。
+    OFF のテナントは従来どおりテキスト送信で挙動不変（blast radius 最小）。
+- 挙動の要点（自動コードレビュー Codex を2ラウンド回して堅牢化）:
+  - `flow:consult`（相談）: スタッフへ通知＋お客様へ相談受付案内し、以降の自動処理を止める
+    `human_takeover` 状態を**永続化**する（進行中フローがあれば検証＋1回再試行で落とし、無ければ
+    マーカーを新規作成）。単発相談でもボットが再応答しない。マーカーは 72h で失効し getActiveFlow
+    が無視して自動応答が自然復帰する。**失効行 rot の対策**として `createFlow` に「同一キーの失効
+    済み進行中行を expired へ掃除するスイープ」を追加した（一意インデックスは `state NOT IN
+    (closed,expired)` で張られ他に失効スイープが無いため、これが無いと期限切れ human_takeover 行が
+    残って同一キーの createFlow が永久に失敗する rot が起きる）。
+  - `flow:start_quote`（見積り）: **紐付け顧客のみ** `awaiting_quote_detail` を作成（未紐付けは
+    フローを作らずスタッフ引き継ぎ＝詰まり防止）。本番 webhook は customerId を渡さないため
+    `line_user_id` から顧客を解決し、フロー作成・照会のキーを inbound 側（customer_id 優先）と
+    一致させる。施工内容が未知の入口なので施工内容＋車種年式を**テキストで**依頼
+    （`buildQuoteDetailAskWithService`。車検証写真は `awaiting_quote_detail` で OCR 未配線のため
+    求めない）。
+  - `inboundAuto`: 返信・**予約自動起票の前**にフロー状態を一度見て、`human_takeover` の間は
+    顧客向け自動処理（予約起票・ナレッジ・概算・フロー開始）を全て止める（受信箱の下書き＝受動
+    抽出は残す）。進行中フローがある間は誘導ボタンを付けない（`attachButtons` を渡す）。
+  - webhook（`client.ts`）: `maybeAutoProcessInboundMessage` の**前**に送る決定的な定型返信
+    （「予約」→予約リンク、未紐付けの連携案内）も `human_takeover` 中は抑止する（`isHumanTakeoverActive`。
+    返す定型返信が実際にある回のみ判定してホットパスに無駄なクエリを足さない）。これで AI 層・
+    決定的層の両方で takeover が一貫して効く。
+- 対象: LINE 受信の AI 自動応答（全業種、Standard プラン以上・opt-in）。
+- 検証: 単体テスト追加（`conversationFlowPostback.test.ts`・`knowledgeReplyAuto.test.ts`・
+  `inboundAutoReplyGate.test.ts`）。automation+line 全体で 200 件パス、tsc/eslint エラー0。
+- フロー照会のキー堅牢化: `getActiveFlow` を `customer_id` **または** `line_user_id` の
+  いずれか一致に変更（全 LINE フローは line_user_id を持つ）。未紐付けで作った行を後から
+  紐付いた顧客 ID で照会しても取りこぼさず、紐付け前後で進行中フローを見失って抑止/前進が
+  切れる問題を解消（この keying 不整合は複数の経路で再発していた根本原因）。
+- 配信失敗の後始末: `start_quote` で `createFlow` 後に LINE push が失敗した場合、作った
+  `awaiting_quote_detail` 行を `expired` に落とす（届いていない詳細依頼のフローが残って以降の
+  ボタン再提示・見積り前進を 72h 塞ぐのを防ぐ）。takeover 遷移時は `expires_at` を今から 72h に
+  更新し、競合作成で `createFlow` が弾かれた場合は最新フローを読み直して落とす。
+- 未対応（別PR/フェーズ）: `awaiting_quote_detail` 中の車検証写真→OCR 配線、未紐付け客の
+  自動登録導線（現状は未紐付けはスタッフ引き継ぎ）。
+- 補足: 「FAQで答えられる内容そのものを増やす」のは `tenant_line_knowledge` への登録
+  （データ運用）であり本PRの範囲外。本PRは「登録済みFAQに答えた後の誘導UX」を担当。
+  概算見積り返信（`quoteReplyAuto`）へのボタン適用は、現行文面「ご来店時に承ります」と
+  誘導が矛盾するため後続PRに回した。
+
 ## 2026-08-10 品目選択を「純POSレジ型（常にカテゴリタブ＋グリッド表示）」に変更（予約作成・POS）
 
 - 内容: 前日の「検索/カテゴリで絞るまで隠す」段階表示（#903）を、代表の要望により純POSレジ型へ作り替え。
@@ -1882,29 +4360,45 @@ supabase migration repair --status reverted 20260825000000
   予約作成側は一覧を隠しても選択済み品目が常に見えるよう、解除可能なチップ表示を追加。
 - 対象: `/admin/reservations`（予約作成）、`/admin/pos`（ウォークイン会計）
 
+## 2026-08-09 モバイル: 証明書写真を WEB 真正性パイプラインへ統一（カメラ限定・後からDL）
+
+- 内容: モバイルの証明書写真キャプチャを WEB と同一の真正性パイプライン
+  （/api/mobile/certificates/images/upload → uploadHandler：ハッシュ・GPS/EXIF除去・
+  TSA封印・撮影nonce消費・段階タグ・グレード判定）経由に統一。
+  - カメラ限定（ライブラリ選択を撤去＝強制起動）。撮影は端末に保存せずDBのみに保存。
+  - 段階セレクタ（施工前 intake_before / 作業中 in_progress / 施工後 after）を付与。
+  - 撮影セッションごとに capture-nonce（/api/mobile/certificates/[id]/capture-nonce）を取得し、
+    全写真を単一 multipart で送信（nonce はリクエストにつき1回消費のため必ずまとめて送る）。
+  - 証明書詳細で正規 certificate_images を storage_path から公開URL表示（段階/グレードチップ付き）。
+  - 「端末に保存」ボタンで後から明示DL（expo-media-library）。WEB管理は既存の署名/公開URLでDL可。
+- 対象: apps/mobile/src/app/certificates/[id]/photos.tsx（新規・カメラ限定キャプチャ）、
+  certificates/[id]/index.tsx（正規画像読取＋端末保存＋写真導線、[id].tsx から移動）、
+  apps/mobile/src/lib/api.ts（mobileMultipart）、apps/mobile/src/lib/photoStage.ts（新規）、
+  work/[id]/index.tsx（壊れた列/バケット参照を撤去し証明書束縛へ集約）、work/[id]/photos.tsx（削除）、
+  src/lib/certificateImages/stage.ts（段階定数の単一化＋テスト）、uploadHandler.ts（共有定数を参照）。
+  依存追加: expo-media-library ~55.0.19 / expo-file-system ~55.0.24（app.json に保存権限プラグイン）。
+- 注記: バックエンドの真正性エンドポイントは既存で新設なし（未使用だったものを結線）。
+  実DBで certificates.public_id は generate_public_id() 自動採番、certificate_images に
+  image_url/reservation_id/caption 列は無く work-photos バケットも不在＝旧モバイル写真フローは
+  現行スキーマに対して壊れていたため撤去。端末アテステーションは別フェーズ（グレードは basic 超まで）。
+
+## 2026-08-09 モバイル: 入力進捗ステッパー（Steps）追加
+
+- 内容: 各項目の入力・操作の進捗を可視化する汎用ステッパー（Steps インジケーター）を追加。
+  完了ステップは番号→チェックに置換、現在ステップを強調、先のステップは淡色。
+  connector（線）は通過済みを primary、先を outline で描画。Web では現在ステップに
+  `aria-current="step"` を付与。
+- 対象: `apps/mobile/src/components/Steps.tsx`（汎用UI）、
+  `apps/mobile/src/lib/reservationSteps.ts`（モード別ステップ定義と現在ステップ導出の純ロジック、
+  自己チェック `reservationSteps.check.ts` 付き）。
+  予約作成画面 `apps/mobile/src/app/reservations/new.tsx` に組み込み、入力状態から進捗を自動導出。
+- 注記: 日時はデフォルト値が常に入り「常に完了」表示になるためステップから除外（ponytail）。
+  飛び込み受付は顧客・車両が任意のため「メニュー→確認」の2段に簡略化。
+
 ## 2026-08-08 デモ証明書画像の Storage 400 を解消（プレースホルダ実ファイルを配置）
 - 内容: デモシード `setup-demo-tenant.ts` が `certificate_images` 行（`demo/LEDRA-DEMO-XXXX/NN.jpg`）を作るのに実ファイルを Storage に置かず、公開ページの `<img>`（`object/public/assets/…`）と外部の `object/info` メタデータ取得が全て 400（Object not found）を返していた。sharp で軽量プレースホルダ JPEG を生成し、シード時に各 `storage_path` へ upsert アップロードするよう修正。旧コメントにあった「`certificate-images` バケットに placeholder を1枚」というパス共有スキームは実コード（バケット `assets` / パスは cert 単位ユニーク）と食い違っていたため、コメントも実態に合わせて更新。
 - 検証: 本番プロジェクト `cahybswpduchptvyvdkk` で `assets` バケット=public・該当パスのオブジェクト0件・参照行63件を SQL で確認。プレースホルダ生成の JPEG magic byte を検証する単体テスト1件を追加（パス）。**【要確認】本番の 400 解消**: 本番 Storage への配置は `npx tsx scripts/setup-demo-tenant.ts` を本番 env で再実行（冪等）するまで未反映。
 - 対象: 公開証明書ページ `/c/[public_id]` のギャラリー画像 / デモテナント provisioning スクリプト。
-
-## 2026-08-04 電帳法: 本番でTSAタイムスタンプ封印が成立、帳票詳細に封印バッジを追加 (branch claude/edoc-seal-badge-and-logs)
-- 内容: (1) 本番Vercelで写真TSA（`PHOTO_TSA_ENABLED=true` / `PHOTO_TSA_URL=http://timestamp.digicert.com`）を有効化。確定帳票の封印（`documentSeal.ts`）は専用 `DOCUMENT_TSA_*` が無ければ `PHOTO_TSA_*` を流用する実装のため、この1トグルで請求書封印にも第三者タイムスタンプが付くようになった。本番DBで実確認済み（請求書 INV-202608-001、`meta_json.integrity_seal.timestamp_token_b64` に約6KBのRFC3161トークン、genTime 2026-08-04T23:56:50Z、authority timestamp.digicert.com）。DECISION_LOGに残っていた「本番TSA実通信未検証」の穴を実データで解消。(2) 帳票詳細画面のステータス行に封印バッジを追加（`describeIntegritySeal`＝クライアント安全な純関数、`src/lib/documents/integritySealView.ts`）。タイムスタンプ付きは success バッジ＋「TS局 / 時刻(JST)」、ハッシュのみは info バッジで正直に区別表示。
-- 対象: 帳票詳細（`admin/documents/[id]`）。全業種。検証: `integritySealView` 単体3件パス、tsc/eslint エラー0。封印バッジは meta_json.integrity_seal を読むだけでスキーマ変更なし。
-- 残: 加盟店/税務向けの「封印の検証（ハッシュ再計算照合・TSトークン検証）」UIと電帳法の規程面は未実装。法的効力重視時は JIPDEC 認定TS局へURL差し替え（設定変更のみ）。
-
-## 2026-08-06 レポート収益還元（実送金＋段階式）を9ラウンドの堅牢化後にマージ (PR #851 squash → main 9ced4f3)
-- **【要確認】本番反映**: `main` にコードはマージ済みだが、**本番DB適用は未実施**（2026-08-15 時点で本番に `vehicle_report_tiers` テーブルと `vehicle_report_orders.tier_key`/`scope_*` が存在しないことを確認済み。「未確認」ではなく「未適用」と確定）。原因は `DB migrate (apply to production)` ワークフローが Aug 2 以降失敗し続けていたこと（OPEN_QUESTIONS 2026-08-05 の履歴ドリフト）。2026-08-15 の PR #917 でワークフローの停止を解消し、2ファイルを `20260815100000_vehicle_report_payout.sql` / `20260815100001_vehicle_report_tiers.sql` へ改名して適用対象に載せた。**#917 マージ時に本番へ適用される**ので、適用後に本番稼働として扱う。
-- 内容: 2026-07-30 実装分（蓄積台帳→人手承認→Stripe Connect 実送金→返金巻き戻し、段階式レポート＋スコープ按分）を仕上げて `main` にマージ。マージ前に Codex 自動レビュー9ラウンドで金銭移動・整合性を追い込み、以下の bounded 修正を反映:
-  - **finalize-on-create ＋ 原子的 claim**: Stripe が `transfer.paid` を出さないため、送金作成直後に `status='approved' かつ transfer_id IS NULL` ガード付き UPDATE で `paid` 確定。並行 cancel/refund を取りこぼさない。
-  - **返金巻き戻しの純粋関数化**: `reversalActionForStatus`（terminal→skip / transfer有→reverse / 無→cancel）と `postCancelClaimAction`（cancel-claim 0行時の再読込→reverse 判定）を切り出し単体テスト。並行 payout が送金済みにした行を無条件 cancel して資金を宙に浮かせる競合を解消。
-  - **空スコープ販売の拒否**: 開示レコードが0件（直近Nヶ月の窓が全記録より新しい／認証済み記録なし）の購入を checkout で拒否。空レポート課金と還元0を防ぐ。
-  - **DBエラーの surface（主要経路）**: webhook の paid/refunded 遷移・refund 注文照会・reversal のロード/cancel-claim、payout の share/tenant 照会、精算バッチの systemic 障害（全行失敗）、checkout の空スコープ判定（`getAnchoredCertCountsByTenant`）、tiers カタログ/settings 読取——を throw して surface（webhook 系は `stripe_processed_events` の `processed_at=NULL` を `stripe-event-monitor` cron に載せる／バッチは cron 失敗アラート）。**未対応（#892 に計上）**: `recordVehicleReportRevenueShares` の台帳 upsert・order/settings 読取の error は現状 swallow のまま＝計上失敗が無音になりうる。
-  - **非同期決済対応**: `checkout.session.async_payment_succeeded` を新設（コンビニ/銀行振込の入金確定時に paid化＋還元計上、`handleVehicleReportSessionPaid` で完了経路と共有・冪等）。
-  - **一部取消の扱い**: connect-webhook `transfer.reversed` は全額取消（`transfer.reversed===true`／`amount_reversed>=amount`）時のみ台帳を terminal `reversed` に。
-  - **platform-admin 堅牢化**: approve/cancel の0行遷移を競合として 4xx、pay 後は実状態 `paid` を返す、一覧は limit/offset ページネーション、オンボーディングCTAは uncapped count で判定。
-- 検証: `vehicleReport` テスト32件パス（split 6＋scope 7＋access＋reversalActionForStatus 5＋postCancelClaimAction 4 等）、`tsc --noEmit` エラー0、変更ファイル eslint エラー0。
-- 残（別issue #892 に切り出し）: webhook 冪等の自動 replay 化、booking↔refund の完全アトミック化、payout の durable transfer recovery、アップグレード返金時の partial entitlement 保持、passport 表示の anchor スナップショット、`stripe_connect_transfers` 監査行の paid 同期。
-- 対象: 公開 `/v/[vin]` レポート課金（段階式）／施工店ポータル `/admin/report-revenue`／platform-admin 精算API／Stripe webhook（main + connect）／cron。
 
 ## 2026-08-07 会計（POS）ウォークインの品目選択にもカテゴリ絞り込みを追加
 
@@ -1937,6 +4431,30 @@ supabase migration repair --status reverted 20260825000000
   `followUp` cron 等）に照合済み。デザインコンポーネントの追加のみで挙動変更なし。
 - 対象: マーケティングHP トップページ（施工店向けの訴求）。
 - 検証: `npx tsc --noEmit`（0 error）、`eslint`（新規/編集ファイル clean）。未使用の `page.full.tsx` は App Router のルート対象外のため未更新。
+
+## 2026-08-07 モバイル: 複数テナント所属ユーザーのログイン修正 (PR #897)
+
+- 内容: fetchUserProfile が tenant_memberships を .single() で取得しており、2件以上の
+  membership を持つユーザー（自店オーナーが他店に staff 招待された等）でログイン不可
+  （「テナント情報が見つかりません」）だった不具合を修正。Web の checkRole.ts と同じく
+  created_at 昇順 + limit(1) + maybeSingle() で最古の1件を採用するよう統一。
+- 対象: apps/mobile/src/lib/auth.ts。
+- 注記: モバイルは1ユーザー=1テナント前提のUX（select-store はテナント内の店舗選択のみ）。
+  将来のマルチテナント対応は select-store 拡張が上限（ponytail コメントで明記）。
+
+## 2026-08-06 レポート収益還元（実送金＋段階式）を9ラウンドの堅牢化後にマージ (PR #851 squash → main 9ced4f3)
+- **【要確認】本番反映**: `main` にコードはマージ済みだが、**本番DB適用は未実施**（2026-08-15 時点で本番に `vehicle_report_tiers` テーブルと `vehicle_report_orders.tier_key`/`scope_*` が存在しないことを確認済み。「未確認」ではなく「未適用」と確定）。原因は `DB migrate (apply to production)` ワークフローが Aug 2 以降失敗し続けていたこと（OPEN_QUESTIONS 2026-08-05 の履歴ドリフト）。2026-08-15 の PR #917 でワークフローの停止を解消し、2ファイルを `20260815100000_vehicle_report_payout.sql` / `20260815100001_vehicle_report_tiers.sql` へ改名して適用対象に載せた。**#917 マージ時に本番へ適用される**ので、適用後に本番稼働として扱う。
+- 内容: 2026-07-30 実装分（蓄積台帳→人手承認→Stripe Connect 実送金→返金巻き戻し、段階式レポート＋スコープ按分）を仕上げて `main` にマージ。マージ前に Codex 自動レビュー9ラウンドで金銭移動・整合性を追い込み、以下の bounded 修正を反映:
+  - **finalize-on-create ＋ 原子的 claim**: Stripe が `transfer.paid` を出さないため、送金作成直後に `status='approved' かつ transfer_id IS NULL` ガード付き UPDATE で `paid` 確定。並行 cancel/refund を取りこぼさない。
+  - **返金巻き戻しの純粋関数化**: `reversalActionForStatus`（terminal→skip / transfer有→reverse / 無→cancel）と `postCancelClaimAction`（cancel-claim 0行時の再読込→reverse 判定）を切り出し単体テスト。並行 payout が送金済みにした行を無条件 cancel して資金を宙に浮かせる競合を解消。
+  - **空スコープ販売の拒否**: 開示レコードが0件（直近Nヶ月の窓が全記録より新しい／認証済み記録なし）の購入を checkout で拒否。空レポート課金と還元0を防ぐ。
+  - **DBエラーの surface（主要経路）**: webhook の paid/refunded 遷移・refund 注文照会・reversal のロード/cancel-claim、payout の share/tenant 照会、精算バッチの systemic 障害（全行失敗）、checkout の空スコープ判定（`getAnchoredCertCountsByTenant`）、tiers カタログ/settings 読取——を throw して surface（webhook 系は `stripe_processed_events` の `processed_at=NULL` を `stripe-event-monitor` cron に載せる／バッチは cron 失敗アラート）。**未対応（#892 に計上）**: `recordVehicleReportRevenueShares` の台帳 upsert・order/settings 読取の error は現状 swallow のまま＝計上失敗が無音になりうる。
+  - **非同期決済対応**: `checkout.session.async_payment_succeeded` を新設（コンビニ/銀行振込の入金確定時に paid化＋還元計上、`handleVehicleReportSessionPaid` で完了経路と共有・冪等）。
+  - **一部取消の扱い**: connect-webhook `transfer.reversed` は全額取消（`transfer.reversed===true`／`amount_reversed>=amount`）時のみ台帳を terminal `reversed` に。
+  - **platform-admin 堅牢化**: approve/cancel の0行遷移を競合として 4xx、pay 後は実状態 `paid` を返す、一覧は limit/offset ページネーション、オンボーディングCTAは uncapped count で判定。
+- 検証: `vehicleReport` テスト32件パス（split 6＋scope 7＋access＋reversalActionForStatus 5＋postCancelClaimAction 4 等）、`tsc --noEmit` エラー0、変更ファイル eslint エラー0。
+- 残（別issue #892 に切り出し）: webhook 冪等の自動 replay 化、booking↔refund の完全アトミック化、payout の durable transfer recovery、アップグレード返金時の partial entitlement 保持、passport 表示の anchor スナップショット、`stripe_connect_transfers` 監査行の paid 同期。
+- 対象: 公開 `/v/[vin]` レポート課金（段階式）／施工店ポータル `/admin/report-revenue`／platform-admin 精算API／Stripe webhook（main + connect）／cron。
 
 ## 2026-08-06 送付済み請求書のステータス変更（入金済等）が「内容編集」と誤判定されブロックされる不具合を修正 (branch claude/payment-status-and-error-no5a9m)
 - 内容: `PUT /api/admin/documents` で送付済み請求書を入金済に変更できなかった根本原因を修正。原因は
@@ -2007,6 +4525,11 @@ supabase migration repair --status reverted 20260825000000
   未読が復活していた。一括既読 API `PUT /api/admin/notifications/read-all`（テナント宛＋本人宛の未読を
   `read_at` で既読化）を追加し、ベルを「楽観更新 → API → 再取得」に修正。
 - 対象: 管理画面トップバーの通知ベル。
+
+## 2026-08-04 電帳法: 本番でTSAタイムスタンプ封印が成立、帳票詳細に封印バッジを追加 (branch claude/edoc-seal-badge-and-logs)
+- 内容: (1) 本番Vercelで写真TSA（`PHOTO_TSA_ENABLED=true` / `PHOTO_TSA_URL=http://timestamp.digicert.com`）を有効化。確定帳票の封印（`documentSeal.ts`）は専用 `DOCUMENT_TSA_*` が無ければ `PHOTO_TSA_*` を流用する実装のため、この1トグルで請求書封印にも第三者タイムスタンプが付くようになった。本番DBで実確認済み（請求書 INV-202608-001、`meta_json.integrity_seal.timestamp_token_b64` に約6KBのRFC3161トークン、genTime 2026-08-04T23:56:50Z、authority timestamp.digicert.com）。DECISION_LOGに残っていた「本番TSA実通信未検証」の穴を実データで解消。(2) 帳票詳細画面のステータス行に封印バッジを追加（`describeIntegritySeal`＝クライアント安全な純関数、`src/lib/documents/integritySealView.ts`）。タイムスタンプ付きは success バッジ＋「TS局 / 時刻(JST)」、ハッシュのみは info バッジで正直に区別表示。
+- 対象: 帳票詳細（`admin/documents/[id]`）。全業種。検証: `integritySealView` 単体3件パス、tsc/eslint エラー0。封印バッジは meta_json.integrity_seal を読むだけでスキーマ変更なし。
+- 残: 加盟店/税務向けの「封印の検証（ハッシュ再計算照合・TSトークン検証）」UIと電帳法の規程面は未実装。法的効力重視時は JIPDEC 認定TS局へURL差し替え（設定変更のみ）。
 
 ## 2026-08-04 帳票一覧が本番で常に0件になる不具合を修正（金額フィルタ未指定を total=0 と誤解釈していた根本原因）(PR #879 / 93eeeea)
 - 内容: 帳票一覧API `GET /api/admin/documents` が、金額検索 `amount_min`/`amount_max` 未指定時に
@@ -2088,10 +4611,6 @@ supabase migration repair --status reverted 20260825000000
   - 限界: 自動最新化されるのは元データを持つ製品資料のみ。契約書テンプレ等・機能増減と連動しない定型文書は従来どおり本部が手動更新（静的アップロード欄は併存）。プレビューは attachment 配信のため欄内 iframe ではなく新規タブDLとした。
   - 検証: 新規 parity テスト（catalog↔`RESOURCE_PDFS` の双方向カバレッジ・DLリンク整合）3件＋`src/lib/marketing` 全66件パス、tsc エラー0、eslint エラー0（既存 warning 2件は無関係の別箇所）。
 
-## 2026-07-28 「レドラ」音声起動の運用手順を追加（アシスタント経由・コード変更なし）
-- 内容: `apps/mobile/docs/VOICE_LAUNCH.md` を新規作成。既存の `ledra://` URL スキーム（expo-router の自動ディープリンク解決）を使い、iOS ショートカット／Android ルーティンに「レドラ」を登録して `ledra://certificates/new` 等でデータ入力画面へ直行させる手順を文書化。アプリ側の追加実装はゼロ。アプリ内ウェイクワード（B）とネイティブ App Intents は実装ロードマップとして同ドキュメントに記載（実機ビルド待ち・未実装）。
-- 対象: モバイルアプリ（`apps/mobile`、Expo）／現場の施工士による音声起点のデータ入力。
-
 ## 2026-07-30 車両レポートの段階式ティア（部分/フル）＋スコープ按分 (branch claude/merchant-revenue-sharing-22tuq3)
 - 内容: 単一定額レポートを、無料サマリ→部分（直近N ヶ月）→全履歴フルの段階式へ拡張。開示範囲と還元対象を一致させる。
   (1) スキーマ（`20260815100001_vehicle_report_tiers.sql`、旧 `20260730200000` から改名）: `vehicle_report_tiers`（tier_key/label/price_jpy/scope_type/scope_months/enabled/sort、直近1年¥1,500＋全履歴¥3,000 を seed）。`vehicle_report_orders` に `tier_key`/`scope_type`/`scope_months`/**`scope_from`（購入時アンカーの絶対カットオフ）**を追加。
@@ -2137,12 +4656,9 @@ supabase migration repair --status reverted 20260825000000
 - 残（スコープ外）: 実送金の自動化（`stripe_connect_transfers.source_type` に vehicle_report 追加＋精算バッチ／
   Connect オンボーディング導線は別 PR）、返金時の台帳巻き戻し。
 
-## 2026-07-25 CMS予約投稿のタイムゾーンずれを修正（保存・表示の両方） (branch claude/cms-scheduled-post-bug-ejccnb)
-- 内容: サイトコンテンツ（お知らせ/ブログ/イベント）の予約公開が指定時刻に公開されず、かつ管理/公開画面の日時表示も入力とずれていた不具合を修正。
-  - **保存**: `datetime-local` が生成する TZ 無しの壁時計文字列（例 `2026-07-30T14:00`）を server action が `new Date(x).toISOString()` でそのまま変換していた。Vercel ランタイムの TZ が UTC のため JST 14:00 の予約が `14:00Z`（＝JST 23:00）で保存され、cron 自体は正常でも公開が9時間遅れていた。
-  - **表示**: 管理一覧・公開イベント/ニュース/ブログ・NewsTeaser の日時整形がサーバ側で `new Date().getHours()` / `iso.slice(0,10)` を使い、SSR(UTC)で JST 入力が9時間ずれて（日付のみ表示は深夜帯で1日）表示されていた。
-  - 共有ヘルパー `src/lib/datetime.ts` を新設（`jstLocalInputToUtcIso` / `utcIsoToJstLocalInput` / `jstParts` / `formatJstDateTime` / `formatJstDateTimeJa` / `formatJstDateJa`）。naive 入力を常に JST(UTC+9) として保存し、表示も常に JST で描画（実行環境TZ非依存）。散在していた各ページのローカル日時整形関数を撤去して集約。ユニットテスト追加（UTC/JST/他TZの各サーバで検証）。
-- 対象: `/admin/site-content`（作成・編集 server action / 一覧）、公開 `/events`・`/news/[slug]`・`/news`・`/blog`・`/blog/[slug]`・トップ NewsTeaser、cron `/api/cron/publish-scheduled` の対象データ
+## 2026-07-28 「レドラ」音声起動の運用手順を追加（アシスタント経由・コード変更なし）
+- 内容: `apps/mobile/docs/VOICE_LAUNCH.md` を新規作成。既存の `ledra://` URL スキーム（expo-router の自動ディープリンク解決）を使い、iOS ショートカット／Android ルーティンに「レドラ」を登録して `ledra://certificates/new` 等でデータ入力画面へ直行させる手順を文書化。アプリ側の追加実装はゼロ。アプリ内ウェイクワード（B）とネイティブ App Intents は実装ロードマップとして同ドキュメントに記載（実機ビルド待ち・未実装）。
+- 対象: モバイルアプリ（`apps/mobile`、Expo）／現場の施工士による音声起点のデータ入力。
 
 ## 2026-07-27 AIナビ＆横断検索でサイドバーをスリム化 + 監査ゲート恒久修正 (PR #752 / e19d92c)
 - 内容:
@@ -2224,6 +4740,13 @@ supabase migration repair --status reverted 20260825000000
   video レイアウト/ページ・サービス概要PDF・オンボーディングメールのタグラインも新ポジションへ更新。
 - 対象: 公開マーケLP全体のメタデータ・構造化データ・OGP、およびAI検索(GEO/AEO)向け露出。全業種（整備/鈑金/コーティング/PPF）。
 
+## 2026-07-25 CMS予約投稿のタイムゾーンずれを修正（保存・表示の両方） (branch claude/cms-scheduled-post-bug-ejccnb)
+- 内容: サイトコンテンツ（お知らせ/ブログ/イベント）の予約公開が指定時刻に公開されず、かつ管理/公開画面の日時表示も入力とずれていた不具合を修正。
+  - **保存**: `datetime-local` が生成する TZ 無しの壁時計文字列（例 `2026-07-30T14:00`）を server action が `new Date(x).toISOString()` でそのまま変換していた。Vercel ランタイムの TZ が UTC のため JST 14:00 の予約が `14:00Z`（＝JST 23:00）で保存され、cron 自体は正常でも公開が9時間遅れていた。
+  - **表示**: 管理一覧・公開イベント/ニュース/ブログ・NewsTeaser の日時整形がサーバ側で `new Date().getHours()` / `iso.slice(0,10)` を使い、SSR(UTC)で JST 入力が9時間ずれて（日付のみ表示は深夜帯で1日）表示されていた。
+  - 共有ヘルパー `src/lib/datetime.ts` を新設（`jstLocalInputToUtcIso` / `utcIsoToJstLocalInput` / `jstParts` / `formatJstDateTime` / `formatJstDateTimeJa` / `formatJstDateJa`）。naive 入力を常に JST(UTC+9) として保存し、表示も常に JST で描画（実行環境TZ非依存）。散在していた各ページのローカル日時整形関数を撤去して集約。ユニットテスト追加（UTC/JST/他TZの各サーバで検証）。
+- 対象: `/admin/site-content`（作成・編集 server action / 一覧）、公開 `/events`・`/news/[slug]`・`/news`・`/blog`・`/blog/[slug]`・トップ NewsTeaser、cron `/api/cron/publish-scheduled` の対象データ
+
 ## 2026-07-24 コアフロー横断バグ監査：実バグ8系統を修正 (branch claude/dazzling-ride-9mnfsp)
 - 内容: 予約受付〜会計終了のコア機能を監査し、以下を修正。
   (1) 並列ブース枠（max_bookings>1）で2件目が必ず弾かれる不具合。容量スロットが支配する
@@ -2277,8 +4800,6 @@ supabase migration repair --status reverted 20260825000000
   理由文言（`purchase_orders.note`）を表示。請求書は自動/手動を区別する実データが無い
   ため意図的に非表示（捏造しない）。
 - 対象: 管理画面ダッシュボード `/admin`（全業種のテナント管理画面）。
-
-## 直近のリリース（git log 直近30件より、2026-07 時点で把握できるもの）
 
 ## 2026-07-22 予約管理UI整理・案件ワークフローのエラー表示バグ修正・証明書発行の下書き補助 (PR #817)
 - 内容:
@@ -2414,6 +4935,16 @@ supabase migration repair --status reverted 20260825000000
   `buildLineLinkPrompt` のゲート（閾値/クールダウン/紐付け済み）に回帰テストを追加。
 - 対象: LINE 公式アカウント連携（opt-in テナントのみ動作・既定 OFF）。全業種。
 
+## 2026-07-21 Googleカレンダー定期同期(cron)を追加
+- 内容: gcal 同期はこれまで push(予約変更時のイベント駆動)＋手動 pull のみで定期実行が無かったため、
+  新 cron `/api/cron/gcal-sync` を追加。連携有効テナント(gcal_sync_enabled かつ refresh token あり)を対象に、
+  JST「7日前〜60日先」の窓で push＋pull を双方向同期し `gcal_last_synced_at` を更新。`vercel.json` に 15分毎
+  (`*/15 * * * *`)で登録。個別テナント失敗は他に波及せず(ベストエフォート)・55秒タイムアウトガード・失敗ストリーク
+  記録つき(既存cron作法)。同期期間の算出は純関数 `computeSyncWindow`(単体3件)。既存の push/pull/cron 認証関数を再利用。
+- 対象: Googleカレンダー連携(全業種共通・連携有効テナントのみ)。
+- 補足: 本番実績では有効テナント2/12・直近同期が11日前だったため、GCal 発の変更取り込みと push 取りこぼしの自己修復を
+  定期化。将来 Google Push 通知(即時)へ上げる余地あり(現状ポーリングで許容)。
+
 ## 2026-07-20 本番マイグレーション詰まりの復旧（certificate_versions の孤立旧テーブル是正）
 - 内容: 本番の自動マイグレーション（`db-migrate`）が `20260719000001_certificate_versions.sql` で
   停止し、#781 以降の未適用分（#783 の4本＋終日予約 `20260720000004`）が全てブロックされていた
@@ -2427,16 +4958,6 @@ supabase migration repair --status reverted 20260825000000
   #783 の CONCURRENTLY 索引2本は小テーブルのため非CONCURRENTLYで同一の最終形を作成。
 - 対象: DB マイグレーション基盤（本番適用の復旧）。証明書バージョニング（#781）・指名BtoB請求（#783）・
   終日予約（#784）の各マイグレーションがこの復旧で本番適用済みになった。
-
-## 2026-07-21 Googleカレンダー定期同期(cron)を追加
-- 内容: gcal 同期はこれまで push(予約変更時のイベント駆動)＋手動 pull のみで定期実行が無かったため、
-  新 cron `/api/cron/gcal-sync` を追加。連携有効テナント(gcal_sync_enabled かつ refresh token あり)を対象に、
-  JST「7日前〜60日先」の窓で push＋pull を双方向同期し `gcal_last_synced_at` を更新。`vercel.json` に 15分毎
-  (`*/15 * * * *`)で登録。個別テナント失敗は他に波及せず(ベストエフォート)・55秒タイムアウトガード・失敗ストリーク
-  記録つき(既存cron作法)。同期期間の算出は純関数 `computeSyncWindow`(単体3件)。既存の push/pull/cron 認証関数を再利用。
-- 対象: Googleカレンダー連携(全業種共通・連携有効テナントのみ)。
-- 補足: 本番実績では有効テナント2/12・直近同期が11日前だったため、GCal 発の変更取り込みと push 取りこぼしの自己修復を
-  定期化。将来 Google Push 通知(即時)へ上げる余地あり(現状ポーリングで許容)。
 
 ## 2026-07-20 公開予約フローを仮押さえ対応に（Phase 2 fast-follow） (PR #794)
 - 内容: 一般客向け公開予約（`/api/external/booking`・`/api/customer/booking`）の容量/空き判定に、取引先の有効な
@@ -2678,6 +5199,17 @@ supabase migration repair --status reverted 20260825000000
   実行時間で打ち切られないようにした。
 - 対象: LINE Webhook (`/api/line/webhook`)、自動返信・自動化フロー全般。
 
+## 記入フォーマット
+
+```
+
+## YYYY-MM-DD 変更タイトル (PR #番号 / commit)
+- 内容: 何を実装・変更したか
+- 対象: どの画面・API・業種向けか
+```
+
+## 直近のリリース（git log 直近30件より、2026-07 時点で把握できるもの）
+
 ## 2026-07 現場入力の負担軽減ブラッシュアップ (PR #759)
 
 - 内容:
@@ -2739,148 +5271,3 @@ supabase migration repair --status reverted 20260825000000
   集計 `src/lib/analytics/storeUsage.ts`（ユニットテスト付き）。
 - 注記: ログイン「回数」は未記録のため、last_sign_in_at ベースの「アクティブ会員」で近似。
 
-## 2026-08-07 モバイル: 複数テナント所属ユーザーのログイン修正 (PR #897)
-
-- 内容: fetchUserProfile が tenant_memberships を .single() で取得しており、2件以上の
-  membership を持つユーザー（自店オーナーが他店に staff 招待された等）でログイン不可
-  （「テナント情報が見つかりません」）だった不具合を修正。Web の checkRole.ts と同じく
-  created_at 昇順 + limit(1) + maybeSingle() で最古の1件を採用するよう統一。
-- 対象: apps/mobile/src/lib/auth.ts。
-- 注記: モバイルは1ユーザー=1テナント前提のUX（select-store はテナント内の店舗選択のみ）。
-  将来のマルチテナント対応は select-store 拡張が上限（ponytail コメントで明記）。
-
-## 2026-08-09 モバイル: 証明書写真を WEB 真正性パイプラインへ統一（カメラ限定・後からDL）
-
-- 内容: モバイルの証明書写真キャプチャを WEB と同一の真正性パイプライン
-  （/api/mobile/certificates/images/upload → uploadHandler：ハッシュ・GPS/EXIF除去・
-  TSA封印・撮影nonce消費・段階タグ・グレード判定）経由に統一。
-  - カメラ限定（ライブラリ選択を撤去＝強制起動）。撮影は端末に保存せずDBのみに保存。
-  - 段階セレクタ（施工前 intake_before / 作業中 in_progress / 施工後 after）を付与。
-  - 撮影セッションごとに capture-nonce（/api/mobile/certificates/[id]/capture-nonce）を取得し、
-    全写真を単一 multipart で送信（nonce はリクエストにつき1回消費のため必ずまとめて送る）。
-  - 証明書詳細で正規 certificate_images を storage_path から公開URL表示（段階/グレードチップ付き）。
-  - 「端末に保存」ボタンで後から明示DL（expo-media-library）。WEB管理は既存の署名/公開URLでDL可。
-- 対象: apps/mobile/src/app/certificates/[id]/photos.tsx（新規・カメラ限定キャプチャ）、
-  certificates/[id]/index.tsx（正規画像読取＋端末保存＋写真導線、[id].tsx から移動）、
-  apps/mobile/src/lib/api.ts（mobileMultipart）、apps/mobile/src/lib/photoStage.ts（新規）、
-  work/[id]/index.tsx（壊れた列/バケット参照を撤去し証明書束縛へ集約）、work/[id]/photos.tsx（削除）、
-  src/lib/certificateImages/stage.ts（段階定数の単一化＋テスト）、uploadHandler.ts（共有定数を参照）。
-  依存追加: expo-media-library ~55.0.19 / expo-file-system ~55.0.24（app.json に保存権限プラグイン）。
-- 注記: バックエンドの真正性エンドポイントは既存で新設なし（未使用だったものを結線）。
-  実DBで certificates.public_id は generate_public_id() 自動採番、certificate_images に
-  image_url/reservation_id/caption 列は無く work-photos バケットも不在＝旧モバイル写真フローは
-  現行スキーマに対して壊れていたため撤去。端末アテステーションは別フェーズ（グレードは basic 超まで）。
-
-## 2026-08-09 モバイル: 入力進捗ステッパー（Steps）追加
-
-- 内容: 各項目の入力・操作の進捗を可視化する汎用ステッパー（Steps インジケーター）を追加。
-  完了ステップは番号→チェックに置換、現在ステップを強調、先のステップは淡色。
-  connector（線）は通過済みを primary、先を outline で描画。Web では現在ステップに
-  `aria-current="step"` を付与。
-- 対象: `apps/mobile/src/components/Steps.tsx`（汎用UI）、
-  `apps/mobile/src/lib/reservationSteps.ts`（モード別ステップ定義と現在ステップ導出の純ロジック、
-  自己チェック `reservationSteps.check.ts` 付き）。
-  予約作成画面 `apps/mobile/src/app/reservations/new.tsx` に組み込み、入力状態から進捗を自動導出。
-- 注記: 日時はデフォルト値が常に入り「常に完了」表示になるためステップから除外（ponytail）。
-  飛び込み受付は顧客・車両が任意のため「メニュー→確認」の2段に簡略化。
-
-## 2026-08-22 モバイル: ウォークイン会計の品目選択を POS レジ型に刷新／タブバーを丸ボタン化
-
-- 内容（会計）: ウォークイン会計の品目選択が可変幅ピルの折り返し配置で、全品目を縦スクロールへ
-  直に流し込んでいたため、品数が増えるほど見た目も操作も破綻していた。POS レジのレイアウトに作り替え。
-  - 等幅タイルのグリッド（ウィンドウ幅で 2/3/4 列）。端数行は null パディングして最後の1枚が横に伸びない
-  - FlatList 化で画面分のみ描画。品目が増えても描画コストが増えない
-  - 検索バーとカテゴリタブをグリッドから分離して常時固定（従来は一緒にスクロールで流れて消えた）
-  - 「よく使う」カテゴリ（`menu_items.sort_order` 上位12件）を追加し、12件超のテナントでは既定表示
-  - 検索中はカテゴリを跨いで検索。カート投入済みタイルは枠と数量バッジで区別
-  - 品目選択 → 明細・支払いの2ステップ化。下部に「◯点 / ¥合計」バーを常設
-- 内容（タブバー）: 「押しにくい・隣との境界が見えない」への対応。
-  - 各タブを直径48px（最小タップ領域44pt以上）の丸ボタン化。**非選択時も背景と枠線を出して境界を可視化**
-  - `sizing.tabBarHeight` を 84 → 80（中身のみ）に変更し、実高さは `insets.bottom` を足して算出
-  - クイック作成の + を右下からタブバー中央の真上へ移設（白縁取り+影、8px 離して重ならない）
-  - `sizing.fabClearance` を追加し、中央 + に最後の行が隠れないようタブ配下5画面の下余白に適用
-- `/code-review` で検出した自作バグの同時修正:
-  - カスタム品目（自由入力）が会計ステップにしか無いのに、遷移ボタンをカート空で無効化していた
-    → メニュー未登録の店舗・都度見積りの会計が成立しなくなる。ボタンを常時有効化
-  - `useDeviceType` をウィンドウ幅判定にしたため iPad Split View で `isIPad` が取引中に反転し、
-    決済手段の構成が入れ替わる（`"qr"` のまま iPad 構成になると QR を出さずに記帳）
-    → 端末固有の事実である `Platform.isPad` で判定するよう修正
-  - 会計ステップでの端末バック／ヘッダー戻るが画面ごと閉じてカートを黙って捨てる
-    → `BackHandler` と `headerLeft` で品目選択へ戻すよう結線
-  - タブバーに数値 height を渡すと react-navigation はセーフエリアを足さないため、固定 paddingBottom では
-    Android のジェスチャーバー配下にラベルが潜る → `insets.bottom` を自前で加算
-  - QR 提示中もカートを編集できたため Stripe の請求額と `pos_checkout` の記帳額がずれ得た
-    → `qrPolling` 中は数量操作・カスタム品目追加・品目選択への復帰を止める
-  - 数量バッジが角丸タイルの外にはみ出しており Android でクリップされる → タイル内のフローに移動
-  - 合成カテゴリ名（「すべて」「よく使う」）と同名の実カテゴリで key 重複と誤表示 → 実カテゴリ側を弾く
-  - おつりの色が `Math.max` で丸めた後の値を見ていて、預かり不足でも緑 → `received >= total` で判定
-- 対象: `apps/mobile/src/app/pos/walk-in.tsx`、`apps/mobile/src/app/(tabs)/_layout.tsx`、
-  `apps/mobile/src/constants/tokens.ts`、`(tabs)/{index,more/index,work/index,vehicles/index,certificates/index}.tsx`、
-  `apps/mobile/src/lib/menuFilter.ts`（新規・純ロジック）、`menuFilter.check.ts`（新規・自己チェック、`npm test` に追加）。
-- 注記: 「よく使う」は店舗が手で並べた `sort_order` の上位であり**実売上頻度ではない【要確認】**。
-  頻度順にするなら `payment_items` の集計クエリが要る。
-  タブは v2.0 §2 の正準5構成のままなので、+ を列の中に入れると必ず中心からずれる（6スロットでは
-  41.7% か 58.3%）。列の上に浮かせるのが中央に置ける唯一の形として採用した。
-
-## 2026-08-22 モバイル: ルート衝突の解消（戻るボタン欠落・二重ヘッダーの根因）
-
-- 内容: 代表から「戻るボタンが追加されていない、もう3回目」との指摘。原因は**同一 URL を指す
-  ルートファイルの重複**で、戻るボタンを入れた側が影に隠れて表示されていなかった。
-  - `app/(tabs)/reservations/index.tsx` と `app/reservations/index.tsx` が両方 `/reservations` を指し、
-    タブ側が URL を握っていた。タブ側は Tabs ナビゲーターの内側で描画されるため戻るボタンを出せず、
-    さらに `href: null` の `Tabs.Screen` に `headerShown: false` が無かったため、
-    Tabs のヘッダー（タイトル未設定＝ルート名 "reservations"）と入れ子 Stack のヘッダー「予約」で
-    **二重ヘッダー**になっていた。同じ重複が `/certificates` `/vehicles` にも存在
-  - 対処: 予約・会計は v2.0 §2 の正準5タブに含まれないため、タブから外してトップレベル Stack へ集約。
-    `(tabs)/reservations/` と `(tabs)/pos/` を削除（`pos/index.tsx` はトップレベルへ移動）、
-    到達不能だった `certificates/index.tsx` `vehicles/index.tsx` を削除
-- 再発防止: 戻るボタンを8つの `_layout.tsx` に手書きしていたのが取りこぼしの温床だったため、
-  `components/screenOptions.tsx` に `stackScreenOptions` として集約。各 Stack はこれを渡すだけ。
-- ヘッダーを持たない単体画面の修正: `notifications` `dashboard` はルート Stack が
-  `headerShown: false` で、Stack も持たないため**戻る導線が一切無かった**。個別にヘッダーを付与。
-- クイック作成（+）の死んだ導線を修正: 「予約作成」`/(tabs)/reservations/new`、
-  「作業開始」`/(tabs)/work/new` はいずれも**存在しないファイル**を指しており無反応だった。
-  `/reservations/new` と `/reservations/new?type=walk_in` に修正し、
-  `reservations/new.tsx` が `type` クエリで飛び込みを初期選択できるようにした。
-- 「その他」の死んだリンク6本を撤去: `/sync` `/help` `/feedback` `/about` `/settings/staff`
-  `/settings/general` は画面が存在せず無反応だった。`/contact` `/terms` `/privacy` は Web
-  （`app.ledra.co.jp`）に実在するため `Linking.openURL` で外部リンク化し、アイコンで区別。
-  代わりに実在する「NFCタグ台帳」「Tap to Pay」を追加。
-- タブバーの + は中央配置をやめ、右下の独立した FAB に戻した（代表の指示）。
-  タブ5枚では列内で中央に置けず、列の上に浮かせるとリスト行の中央に恒常的に重なるため。
-- 検証: 全ナビゲーション先（`route:` と `router.push/replace`）がファイルとして実在するかを
-  機械的に照合し、アプリ内リンクの欠落ゼロを確認。
-- 対象: `apps/mobile/src/components/screenOptions.tsx`（新規）、8つの `_layout.tsx`、
-  `app/_layout.tsx`、`(tabs)/_layout.tsx`、`(tabs)/index.tsx`、`(tabs)/more/index.tsx`、
-  `components/ui/QuickCreateSheet.tsx`、`reservations/new.tsx`、`notifications.tsx`。
-  削除: `(tabs)/reservations/`、`(tabs)/pos/`（`pos/index.tsx` へ移動）、
-  `certificates/index.tsx`、`vehicles/index.tsx`。
-- 注記: 撤去した6項目（Sync Center / ヘルプ / フィードバック / Ledraについて / スタッフ権限 /
-  各種設定）は**画面を実装したらメニューに戻す**。認証フロー7画面は前進のみの線形フローのため
-  戻るボタンは付けていない。
-
-## 2026-08-22 モバイル: 日付の UTC/ローカル不一致を解消、ルーティング再編の取りこぼしを修正
-
-- ルーティング再編（同日の別エントリ）に `/code-review` をかけて検出した分の修正。
-- **日付が朝9時前にずれる（4箇所）**: `toISOString().split("T")[0]` は UTC 日付を返すのに、
-  時刻や画面表示はローカルだった。JST 09:00 前は日付だけ前日になる。
-  - `reservations/new.tsx`: 飛び込み受付・予約作成が**前日の日付で登録される**（開店前受付が直撃）
-  - `reservations/index.tsx`: 見出しは今日なのにクエリは前日を引く（前回まで影に隠れていた画面）
-  - `(tabs)/index.tsx`: 同ファイルで `dayjs` を使っているのにここだけ UTC。今日の集計が前日になる
-  - 対処: 既存依存の `dayjs().format("YYYY-MM-DD")` に統一
-- **レジ管理を到達不能にしていた**: 「その他」の POS 導線を `/pos/register` から `/pos` に
-  変えた結果、レジの開設・締め画面へ行く手段が消えていた。専用行を復帰。
-  前回の検証が「リンク→ファイル」の一方向しか見ていなかったため検出できていなかった。
-- **孤立していた画面2つに導線追加**: `/nfc/scan`（NFCスキャン）と `/dashboard`
-  （店舗ダッシュボード）はどこからも開けなかった。「その他」に追加。
-- **ディープリンク直起動で戻るボタンが無反応**: `ledra://` スキームで直接起動すると履歴が空で
-  `router.back()` が何も起こさない。`canGoBack()` で分岐しホームへ戻すよう修正。
-- **Web リンクの env 取り違え**: `EXPO_PUBLIC_API_URL`（API ベース）を使っていた。
-  `settings/index.tsx` に既にある `EXPO_PUBLIC_WEB_URL` + フォールバック + `canOpenURL` の
-  パターンへ寄せ、失敗時は Snackbar で理由を出す（無反応で消えない）。
-- **タブ根4つのヘッダー体裁が不揃い**: 作業・その他が素の `Stack` で既定ヘッダーのままだった。
-  `tabStackScreenOptions` を追加して車両・証明と統一。
-- 「その他」の店舗カードは chevron を出しながら何も起きなかったため、店舗切替へ結線。
-- `@react-navigation/native-stack` の直 import をやめ、`Stack` の props から型を借用
-  （expo-router の推移的依存にしか無く、インストール方式によっては解決に失敗する）。
-- 検証: ナビゲーションを**双方向**で照合（リンク→ファイル / 画面→到達導線）。欠落・孤立ともゼロ。

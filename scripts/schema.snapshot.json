@@ -855,6 +855,7 @@
 "quality_fields_json",
 "remarks",
 "reservation_id",
+"job_order_id",
 "service_price",
 "service_type",
 "signed_at",
@@ -1036,6 +1037,24 @@
 "phone_last4",
 "revoked_at",
 "session_hash"
+],
+"customer_concerns": [
+"admin_response",
+"category",
+"certificate_id",
+"concern_text",
+"created_at",
+"customer_email",
+"customer_name",
+"id",
+"job_id",
+"resolved_at",
+"resolved_by",
+"source_token",
+"source_type",
+"status",
+"tenant_id",
+"updated_at"
 ],
 "customer_inquiries": [
 "admin_reply",
@@ -1370,6 +1389,18 @@
 "tenant_id",
 "vehicle_id"
 ],
+"email_otp_codes": [
+"attempts",
+"code_hash",
+"created_at",
+"email",
+"expires_at",
+"id",
+"purpose",
+"tenant_id",
+"used_at",
+"user_id"
+],
 "equipment_master": [
 "category",
 "created_at",
@@ -1675,15 +1706,6 @@
 "notes",
 "revoked_at",
 "tenant_id"
-],
-"insurer_tenant_accesses": [
-"created_at",
-"id",
-"insurer_id",
-"is_active",
-"is_enabled",
-"tenant_id",
-"updated_at"
 ],
 "insurer_tenant_contracts": [
 "contracted_at",
@@ -3225,6 +3247,17 @@
 "trigger_type",
 "triggered_by"
 ],
+"staff_link_invites": [
+"code_hash",
+"created_at",
+"created_by",
+"expires_at",
+"id",
+"redeemed_at",
+"redeemed_by_tenant_id",
+"staff_member_id",
+"tenant_id"
+],
 "staff_members": [
 "color",
 "commission_rate",
@@ -3233,6 +3266,7 @@
 "id",
 "is_active",
 "kind",
+"linked_tenant_id",
 "name",
 "note",
 "phone",
@@ -3838,6 +3872,13 @@
 "updated_at",
 "user_id",
 "visible_features"
+],
+"user_interface_preferences": [
+"display_mode",
+"onboarding_completed_at",
+"tenant_id",
+"updated_at",
+"user_id"
 ],
 "v_insurer_users_list": [
 "created_at",

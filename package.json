@@ -20,6 +20,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css}\"",
     "prepare": "husky",
     "demo:setup": "tsx scripts/setup-demo-agent.ts",
+    "screenshots": "tsx scripts/capture-screenshots.ts",
     "demo:setup-insurer": "tsx scripts/setup-demo-insurer.ts",
     "demo:setup-manufacturer": "tsx scripts/setup-demo-manufacturer.ts",
     "demo:setup-tenant": "tsx scripts/setup-demo-tenant.ts",
@@ -32,6 +33,8 @@
     "check:secrets-age": "tsx scripts/check-secrets-age.ts",
     "check:bundle-size": "node scripts/check-bundle-size.js",
     "check:schema": "node scripts/check-schema.mjs",
+    "check:context-dates": "node scripts/check-context-dates.mjs",
+    "check:resurrected": "bash scripts/check-resurrected-files.sh",
     "build:analyze": "ANALYZE=true next build",
     "db:typegen": "supabase gen types typescript --db-url \"${SUPABASE_DB_URL:?db-migrate.yml と同じ接続URIを設定してください}\" --schema public > src/types/db.generated.ts.tmp && mv src/types/db.generated.ts.tmp src/types/db.generated.ts"
   },

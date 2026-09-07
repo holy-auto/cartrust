@@ -13,6 +13,11 @@
 --      Stripe 側（payments_stripe_payment_intent_id_key）と同じ形にする ——
 --      決済は記録より先に完了しているので、記録の失敗をやり直したときに
 --      二重計上させないための最後の砦が DB 側にも要る。
+--
+-- 一意インデックスは CONCURRENTLY で別ファイル（直後のタイムスタンプ）に
+-- 分けてある。CONCURRENTLY はトランザクション内で実行できず、Supabase は
+-- マイグレーションを複数文まとめてパイプラインで送るため、同じファイルに
+-- 他の文と同居すると2文目以降が SQLSTATE 25001 で落ちる。
 -- ============================================================
 
 alter table public.square_connections
@@ -20,8 +25,3 @@ alter table public.square_connections
 
 alter table public.payments
   add column if not exists square_payment_id text;
-
--- 部分インデックス: 現金・カードなど Square を経由しない支払は NULL のため。
-create unique index concurrently if not exists payments_square_payment_id_key
-  on public.payments (square_payment_id)
-  where square_payment_id is not null;

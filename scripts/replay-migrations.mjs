@@ -14,13 +14,13 @@
  *
  * 何をするか:
  *   1. bootstrap.sql で Supabase が既定で持っているもの（auth/storage/ロール/拡張）を作る
- *   2. supabase/migrations/*.sql をファイル名順に流す
- *   3. 失敗したファイルは覚えておき、**進捗がある限り繰り返す**（順序の前後は多重パスで吸収）
- *   4. 何周しても通らないファイルを理由付きで報告する
+ *   2. supabase/migrations/*.sql を**ファイル名順に1パスで**流す
+ *   3. 1本でも落ちたら、そのファイルと理由を全部出して失敗させる
  *
- * ponytail: 多重パスは順序の誤りを「回避」するだけで直してはいない。上限は
- * 「同じファイルの中で前後関係が壊れている場合は何周しても通らない」こと。
- * 恒久対応は baseline 方式（docs/operations/migrations.md）。
+ * **1パスなのが要点。** Supabase のブランチ機能（PR ごとのプレビュー DB）は
+ * ファイル名順に1回だけ流すので、多重パスで通ることには意味が無い。
+ * 以前はここが多重パスで、順序の逆転を「吸収」していたため、Supabase Preview だけが
+ * 赤いのに CI は緑、という状態が続いていた（2026-09-03 に 203 本の順序逆転を解消）。
  */
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
@@ -41,31 +41,6 @@ const value = (name) => {
 
 const PG_BIN = process.env.PG_BIN ?? "/usr/lib/postgresql/16/bin";
 
-/**
- * 何周しても通らないことが分かっているファイル。**履歴を書き換えない限り直せない**もの。
- * 件数ではなくファイル名で持つ（件数だと「1本直って1本壊れた」を見逃す）。
- *
- * ここに載っている理由:
- *   - tenant_members: **一度も存在しなかったテーブル**を RLS ポリシーが参照している。
- *     正しくは tenant_memberships。本番でもこの2ファイルは失敗している
- *   - is_active: tenant_memberships に**本番にも無い列**を参照している
- *   - cannot change return type: 同じ関数を戻り値の型違いで2回定義しており、
- *     ファイル名の順序と依存関係が逆転している（1周目は前提テーブルがまだ無い）
- *   - cannot drop columns from view: 統合前の invoices を前提にしたビュー定義
- *
- * **新しく増えたら CI を落とす。** 減らす分には歓迎（この配列から消す）。
- */
-const KNOWN_UNREPLAYABLE = [
-  "20260313000001_dashboard_enhancements.sql",
-  "20260325900000_insurer_tenant_contracts.sql",
-  "20260325900001_insurer_search_plan_limits.sql",
-  "20260403000000_add_electronic_signature.sql",
-  "20260531000006_security_invoker_views.sql",
-  "20260603020000_zkp_commitments.sql",
-  "20260603020001_edge_devices_events.sql",
-  "20260604000001_vehicle_prediction_data_infra.sql",
-  "20260719000000_fix_rls_membership_references.sql",
-];
 const DUMP_TO = value("--dump");
 const KEEP = flag("--keep");
 
@@ -81,7 +56,7 @@ function pg(cmd) {
 
 /** 一時 PostgreSQL を立てる。DSN を渡された場合は何もしない */
 function startTempPostgres() {
-  const base = mkdtempSync(join("/var/tmp", "pgreplay-"));
+  const base = mkdtempSync(join(tmpdir(), "pgreplay-"));
   const data = join(base, "data");
   const port = 5000 + Math.floor(process.pid % 50000);
   const asPostgres = (cmd) => {
@@ -126,6 +101,68 @@ function runSql(dsn, file) {
   return line.replace(/^psql:[^:]+:\d+:\s*/, "").trim();
 }
 
+/**
+ * 役割を見ない RLS ポリシーが、役割別ポリシーを打ち消していないか検査する。
+ *
+ * PostgreSQL は同一コマンドの PERMISSIVE ポリシーを **OR** で評価する。役割で絞る
+ * ポリシーを足しても、テナント所属だけを見る古いポリシーが残っていれば絞り込みは
+ * 一度も効かない。2026-09-01 に本番で certificates / vehicles / vehicle_histories /
+ * nfc_tags / templates の計14組がこの状態にあり、viewer が作成・更新・削除できていた。
+ *
+ * なぜ再生 DB を見るのか: v2 系ポリシーは plpgsql の EXECUTE format() で名前もテーブルも
+ * 動的に組み立てられるため、マイグレーション本文の静的解析では拾えない（試して失敗した）。
+ * 実際に流した結果の pg_policies を見るのが唯一確実。
+ *
+ * `FOR ALL` は全コマンドに掛かるので各コマンドに展開する（コマンド別に数えると
+ * 取りこぼす。最初の調査で実際に取りこぼした）。
+ * 保険会社系（my_insurer_ids 等）は別主体の OR が正当なので対象外。
+ */
+function checkRlsPolicyNullification(dsn) {
+  const query = `
+    with pol as (
+      select tablename, policyname, cmd, coalesce(qual, with_check, '') as expr
+      from pg_policies where schemaname = 'public' and permissive = 'PERMISSIVE'
+    ), cmds(c) as (values ('INSERT'), ('UPDATE'), ('DELETE')),
+    app as (
+      select p.tablename, c.c as cmd, p.policyname, p.expr
+      from pol p join cmds c on p.cmd = c.c or p.cmd = 'ALL'
+    ), tagged as (
+      select tablename, cmd, policyname,
+        (expr ~ 'my_tenant_role|member_role_in_tenant') as role_aware,
+        (expr ~ 'my_tenant_ids|is_member_of_tenant|tenant_memberships') as tenant_scoped
+      from app
+    )
+    select tablename, cmd, string_agg(policyname, ' ' order by policyname) filter (where not role_aware)
+    from tagged where tenant_scoped
+    group by tablename, cmd
+    having count(*) filter (where role_aware) > 0 and count(*) filter (where not role_aware) > 0
+    order by 1, 2;`;
+  // クエリはファイル経由で渡す。pg() は sh -c を通すので、-c に複数行の文字列を直接
+  // 渡すと改行がリテラルの \n になり psql のメタコマンドとして解釈される。
+  const qfile = join(tmpdir(), `rlscheck-${process.pid}.sql`);
+  writeFileSync(qfile, query);
+  let rows;
+  try {
+    const [bin, args] = pg(`psql "${dsn}" -A -t -F"|" -q -f ${qfile}`);
+    const r = spawnSync(bin, args, { encoding: "utf8" });
+    if (r.status !== 0) return { error: `${r.stderr ?? ""}`.trim().split("\n")[0] };
+    rows = `${r.stdout ?? ""}`
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .map((l) => {
+        const [table, cmd, names] = l.split("|");
+        return { table, cmd, names: (names ?? "").split(" ").filter(Boolean) };
+      });
+  } finally {
+    rmSync(qfile, { force: true });
+  }
+
+  // 1パスなので、後で DROP されたポリシーは最終状態の pg_policies に残らない。
+  // （多重パスだった頃は CREATE と DROP の順序が入れ替わり、除外処理が要った）
+  return { rows: rows.map((row) => `${row.table}.${row.cmd} : ${row.names.join(", ")}`) };
+}
+
 function main() {
   const files = readdirSync(MIGRATIONS)
     .filter((f) => f.endsWith(".sql"))
@@ -146,63 +183,41 @@ function main() {
       process.exit(1);
     }
 
-    let remaining = files.map((f) => ({ file: f, error: null }));
-    let pass = 0;
-    const applied = [];
-
-    // 進捗がある限り回す。順序の前後は多重パスで吸収する
-    while (remaining.length > 0) {
-      pass += 1;
-      const next = [];
-      for (const item of remaining) {
-        const err = runSql(dsn, join(MIGRATIONS, item.file));
-        if (err === null) applied.push(item.file);
-        // 最初のエラーを覚えておく。多重パスだと後から流れたファイルの副作用で
-        // エラーが変わり（「戻り値の型は変えられない」など）、本当の原因が隠れる
-        else next.push({ file: item.file, error: err, firstError: item.firstError ?? err });
-      }
-      const progress = remaining.length - next.length;
-      console.log(`pass ${pass}: 適用 ${progress} 件 / 残り ${next.length} 件`);
-      remaining = next;
-      if (progress === 0) break;
+    // ファイル名順に1回だけ流す。Supabase のブランチ機能と同じ条件。
+    // 落ちても止めずに最後まで進み、落ちたものを全部出す（1本ずつ直すのは遅い）。
+    const failed = [];
+    for (const file of files) {
+      const err = runSql(dsn, join(MIGRATIONS, file));
+      if (err !== null) failed.push({ file, error: err });
     }
 
-    console.log("");
-    console.log(`適用できたファイル: ${applied.length} / ${files.length}`);
+    console.log(`適用できたファイル: ${files.length - failed.length} / ${files.length}`);
 
-    if (remaining.length > 0) {
-      console.log(`\n何周しても通らないファイル ${remaining.length} 件:`);
-      for (const { file, error, firstError } of remaining) {
-        const known = KNOWN_UNREPLAYABLE.includes(file) ? "（既知）" : "★新規★";
-        console.log(`  - ${known} ${file}\n      ${error}`);
-        if (firstError && firstError !== error) console.log(`      （1周目: ${firstError}）`);
-      }
-    }
-
-    // 既知の一覧との差分だけを合否にする。既知が減っていたら一覧を更新させる
-    const failed = remaining.map((r) => r.file);
-    const unexpected = failed.filter((f) => !KNOWN_UNREPLAYABLE.includes(f));
-    const fixed = KNOWN_UNREPLAYABLE.filter((f) => !failed.includes(f));
-
-    if (unexpected.length > 0) {
-      console.log(`\n❌ 新しく再生できなくなったファイルが ${unexpected.length} 件あります:`);
-      for (const f of unexpected) console.log(`  - ${f}`);
-      console.log("\n新しいマイグレーションは空 DB から再生できる必要があります。");
-      console.log("既存ファイルへの依存で落ちている場合は、依存先を同じファイル内で作るか、");
-      console.log("本番にしか無いオブジェクトなら repair マイグレーションに足してください。");
+    if (failed.length > 0) {
+      console.log(`\n❌ ファイル名順に1パスで流すと ${failed.length} 件落ちます:`);
+      for (const { file, error } of failed) console.log(`  - ${file}\n      ${error}`);
+      console.log("\nSupabase のブランチ機能はこの順で1回だけ流すので、ここが赤いと");
+      console.log("プレビュー DB は作られません。前提は同じファイルの中で作るか、");
+      console.log("前提が無いときに飛ばして別ファイルで補ってください");
+      console.log("（新しいファイルは作らない。適用済みファイルの末尾に足す）。");
+      console.log("\n（スキーマが未完成なので RLS ポリシー検査は行いません）");
       process.exitCode = 1;
       return;
     }
-    if (fixed.length > 0) {
-      console.log(`\n✅ 再生できるようになったファイルが ${fixed.length} 件あります。`);
-      console.log("scripts/replay-migrations.mjs の KNOWN_UNREPLAYABLE から消してください:");
-      for (const f of fixed) console.log(`  - ${f}`);
+
+    // RLS: 役割別ポリシーが役割を見ないポリシーに打ち消されていないか
+    const rls = checkRlsPolicyNullification(dsn);
+    if (rls.error) {
+      console.log(`\n⚠️ RLS ポリシー検査を実行できませんでした: ${rls.error}`);
+    } else if (rls.rows.length > 0) {
+      console.log(`\n❌ 役割を見ない RLS ポリシーが役割別ポリシーを打ち消しています（${rls.rows.length} 組）:`);
+      for (const row of rls.rows) console.log(`  - ${row}`);
+      console.log("\nPERMISSIVE ポリシーは OR で評価されます。役割で絞るポリシーを足すときは、");
+      console.log("同じテーブル・同じコマンドの古い（役割を見ない）ポリシーを DROP してください。");
       process.exitCode = 1;
       return;
-    }
-    if (remaining.length > 0) {
-      console.log(`\n再生 OK（既知の ${remaining.length} 件を除く。増減なし）`);
-      return;
+    } else {
+      console.log("RLS ポリシー検査: 打ち消しなし");
     }
 
     if (DUMP_TO) {
