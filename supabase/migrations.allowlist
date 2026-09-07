@@ -255,3 +255,17 @@
 # 原文を書き換えても本番には反映されず desync するだけ。
 # documents は全48行で ACCESS EXCLUSIVE ロックは一瞬。
 20260906094735_documents_public_id_index.sql
+
+# Allowlisted for migration-version-before-base-head.
+# この2本は 2026-09-06 に apply_migration で**本番へ直接適用済み**
+# （台帳: 20260906094512 documents_public_id / 20260906094735 documents_public_id_index）。
+# ファイル名は本番の記録バージョンと一致させてある。
+#
+# 改名してはならない。改名すると「本番に適用済みなのに main にファイルが無い」
+# （不変条件1）が残って db-migrate が赤のままになり、さらに本番の最新適用版が
+# 繰り上がって #1020 の 20260906100000〜100003（未適用）が不変条件2に引っかかる。
+# main 側も #1042 でこの2本には触れないと決めている（DECISION_LOG 2026-09-06）。
+#
+# 版が base の最新より前でも、本番では既に適用済みなので db push は飛ばす。
+# out-of-order は起きない。
+20260906094512_documents_public_id.sql
