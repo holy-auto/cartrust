@@ -3,11 +3,13 @@
 -- **本番の定義そのまま**書き起こす。同日の drop ファイルで消す分は含めない。
 --
 -- 経緯（OPEN_QUESTIONS / DECISION_LOG 2026-09-06）:
---   本番 public とマイグレーションを突き合わせたら、69 個が未管理だった。
+--   本番 public とマイグレーションを突き合わせたら、**63 個**が未管理だった
+--   （棚卸し時は 69 と報告したが、試作の検出器がマイグレーションの字面を
+--   正規表現で読んでおり、動的 SQL で作られるトリガ 6 本を誤検出していた）。
 --   内訳と処遇:
 --     テーブル 23 → 全部 drop（20260906230000）
 --     関数     24 → 7 本 drop、**17 本をここで書き起こす**
---     トリガ   15 → 4 本は drop 対象の表の上、2 本も同じ、**9 本をここ**
+--     トリガ    9 → 6 本は drop 対象の表の上なので、**3 本をここ**
 --     ビュー    1 → ここ（`v_insurer_users_list`）
 --     enum 型   5 → ここ（マイグレーションに `CREATE TYPE` が1本も無かった）
 --     イベントトリガ 1 → ここ（`ensure_rls`。新規テーブルに RLS を自動で有効化する）
@@ -483,8 +485,16 @@ grant  execute on function public.rls_auto_enable() to service_role;
 
 -- ── 4. ビュー ──────────────────────────────────────────────
 -- `get_auth_email_scoped` は 20260826000005 が書き起こしている。
--- ここもリテラル（トリガと同じ理由）。前提が無ければ再生がその場で落ちる。
-create or replace view public.v_insurer_users_list as
+--
+-- **`with (security_invoker = on)` は必須。** `create or replace view` は
+-- reloptions を**引き継がず消す**（PostgreSQL 16 で実測: 付けずに置き換えると
+-- `security_invoker=on` が消えて `(オプション無し)` になる）。
+-- 消すと呼び出し元ではなく**所有者の権限**で走るようになり、
+-- `insurer_users` の RLS を迂回して**全保険会社のユーザーとメールアドレスが
+-- 見える**。20260531000006 が本番の 4 ビューすべてに付けた設定なので、
+-- 定義を書き起こすこちらが黙って剥がしてはいけない。
+create or replace view public.v_insurer_users_list
+  with (security_invoker = on) as
   select
     id as insurer_user_id,
     insurer_id,
@@ -501,35 +511,17 @@ create or replace view public.v_insurer_users_list as
 -- ── 5. トリガ ──────────────────────────────────────────────
 -- `create or replace trigger` は PostgreSQL 14 以降。本番は 17、CI の再生は 16。
 --
--- **わざとリテラルで書く。** 動的 SQL（`execute format(...)`）で回すと、
---   (1) 土台のテーブルが無いときに黙って飛ばしても再生検査は緑のまま、
---   (2) トリガ名がファイルの字面に出ないので、下のドリフト検出器
---       （`scripts/check-schema-drift.mjs`）から見えない。
--- 9 本を並べて書けば、土台が無ければ再生がその場で落ちる。
-create or replace trigger trg_agent_campaigns_updated_at
-  before update on public.agent_campaigns
-  for each row execute function public.set_updated_at();
-
-create or replace trigger trg_agent_faqs_updated_at
-  before update on public.agent_faqs
-  for each row execute function public.set_updated_at();
-
-create or replace trigger trg_agent_invoices_updated_at
-  before update on public.agent_invoices
-  for each row execute function public.set_updated_at();
-
-create or replace trigger trg_agent_support_tickets_updated_at
-  before update on public.agent_support_tickets
-  for each row execute function public.set_updated_at();
-
-create or replace trigger trg_agent_training_courses_updated_at
-  before update on public.agent_training_courses
-  for each row execute function public.set_updated_at();
-
-create or replace trigger trg_agent_training_progress_updated_at
-  before update on public.agent_training_progress
-  for each row execute function public.set_updated_at();
-
+-- **3 本だけ。** 最初は 9 本書いていたが、うち 6 本
+-- （`trg_agent_{campaigns,faqs,invoices,support_tickets,training_courses,
+-- training_progress}_updated_at`）は `20260324120000_agent_features.sql` が
+-- **動的 SQL（`execute format`）で既に作っていた**。
+-- 棚卸しに使った試作の検出器がマイグレーションの**字面**を正規表現で読んでいたため、
+-- 動的に作られるこの 6 本を「未管理」と誤検出していた（PR #1045 のレビュー指摘）。
+-- 本番の検出器（`scripts/check-schema-drift.mjs`）は**再生した DB の pg_dump**を
+-- 読むのでこの取りこぼしが無い。
+--
+-- リテラルで書くのは、土台のテーブルが無いときに黙って飛ばさず
+-- 再生がその場で落ちるようにするため。
 create or replace trigger trg_nfc_tags_set_updated_at
   before update on public.nfc_tags
   for each row execute function public.set_updated_at();

@@ -87,7 +87,13 @@ drop function if exists public.insurer_is_active_subscription(uuid);
 -- 3 本ある（`set_updated_at` / `handle_updated_at` / これ）うちの1本で、
 -- 使っていたトリガ 4 本が**全部この削除対象テーブルの上**にあった。
 -- 上の drop table で 4 本とも消えるので、ここで完全に孤立する。
--- （`handle_updated_at` は `job_orders` のトリガが残るので消さない）
+-- `handle_updated_at` のほうは消さない。**本番の `trg_job_orders_updated_at` が
+-- これを呼んでいる**（実測）。ただしそのトリガを作る
+-- `20260317000004_job_orders.sql` は `set_updated_at()` で作っており、
+-- **同じ名前のトリガが本番と再生 DB で違う関数を呼んでいる**。
+-- 中身はどちらも `NEW.updated_at = now()` なので挙動は同じだが、定義は食い違う。
+-- 名前だけを見るドリフト検出器ではこの差は出ない（検出器の上限。
+-- OPEN_QUESTIONS「本番と migrations で列の型が違う」の項に併記）。
 drop function if exists public.update_updated_at_column();
 
 -- ── 4. 呼び出せない overload ────────────────────────────────

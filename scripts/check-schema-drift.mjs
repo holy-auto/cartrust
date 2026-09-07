@@ -6,8 +6,8 @@
  * マイグレーションからは作られないオブジェクト**を出す。
  *
  * なぜ要るか（2026-09-06 の棚卸し）:
- *   本番 public に、テーブル23・ビュー1・関数24・トリガ15・enum型5・
- *   イベントトリガ1 の計 69 個が、マイグレーションに定義を持たないまま存在していた。
+ *   本番 public に、テーブル23・ビュー1・関数24・トリガ9・enum型5・
+ *   イベントトリガ1 の計 63 個が、マイグレーションに定義を持たないまま存在していた。
  *   うち関数5本は 26 本の RLS ポリシーから使われており、**マイグレーションだけから
  *   作った DB は本番と同じ権限判定をしない**状態だった。
  *
@@ -100,7 +100,10 @@ const dumped = (re) => new Set([...dump.matchAll(re)].map((m) => m[1].replace(/"
 const replayed = {
   table: dumped(/^CREATE (?:UNLOGGED )?TABLE public\.([\w"]+)/gm),
   view: dumped(/^CREATE (?:MATERIALIZED )?VIEW public\.([\w"]+)/gm),
-  function: dumped(/^CREATE FUNCTION public\.([\w"]+)\s*\(/gm),
+  // pg_dump は関数もプロシージャも集約も別々のキーワードで書き出す。本番側は
+  // `pg_proc` を prokind で絞らずに引くので、ここで拾い漏らすと**永久に消えない
+  // 幻のドリフト**になる。3種とも拾う。
+  function: dumped(/^CREATE (?:FUNCTION|PROCEDURE|AGGREGATE) public\.([\w"]+)\s*\(/gm),
   trigger: dumped(/^CREATE (?:OR REPLACE )?(?:CONSTRAINT )?TRIGGER ([\w"]+)/gm),
   enum: dumped(/^CREATE TYPE public\.([\w"]+) AS ENUM/gm),
 };
@@ -128,22 +131,37 @@ const NEGATIVE = {
   enum: ["plan_tier_enum"],
   event_trigger: ["ensure_rls"],
 };
+/** 本番側の名前のうち、再生 DB に無いものを返す。**本番の比較もここを通る。** */
+const missingFrom = (kind, prodNames) =>
+  prodNames.filter((n) => !replayed[kind].has(String(n).toLowerCase()));
+
+const FAKE = "zzz_definitely_not_created_zzz";
+let negativeCount = 0;
+let positiveCount = 0;
 for (const [kind, controls] of Object.entries(NEGATIVE)) {
+  // 陰性対照: 再生 DB に必ずあるものが「無い」と出てはいけない。
   for (const c of controls) {
-    if (!replayed[kind].has(c)) {
+    if (missingFrom(kind, [c]).length !== 0) {
       console.error(
         `[drift] 陰性対照が落ちました: ${kind} の ${c} が再生 DB から拾えていません。` +
           " 検出器か対照のどちらかが間違っています（両方を疑ってください）。",
       );
       process.exit(1);
     }
+    negativeCount += 1;
   }
-  if (replayed[kind].has("zzz_definitely_not_created_zzz")) {
-    console.error(`[drift] 陽性対照が落ちました: ${kind} で架空の名前が「作られている」判定になりました。`);
+  // 陽性対照: **比較そのもの**に架空の名前を通す。集合へ `has` を問うだけだと
+  // 「集合に無いものは無い」を確かめるだけで必ず通り、比較が壊れていても
+  // OK と出てしまう（PR #1045 のレビュー指摘）。本番と同じ経路を通す。
+  if (missingFrom(kind, [FAKE]).length !== 1) {
+    console.error(`[drift] 陽性対照が落ちました: ${kind} で架空の名前を検出できませんでした。`);
     process.exit(1);
   }
+  positiveCount += 1;
 }
-console.log("[drift] 検出器の自己検証: 陰性対照 10 件 / 陽性対照 6 件 いずれも OK");
+console.log(
+  `[drift] 検出器の自己検証: 陰性対照 ${negativeCount} 件 / 陽性対照 ${positiveCount} 件 いずれも OK`,
+);
 
 // ── 3. 本番を引く ───────────────────────────────────────────
 const prod = {
@@ -152,7 +170,13 @@ const prod = {
       "select c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind in ('r','p') order by 1",
     ),
   ),
-  view: names(await query("select table_name from information_schema.views where table_schema='public' order by 1")),
+  // `information_schema.views` はマテリアライズドビューを含まないので pg_class を引く
+  // （'v' 通常ビュー / 'm' マテビュー。今は 0 件だが、増えたときに黙って見逃さない）。
+  view: names(
+    await query(
+      "select c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind in ('v','m') order by 1",
+    ),
+  ),
   // 拡張機能が持ち込んだ関数は「マイグレーションで作るもの」ではないので除く。
   function: names(
     await query(
@@ -192,7 +216,7 @@ const LABEL = {
 let total = 0;
 console.log("");
 for (const kind of Object.keys(LABEL)) {
-  const missing = prod[kind].filter((n) => !replayed[kind].has(String(n).toLowerCase()));
+  const missing = missingFrom(kind, prod[kind]);
   total += missing.length;
   console.log(`[drift] ${LABEL[kind]}: 本番 ${prod[kind].length} 件 / マイグレーションから作られない ${missing.length} 件`);
   for (const n of missing) console.log(`         - ${n}`);
