@@ -855,6 +855,7 @@
 "quality_fields_json",
 "remarks",
 "reservation_id",
+"job_order_id",
 "service_price",
 "service_type",
 "signed_at",
@@ -1705,15 +1706,6 @@
 "notes",
 "revoked_at",
 "tenant_id"
-],
-"insurer_tenant_accesses": [
-"created_at",
-"id",
-"insurer_id",
-"is_active",
-"is_enabled",
-"tenant_id",
-"updated_at"
 ],
 "insurer_tenant_contracts": [
 "contracted_at",
@@ -3253,6 +3245,17 @@
 "trigger_type",
 "triggered_by"
 ],
+"staff_link_invites": [
+"code_hash",
+"created_at",
+"created_by",
+"expires_at",
+"id",
+"redeemed_at",
+"redeemed_by_tenant_id",
+"staff_member_id",
+"tenant_id"
+],
 "staff_members": [
 "color",
 "commission_rate",
@@ -3261,6 +3264,7 @@
 "id",
 "is_active",
 "kind",
+"linked_tenant_id",
 "name",
 "note",
 "phone",

@@ -14,13 +14,13 @@
  *
  * 何をするか:
  *   1. bootstrap.sql で Supabase が既定で持っているもの（auth/storage/ロール/拡張）を作る
- *   2. supabase/migrations/*.sql をファイル名順に流す
- *   3. 失敗したファイルは覚えておき、**進捗がある限り繰り返す**（順序の前後は多重パスで吸収）
- *   4. 何周しても通らないファイルを理由付きで報告する
+ *   2. supabase/migrations/*.sql を**ファイル名順に1パスで**流す
+ *   3. 1本でも落ちたら、そのファイルと理由を全部出して失敗させる
  *
- * ponytail: 多重パスは順序の誤りを「回避」するだけで直してはいない。上限は
- * 「同じファイルの中で前後関係が壊れている場合は何周しても通らない」こと。
- * 恒久対応は baseline 方式（docs/operations/migrations.md）。
+ * **1パスなのが要点。** Supabase のブランチ機能（PR ごとのプレビュー DB）は
+ * ファイル名順に1回だけ流すので、多重パスで通ることには意味が無い。
+ * 以前はここが多重パスで、順序の逆転を「吸収」していたため、Supabase Preview だけが
+ * 赤いのに CI は緑、という状態が続いていた（2026-09-03 に 203 本の順序逆転を解消）。
  */
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
@@ -41,31 +41,6 @@ const value = (name) => {
 
 const PG_BIN = process.env.PG_BIN ?? "/usr/lib/postgresql/16/bin";
 
-/**
- * 何周しても通らないことが分かっているファイル。**履歴を書き換えない限り直せない**もの。
- * 件数ではなくファイル名で持つ（件数だと「1本直って1本壊れた」を見逃す）。
- *
- * ここに載っている理由:
- *   - tenant_members: **一度も存在しなかったテーブル**を RLS ポリシーが参照している。
- *     正しくは tenant_memberships。本番でもこの2ファイルは失敗している
- *   - is_active: tenant_memberships に**本番にも無い列**を参照している
- *   - cannot change return type: 同じ関数を戻り値の型違いで2回定義しており、
- *     ファイル名の順序と依存関係が逆転している（1周目は前提テーブルがまだ無い）
- *   - cannot drop columns from view: 統合前の invoices を前提にしたビュー定義
- *
- * **新しく増えたら CI を落とす。** 減らす分には歓迎（この配列から消す）。
- */
-const KNOWN_UNREPLAYABLE = [
-  "20260313000001_dashboard_enhancements.sql",
-  "20260325900000_insurer_tenant_contracts.sql",
-  "20260325900001_insurer_search_plan_limits.sql",
-  "20260403000000_add_electronic_signature.sql",
-  "20260531000006_security_invoker_views.sql",
-  "20260603020000_zkp_commitments.sql",
-  "20260603020001_edge_devices_events.sql",
-  "20260604000001_vehicle_prediction_data_infra.sql",
-  "20260719000000_fix_rls_membership_references.sql",
-];
 const DUMP_TO = value("--dump");
 const KEEP = flag("--keep");
 
@@ -127,98 +102,136 @@ function runSql(dsn, file) {
 }
 
 /**
- * `SET search_path = ''` の SECURITY DEFINER 関数が、本体でスキーマ非修飾の
- * テーブルを参照していないか。
+ * 役割を見ない RLS ポリシーが、役割別ポリシーを打ち消していないか検査する。
  *
- * search_path が空だと非修飾の識別子は解決できないので、この形の関数は
- * **呼ぶと必ず 42P01 で落ちる**。しかも落ちるのは実行時なので、マイグレーションは
- * 通るし型検査も素通りする —— 実際 `insurer_accessible_tenant_ids` と
- * `is_pii_disclosed` が本番で壊れたまま5か月気づかれなかった
+ * PostgreSQL は同一コマンドの PERMISSIVE ポリシーを **OR** で評価する。役割で絞る
+ * ポリシーを足しても、テナント所属だけを見る古いポリシーが残っていれば絞り込みは
+ * 一度も効かない。2026-09-01 に本番で certificates / vehicles / vehicle_histories /
+ * nfc_tags / templates の計14組がこの状態にあり、viewer が作成・更新・削除できていた。
+ *
+ * なぜ再生 DB を見るのか: v2 系ポリシーは plpgsql の EXECUTE format() で名前もテーブルも
+ * 動的に組み立てられるため、マイグレーション本文の静的解析では拾えない（試して失敗した）。
+ * 実際に流した結果の pg_policies を見るのが唯一確実。
+ *
+ * `FOR ALL` は全コマンドに掛かるので各コマンドに展開する（コマンド別に数えると
+ * 取りこぼす。最初の調査で実際に取りこぼした）。
+ * 保険会社系（my_insurer_ids 等）は別主体の OR が正当なので対象外。
+ */
+function checkRlsPolicyNullification(dsn) {
+  const query = `
+    with pol as (
+      select tablename, policyname, cmd, coalesce(qual, with_check, '') as expr
+      from pg_policies where schemaname = 'public' and permissive = 'PERMISSIVE'
+    ), cmds(c) as (values ('INSERT'), ('UPDATE'), ('DELETE')),
+    app as (
+      select p.tablename, c.c as cmd, p.policyname, p.expr
+      from pol p join cmds c on p.cmd = c.c or p.cmd = 'ALL'
+    ), tagged as (
+      select tablename, cmd, policyname,
+        (expr ~ 'my_tenant_role|member_role_in_tenant') as role_aware,
+        (expr ~ 'my_tenant_ids|is_member_of_tenant|tenant_memberships') as tenant_scoped
+      from app
+    )
+    select tablename, cmd, string_agg(policyname, ' ' order by policyname) filter (where not role_aware)
+    from tagged where tenant_scoped
+    group by tablename, cmd
+    having count(*) filter (where role_aware) > 0 and count(*) filter (where not role_aware) > 0
+    order by 1, 2;`;
+  // クエリはファイル経由で渡す。pg() は sh -c を通すので、-c に複数行の文字列を直接
+  // 渡すと改行がリテラルの \n になり psql のメタコマンドとして解釈される。
+  const qfile = join(tmpdir(), `rlscheck-${process.pid}.sql`);
+  writeFileSync(qfile, query);
+  let rows;
+  try {
+    const [bin, args] = pg(`psql "${dsn}" -A -t -F"|" -q -f ${qfile}`);
+    const r = spawnSync(bin, args, { encoding: "utf8" });
+    if (r.status !== 0) return { error: `${r.stderr ?? ""}`.trim().split("\n")[0] };
+    rows = `${r.stdout ?? ""}`
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .map((l) => {
+        const [table, cmd, names] = l.split("|");
+        return { table, cmd, names: (names ?? "").split(" ").filter(Boolean) };
+      });
+  } finally {
+    rmSync(qfile, { force: true });
+  }
+
+  // 1パスなので、後で DROP されたポリシーは最終状態の pg_policies に残らない。
+  // （多重パスだった頃は CREATE と DROP の順序が入れ替わり、除外処理が要った）
+  return { rows: rows.map((row) => `${row.table}.${row.cmd} : ${row.names.join(", ")}`) };
+}
+
+/** psql に SQL を1本流して stdout を返す。失敗なら null。クエリはファイル経由（pg() は sh -c を通すため）。 */
+function psqlRun(dsn, sql) {
+  const f = join(tmpdir(), `qualref-${process.pid}.sql`);
+  writeFileSync(f, sql);
+  try {
+    const [bin, args] = pg(`psql "${dsn}" -A -t -q -f ${f}`);
+    const r = spawnSync(bin, args, { encoding: "utf8" });
+    return r.status === 0 ? `${r.stdout ?? ""}` : null;
+  } finally {
+    rmSync(f, { force: true });
+  }
+}
+
+/**
+ * `SET search_path = ''` の SECURITY DEFINER 関数が、本体でスキーマ非修飾の
+ * テーブルを参照していないか検査する。
+ *
+ * search_path が空だと非修飾の識別子は解決できないので、この形の関数は**呼ぶと
+ * 必ず 42P01 で落ちる**。落ちるのは実行時なので、マイグレーションは通り型検査も
+ * 素通りする —— 実際 `insurer_accessible_tenant_ids` と `is_pii_disclosed` が
+ * 本番で壊れたまま気づかれず、保険会社ポータルの検索3本が動かなくなっていた
  * （20260404000000 が search_path を締めたとき、本体の修飾を忘れた）。
+ *
+ * この形は CREATE では作れない（`check_function_bodies` が本体を検証して弾く）。
+ * 入り込む経路は「正常に作ったあとで ALTER FUNCTION ... SET search_path=''」だけで、
+ * ALTER は本体を再検証しない。自己検査もその経路で作る。
  *
  * ponytail: FROM/JOIN/INTO/UPDATE の直後の識別子だけを見る単純な走査。CTE や
  * 関数呼び出しも拾うが、public に同名の実体があるものだけに絞るので誤検知は
  * 実用上出ない。上限は「動的 SQL の中の参照は見えない」こと。
  */
 const QUALREF_SCAN = `
-  WITH f AS (
-    SELECT p.oid, p.proname, pg_get_functiondef(p.oid) AS def
-    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-    WHERE n.nspname = 'public' AND p.prosecdef
-      AND 'search_path=""' = ANY(coalesce(p.proconfig, '{}'))
-  ), refs AS (
-    SELECT f.proname, lower(m[1]) AS rel
-    FROM f, regexp_matches(f.def, '(?i)(?:\\mfrom|\\mjoin|\\minto|\\mupdate)[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)', 'g') AS m
+  with f as (
+    select p.oid, p.proname, pg_get_functiondef(p.oid) as def
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.prosecdef
+      and 'search_path=""' = any(coalesce(p.proconfig, '{}'))
+  ), refs as (
+    select f.proname, lower(m[1]) as rel
+    from f, regexp_matches(f.def, '(?i)(?:\\mfrom|\\mjoin|\\minto|\\mupdate)[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)', 'g') as m
   )
-  SELECT r.proname || ' -> ' || string_agg(DISTINCT r.rel, ', ' ORDER BY r.rel)
-  FROM refs r
-  JOIN pg_class c ON c.relname = r.rel
-  JOIN pg_namespace cn ON cn.oid = c.relnamespace AND cn.nspname = 'public'
-  GROUP BY r.proname ORDER BY 1;
-`.replace(/\s+/g, " ");
+  select r.proname || ' -> ' || string_agg(distinct r.rel, ', ' order by r.rel)
+  from refs r
+  join pg_class c on c.relname = r.rel
+  join pg_namespace cn on cn.oid = c.relnamespace and cn.nspname = 'public'
+  group by r.proname order by 1;`;
 
-/** psql に SQL を1つ渡して stdout を返す。失敗なら null。 */
-function psqlCapture(dsn, sql, quiet = true) {
-  const [bin, args] = pg(`psql "${dsn}" -Atq ${quiet ? "" : ""}-c "${sql.replace(/"/g, '\\"')}"`);
-  const r = spawnSync(bin, args, { encoding: "utf8" });
-  if (r.status !== 0) return null;
-  return `${r.stdout ?? ""}`;
-}
-
-/**
- * `SET search_path = ''` の SECURITY DEFINER 関数が、本体でスキーマ非修飾の
- * テーブルを参照していないか。
- *
- * search_path が空だと非修飾の識別子は解決できないので、この形の関数は
- * **呼ぶと必ず 42P01 で落ちる**。しかも落ちるのは実行時なので、マイグレーションは
- * 通るし型検査も素通りする —— 実際 `insurer_accessible_tenant_ids` と
- * `is_pii_disclosed` が本番で壊れたまま気づかれず、保険会社ポータルの検索3本が
- * 動かなくなっていた（20260404000000 が search_path を締めたとき、本体の修飾を
- * 忘れた）。
- *
- * この形は CREATE では作れない（`check_function_bodies` が本体を検証して弾く）。
- * 入り込む経路は「正常に作ったあとで ALTER FUNCTION ... SET search_path=''」だけ。
- * 自己検査もその経路で作る。
- *
- * ponytail: FROM/JOIN/INTO/UPDATE の直後の識別子だけを見る単純な走査。CTE や
- * 関数呼び出しも拾うが、public に同名の実体があるものだけに絞るので誤検知は
- * 実用上出ない。上限は「動的 SQL の中の参照は見えない」こと。
- */
 function checkQualifiedRefs(dsn) {
   // 検査が空振りしていないことの確認。わざと壊した関数を1本作って、拾えるか見る。
   const probe = [
-    "CREATE TABLE public.__qualref_probe(id int);",
-    "CREATE FUNCTION public.__qualref_probe_fn() RETURNS SETOF int LANGUAGE sql STABLE SECURITY DEFINER AS 'SELECT id FROM __qualref_probe';",
-    "ALTER FUNCTION public.__qualref_probe_fn() SET search_path = '';",
-  ].join(" ");
-  const cleanup = "DROP FUNCTION IF EXISTS public.__qualref_probe_fn(); DROP TABLE IF EXISTS public.__qualref_probe;";
+    "create table public.__qualref_probe(id int);",
+    "create function public.__qualref_probe_fn() returns setof int language sql stable security definer as 'select id from __qualref_probe';",
+    "alter function public.__qualref_probe_fn() set search_path = '';",
+  ].join("\n");
+  const cleanup = "drop function if exists public.__qualref_probe_fn();\ndrop table if exists public.__qualref_probe;";
 
   try {
-    if (psqlCapture(dsn, probe) === null) {
-      console.log("\n非修飾参照の検査を準備できませんでした（probe の作成に失敗）");
-      return false;
-    }
-    const probed = psqlCapture(dsn, QUALREF_SCAN);
+    if (psqlRun(dsn, probe) === null) return { error: "probe の作成に失敗しました" };
+    const probed = psqlRun(dsn, QUALREF_SCAN);
     if (probed === null || !probed.includes("__qualref_probe_fn")) {
-      console.log("\n非修飾参照の検査が機能していません（わざと壊した関数を検出できませんでした）");
-      return false;
+      return { error: "わざと壊した関数を検出できませんでした（検査が機能していません）" };
     }
   } finally {
-    psqlCapture(dsn, cleanup);
+    psqlRun(dsn, cleanup);
   }
 
-  const out = psqlCapture(dsn, QUALREF_SCAN);
-  if (out === null) {
-    console.log("\n非修飾参照の検査を実行できませんでした");
-    return false;
-  }
-  const hits = out.trim().split("\n").filter(Boolean);
-  if (hits.length === 0) return true;
-
-  console.log("\n❌ search_path='' の SECURITY DEFINER 関数が非修飾のテーブルを参照しています（呼ぶと 42P01 で落ちます）:");
-  for (const h of hits) console.log(`  - ${h}`);
-  console.log("本体の参照を public. で修飾してください。");
-  return false;
+  const out = psqlRun(dsn, QUALREF_SCAN);
+  if (out === null) return { error: "走査クエリを実行できませんでした" };
+  return { rows: out.trim().split("\n").map((l) => l.trim()).filter(Boolean) };
 }
 
 function main() {
@@ -241,69 +254,57 @@ function main() {
       process.exit(1);
     }
 
-    let remaining = files.map((f) => ({ file: f, error: null }));
-    let pass = 0;
-    const applied = [];
-
-    // 進捗がある限り回す。順序の前後は多重パスで吸収する
-    while (remaining.length > 0) {
-      pass += 1;
-      const next = [];
-      for (const item of remaining) {
-        const err = runSql(dsn, join(MIGRATIONS, item.file));
-        if (err === null) applied.push(item.file);
-        // 最初のエラーを覚えておく。多重パスだと後から流れたファイルの副作用で
-        // エラーが変わり（「戻り値の型は変えられない」など）、本当の原因が隠れる
-        else next.push({ file: item.file, error: err, firstError: item.firstError ?? err });
-      }
-      const progress = remaining.length - next.length;
-      console.log(`pass ${pass}: 適用 ${progress} 件 / 残り ${next.length} 件`);
-      remaining = next;
-      if (progress === 0) break;
+    // ファイル名順に1回だけ流す。Supabase のブランチ機能と同じ条件。
+    // 落ちても止めずに最後まで進み、落ちたものを全部出す（1本ずつ直すのは遅い）。
+    const failed = [];
+    for (const file of files) {
+      const err = runSql(dsn, join(MIGRATIONS, file));
+      if (err !== null) failed.push({ file, error: err });
     }
 
-    console.log("");
-    console.log(`適用できたファイル: ${applied.length} / ${files.length}`);
+    console.log(`適用できたファイル: ${files.length - failed.length} / ${files.length}`);
 
-    if (remaining.length > 0) {
-      console.log(`\n何周しても通らないファイル ${remaining.length} 件:`);
-      for (const { file, error, firstError } of remaining) {
-        const known = KNOWN_UNREPLAYABLE.includes(file) ? "（既知）" : "★新規★";
-        console.log(`  - ${known} ${file}\n      ${error}`);
-        if (firstError && firstError !== error) console.log(`      （1周目: ${firstError}）`);
-      }
-    }
-
-    // 既知の一覧との差分だけを合否にする。既知が減っていたら一覧を更新させる
-    const failed = remaining.map((r) => r.file);
-    const unexpected = failed.filter((f) => !KNOWN_UNREPLAYABLE.includes(f));
-    const fixed = KNOWN_UNREPLAYABLE.filter((f) => !failed.includes(f));
-
-    if (unexpected.length > 0) {
-      console.log(`\n❌ 新しく再生できなくなったファイルが ${unexpected.length} 件あります:`);
-      for (const f of unexpected) console.log(`  - ${f}`);
-      console.log("\n新しいマイグレーションは空 DB から再生できる必要があります。");
-      console.log("既存ファイルへの依存で落ちている場合は、依存先を同じファイル内で作るか、");
-      console.log("本番にしか無いオブジェクトなら repair マイグレーションに足してください。");
+    if (failed.length > 0) {
+      console.log(`\n❌ ファイル名順に1パスで流すと ${failed.length} 件落ちます:`);
+      for (const { file, error } of failed) console.log(`  - ${file}\n      ${error}`);
+      console.log("\nSupabase のブランチ機能はこの順で1回だけ流すので、ここが赤いと");
+      console.log("プレビュー DB は作られません。前提は同じファイルの中で作るか、");
+      console.log("前提が無いときに飛ばして別ファイルで補ってください");
+      console.log("（新しいファイルは作らない。適用済みファイルの末尾に足す）。");
+      console.log("\n（スキーマが未完成なので RLS ポリシー検査は行いません）");
       process.exitCode = 1;
       return;
     }
-    if (fixed.length > 0) {
-      console.log(`\n✅ 再生できるようになったファイルが ${fixed.length} 件あります。`);
-      console.log("scripts/replay-migrations.mjs の KNOWN_UNREPLAYABLE から消してください:");
-      for (const f of fixed) console.log(`  - ${f}`);
+
+    // RLS: 役割別ポリシーが役割を見ないポリシーに打ち消されていないか
+    const rls = checkRlsPolicyNullification(dsn);
+    if (rls.error) {
+      console.log(`\n⚠️ RLS ポリシー検査を実行できませんでした: ${rls.error}`);
+    } else if (rls.rows.length > 0) {
+      console.log(`\n❌ 役割を見ない RLS ポリシーが役割別ポリシーを打ち消しています（${rls.rows.length} 組）:`);
+      for (const row of rls.rows) console.log(`  - ${row}`);
+      console.log("\nPERMISSIVE ポリシーは OR で評価されます。役割で絞るポリシーを足すときは、");
+      console.log("同じテーブル・同じコマンドの古い（役割を見ない）ポリシーを DROP してください。");
       process.exitCode = 1;
       return;
-    }
-    if (remaining.length > 0) {
-      console.log(`\n再生 OK（既知の ${remaining.length} 件を除く。増減なし）`);
-      if (!checkQualifiedRefs(dsn)) process.exitCode = 1;
-      return;
+    } else {
+      console.log("RLS ポリシー検査: 打ち消しなし");
     }
 
-    if (!checkQualifiedRefs(dsn)) {
+    // search_path='' の SECURITY DEFINER 関数が、本体で非修飾のテーブルを参照していないか
+    const qualref = checkQualifiedRefs(dsn);
+    if (qualref.error) {
+      console.log(`\n⚠️ 非修飾参照の検査を実行できませんでした: ${qualref.error}`);
       process.exitCode = 1;
       return;
+    } else if (qualref.rows.length > 0) {
+      console.log(`\n❌ search_path='' の SECURITY DEFINER 関数が非修飾のテーブルを参照しています（${qualref.rows.length} 本）:`);
+      for (const row of qualref.rows) console.log(`  - ${row}`);
+      console.log("\n呼ぶと 42P01 で落ちます。本体の参照を public. で修飾してください。");
+      process.exitCode = 1;
+      return;
+    } else {
+      console.log("非修飾参照の検査: 該当なし");
     }
 
     if (DUMP_TO) {
