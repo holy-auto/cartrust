@@ -238,25 +238,38 @@ const QUALREF_SCAN = `
   rollback;`;
 
 function checkQualifiedRefs(dsn) {
-  // 検査が空振りしていないことの確認。本番と同じ経路（作ってから ALTER）で
-  // わざと壊した関数を1本作り、拾えることを確かめてから本走査に移る。
+  // 検査が空振りしていないことの確認。**陽性と陰性を対で置く**（MISTAKE_LEDGER M-048)。
+  // 陽性だけ置いた版は、健全な関数のコメントに書かれた `from ...` を参照と誤認して
+  // CI を落とす誤検知に気づけなかった。
+  //
+  // 陽性: 本番と同じ経路（正常に作ってから ALTER）で壊した関数 → 検出されねばならない
+  // 陰性: 本体は完全修飾で、コメントにだけ紛らわしい `from` がある → 検出されてはならない
   const probe = [
     "create table public.__qualref_probe(id int);",
-    "create function public.__qualref_probe_fn() returns setof int language sql stable security definer as 'select id from __qualref_probe';",
-    "alter function public.__qualref_probe_fn() set search_path = '';",
+    "create function public.__qualref_bad_fn() returns setof int language sql stable security definer as 'select id from __qualref_probe';",
+    "alter function public.__qualref_bad_fn() set search_path = '';",
+    "create function public.__qualref_ok_fn() returns setof int language sql stable security definer as $p$ -- read from __qualref_probe then join it\n select id from public.__qualref_probe; $p$;",
+    "alter function public.__qualref_ok_fn() set search_path = '';",
   ].join("\n");
-  const cleanup = "drop function if exists public.__qualref_probe_fn();\ndrop table if exists public.__qualref_probe;";
+  const cleanup = [
+    "drop function if exists public.__qualref_bad_fn();",
+    "drop function if exists public.__qualref_ok_fn();",
+    "drop table if exists public.__qualref_probe;",
+  ].join("\n");
 
   try {
     const made = psqlRun(dsn, probe);
     if (made.error) return { error: `probe を作れませんでした: ${made.error}` };
     const probed = psqlRun(dsn, QUALREF_SCAN);
     if (probed.error) return { error: `probe 走査に失敗しました: ${probed.error}` };
-    if (!probed.out.includes("__qualref_probe_fn")) {
+    if (!probed.out.includes("__qualref_bad_fn")) {
       return { error: "わざと壊した関数を検出できませんでした（検査が機能していません）" };
     }
+    if (probed.out.includes("__qualref_ok_fn")) {
+      return { error: "健全な関数を誤検出しました（検査が厳しすぎます）" };
+    }
   } finally {
-    // 消し損ねると、本走査が __qualref_probe_fn を「壊れた関数」として報告し、
+    // 消し損ねると、本走査が __qualref_bad_fn を「壊れた関数」として報告し、
     // リポジトリのどこにも無い名前で CI が落ちる。失敗は握りつぶさない。
     const cleaned = psqlRun(dsn, cleanup);
     if (cleaned.error) console.log(`\n⚠️ probe の後始末に失敗しました: ${cleaned.error}`);
